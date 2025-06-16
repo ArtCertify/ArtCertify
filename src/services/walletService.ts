@@ -228,7 +228,7 @@ class WalletService {
    */
   private decodeNote(note: string): string {
     try {
-      return Buffer.from(note, 'base64').toString('utf-8');
+      return atob(note);
     } catch {
       return note;
     }

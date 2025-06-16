@@ -121,13 +121,13 @@ class AlgorandService {
           metadataHash: assetInfo.params.metadataHash ? 
             (typeof assetInfo.params.metadataHash === 'string' ? 
               assetInfo.params.metadataHash : 
-              Buffer.from(assetInfo.params.metadataHash).toString('base64')
+              btoa(String.fromCharCode(...new Uint8Array(assetInfo.params.metadataHash)))
             ) : undefined,
           name: assetInfo.params.name || `Asset ${assetIdNum}`,
           nameB64: assetInfo.params.nameB64 ? 
             (typeof assetInfo.params.nameB64 === 'string' ? 
               assetInfo.params.nameB64 : 
-              Buffer.from(assetInfo.params.nameB64).toString('base64')
+              btoa(String.fromCharCode(...new Uint8Array(assetInfo.params.nameB64)))
             ) : undefined,
           reserve: assetInfo.params.reserve,
           total: assetInfo.params.total,
@@ -135,13 +135,13 @@ class AlgorandService {
           unitNameB64: assetInfo.params.unitNameB64 ? 
             (typeof assetInfo.params.unitNameB64 === 'string' ? 
               assetInfo.params.unitNameB64 : 
-              Buffer.from(assetInfo.params.unitNameB64).toString('base64')
+              btoa(String.fromCharCode(...new Uint8Array(assetInfo.params.unitNameB64)))
             ) : undefined,
           url: assetInfo.params.url,
           urlB64: assetInfo.params.urlB64 ? 
             (typeof assetInfo.params.urlB64 === 'string' ? 
               assetInfo.params.urlB64 : 
-              Buffer.from(assetInfo.params.urlB64).toString('base64')
+              btoa(String.fromCharCode(...new Uint8Array(assetInfo.params.urlB64)))
             ) : undefined,
           clawback: assetInfo.params.clawback,
           freeze: assetInfo.params.freeze
