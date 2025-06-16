@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkeletonHeader, SkeletonGrid, SkeletonCard, SkeletonMetadata, SkeletonVersioning } from './Skeleton';
+import { SkeletonHeader, SkeletonGrid, SkeletonMetadata, SkeletonVersioning } from './Skeleton';
 
 export const AssetDetailsSkeleton: React.FC = () => {
   return (
@@ -8,12 +8,15 @@ export const AssetDetailsSkeleton: React.FC = () => {
       <SkeletonHeader />
       
       {/* Main Content Skeleton */}
-      <SkeletonCard>
+      <div className="bg-slate-800 rounded-lg p-6 animate-pulse">
         <SkeletonGrid cols={3} rows={2} />
-      </SkeletonCard>
+      </div>
       
       {/* Description Skeleton */}
-      <SkeletonCard />
+      <div className="bg-slate-800 rounded-lg p-6 animate-pulse">
+        <div className="h-4 bg-slate-600 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-slate-600 rounded w-1/2"></div>
+      </div>
       
       {/* NFT Metadata e Versioning Grid Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -22,9 +25,9 @@ export const AssetDetailsSkeleton: React.FC = () => {
       </div>
       
       {/* Technical Metadata Skeleton */}
-      <SkeletonCard>
+      <div className="bg-slate-800 rounded-lg p-6 animate-pulse">
         <SkeletonGrid cols={2} rows={3} />
-      </SkeletonCard>
+      </div>
     </div>
   );
 }; 

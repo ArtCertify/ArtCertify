@@ -1,5 +1,4 @@
 import React from 'react';
-import { CodeBracketIcon, HashtagIcon, ClockIcon, LinkIcon } from '@heroicons/react/24/outline';
 import { Card } from '../ui';
 import Badge from '../ui/Badge';
 import { CidDecoder } from '../../services/cidDecoder';
@@ -37,8 +36,8 @@ const TechnicalMetadata: React.FC<TechnicalMetadataProps> = ({ asset }) => {
     },
     {
       label: 'Default Frozen',
-      value: asset.params['default-frozen'],
-      type: 'boolean'
+      value: asset.params.defaultFrozen,
+      type: 'boolean' as const
     },
     {
       label: 'Created At Round',
@@ -175,8 +174,8 @@ const TechnicalMetadata: React.FC<TechnicalMetadataProps> = ({ asset }) => {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500">Frozen by Default</span>
-            <Badge variant={asset.params['default-frozen'] ? 'warning' : 'success'}>
-              {asset.params['default-frozen'] ? 'Frozen' : 'Unfrozen'}
+            <Badge variant={asset.params.defaultFrozen ? 'warning' : 'success'}>
+              {asset.params.defaultFrozen ? 'Frozen' : 'Unfrozen'}
             </Badge>
           </div>
           {asset.params.manager && (
