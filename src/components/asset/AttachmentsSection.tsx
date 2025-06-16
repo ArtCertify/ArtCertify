@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PlusIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
-import { Card, Button, LoadingSpinner } from '../ui';
+import { Card } from '../ui';
 import ModifyAttachmentsModal from '../modals/ModifyAttachmentsModal';
-import { CidDecoder } from '../../services/cidDecoder';
 import type { AssetInfo } from '../../services/algorand';
 
 interface AttachmentsSectionProps {

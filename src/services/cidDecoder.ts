@@ -1,5 +1,5 @@
-import { encodeAddress, decodeAddress } from 'algosdk';
-import { config } from '../config/environment';
+import * as algosdk from 'algosdk';
+const { decodeAddress, encodeAddress } = algosdk;
 
 export interface DecodingResult {
   success: boolean;
@@ -35,10 +35,7 @@ export interface AssetConfigTransaction {
 
 export class CidDecoder {
   
-  // Gateway Pinata v1 per CID (configurabile via environment)
-  private static get PINATA_GATEWAY(): string {
-    return config.pinataGateway;
-  }
+
   
   /**
    * Decodifica un reserve address secondo lo standard ARC-0019 per ottenere il CID IPFS
@@ -341,10 +338,9 @@ export class CidDecoder {
       
       // Try different possible timestamp field names
       const timestamp = correspondingTxn ? (
-        correspondingTxn.roundTime || 
-        correspondingTxn['round-time'] || 
-        correspondingTxn.confirmedRound || 
-        correspondingTxn['confirmed-round'] ||
+        (correspondingTxn as any).roundTime || 
+        (correspondingTxn as any)['round-time'] || 
+        (correspondingTxn as any).confirmedRound || 
         (correspondingTxn as any)['confirmed-round']
       ) : null;
       
@@ -485,8 +481,8 @@ export class CidDecoder {
       return changes;
     }
 
-    const current = configHistory[currentIndex].assetConfigTransaction?.params;
-    const previous = configHistory[currentIndex - 1].assetConfigTransaction?.params;
+    const current = (configHistory[currentIndex] as any)['asset-config-transaction']?.params;
+    const previous = (configHistory[currentIndex - 1] as any)['asset-config-transaction']?.params;
 
     if (!current || !previous) return changes;
 

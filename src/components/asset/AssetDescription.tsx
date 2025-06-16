@@ -43,12 +43,17 @@ const AssetDescription: React.FC<AssetDescriptionProps> = ({ asset }) => {
           </div>
         )}
         
-        {asset.params['metadata-hash'] && (
+        {/* Metadata Hash */}
+        {asset.params.metadataHash && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Metadata Hash</h4>
-            <p className="text-gray-900 font-mono text-sm break-all">
-              {asset.params['metadata-hash']}
-            </p>
+            <label className="block text-sm font-medium text-slate-400 mb-2">
+              Metadata Hash
+            </label>
+            <div className="bg-slate-700 rounded p-3">
+              <p className="text-white font-mono text-sm break-all">
+                {asset.params.metadataHash}
+              </p>
+            </div>
           </div>
         )}
       </div>

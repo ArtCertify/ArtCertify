@@ -172,7 +172,7 @@ const AssetDetailsPage: React.FC = () => {
               </label>
               <div className="bg-slate-700 rounded p-3">
                 <p className="text-white font-mono text-sm break-all">
-                  {asset.creationTransaction?.id || 'Non disponibile'}
+                  {(asset.creationTransaction as any)?.id || 'Non disponibile'}
                 </p>
               </div>
             </div>
@@ -288,18 +288,18 @@ const AssetDetailsPage: React.FC = () => {
                 )}
 
                 {/* CID Info */}
-                {asset.currentCidInfo && asset.currentCidInfo.success && (
+                {asset.currentCidInfo && (asset.currentCidInfo as any).success && (
                   <div>
                     <p className="text-sm font-medium text-slate-400 mb-1">CID IPFS:</p>
                     <div className="bg-slate-700 p-2 rounded">
                       <a 
-                        href={asset.currentCidInfo.gatewayUrl} 
+                        href={(asset.currentCidInfo as any).gatewayUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-400 hover:text-blue-300 font-mono text-xs break-all underline"
                         title="Clicca per visualizzare su IPFS"
                       >
-                        {asset.currentCidInfo.cid}
+                        {(asset.currentCidInfo as any).cid}
                       </a>
                     </div>
                   </div>
@@ -309,17 +309,17 @@ const AssetDetailsPage: React.FC = () => {
               <div className="bg-slate-700 p-4 rounded">
                 <p className="text-slate-400 text-sm">Nessun metadata NFT disponibile</p>
                 {/* Fallback: mostra CID se disponibile */}
-                {asset.currentCidInfo && asset.currentCidInfo.success ? (
+                {asset.currentCidInfo && (asset.currentCidInfo as any).success ? (
                   <div className="mt-3">
                     <p className="text-xs text-slate-500 mb-1">CID IPFS:</p>
                     <a 
-                      href={asset.currentCidInfo.gatewayUrl} 
+                      href={(asset.currentCidInfo as any).gatewayUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-400 hover:text-blue-300 font-mono text-xs break-all underline"
                       title="Clicca per visualizzare su IPFS"
                     >
-                      {asset.currentCidInfo.cid}
+                      {(asset.currentCidInfo as any).cid}
                     </a>
                   </div>
                 ) : asset.params.reserve && (
@@ -377,7 +377,13 @@ const AssetDetailsPage: React.FC = () => {
                 </label>
                 <div className="bg-slate-700 rounded p-3">
                   <p className="text-white font-mono text-sm break-all">
-                    {formatHash(asset.params.metadataHash)}
+                    {formatHash(
+                      typeof asset.params.metadataHash === 'string' 
+                        ? asset.params.metadataHash 
+                        : asset.params.metadataHash 
+                          ? Buffer.from(asset.params.metadataHash).toString('hex')
+                          : undefined
+                    )}
                   </p>
                 </div>
               </div>
@@ -427,9 +433,9 @@ const AssetDetailsPage: React.FC = () => {
                 >
                   Visualizza Creatore su Explorer →
                 </a>
-                {asset.creationTransaction?.id && (
+                {(asset.creationTransaction as any)?.id && (
                   <a 
-                    href={algorandService.getTransactionExplorerUrl(asset.creationTransaction.id)} 
+                    href={algorandService.getTransactionExplorerUrl((asset.creationTransaction as any).id)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="block text-blue-400 hover:text-blue-300 text-sm"

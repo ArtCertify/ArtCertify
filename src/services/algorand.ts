@@ -1,22 +1,21 @@
-import algosdk from 'algosdk';
-import { CidDecoder } from './cidDecoder';
+import * as algosdk from 'algosdk';
 import { config } from '../config/environment';
-import type { AssetConfigTransaction } from './cidDecoder';
+import { CidDecoder } from './cidDecoder';
 
 export interface AssetParams {
   creator: string;
   decimals: number;
-  defaultFrozen: boolean;
+  defaultFrozen?: boolean;
   manager?: string;
-  metadataHash?: string;
+  metadataHash?: string | Uint8Array;
   name?: string;
-  nameB64?: string;
+  nameB64?: string | Uint8Array;
   reserve?: string;
   total: bigint;
   unitName?: string;
-  unitNameB64?: string;
+  unitNameB64?: string | Uint8Array;
   url?: string;
-  urlB64?: string;
+  urlB64?: string | Uint8Array;
   clawback?: string;
   freeze?: string;
 }
@@ -40,7 +39,7 @@ export interface AssetInfo {
   'deleted-at-round'?: number;
   // Enhanced fields with CID decoding
   creationTransaction?: unknown;
-  configHistory?: AssetConfigTransaction[];
+  configHistory?: any[];
   versioningInfo?: unknown[];
   currentReserveInfo?: string;
   currentCidInfo?: unknown;
@@ -117,22 +116,38 @@ class AlgorandService {
         params: {
           creator: assetInfo.params.creator,
           decimals: assetInfo.params.decimals,
-          defaultFrozen: assetInfo.params.defaultFrozen || false,
+          defaultFrozen: assetInfo.params.defaultFrozen ?? false,
           manager: assetInfo.params.manager,
-          metadataHash: assetInfo.params.metadataHash,
+          metadataHash: assetInfo.params.metadataHash ? 
+            (typeof assetInfo.params.metadataHash === 'string' ? 
+              assetInfo.params.metadataHash : 
+              Buffer.from(assetInfo.params.metadataHash).toString('base64')
+            ) : undefined,
           name: assetInfo.params.name || `Asset ${assetIdNum}`,
-          nameB64: assetInfo.params.nameB64,
+          nameB64: assetInfo.params.nameB64 ? 
+            (typeof assetInfo.params.nameB64 === 'string' ? 
+              assetInfo.params.nameB64 : 
+              Buffer.from(assetInfo.params.nameB64).toString('base64')
+            ) : undefined,
           reserve: assetInfo.params.reserve,
           total: assetInfo.params.total,
           unitName: assetInfo.params.unitName,
-          unitNameB64: assetInfo.params.unitNameB64,
+          unitNameB64: assetInfo.params.unitNameB64 ? 
+            (typeof assetInfo.params.unitNameB64 === 'string' ? 
+              assetInfo.params.unitNameB64 : 
+              Buffer.from(assetInfo.params.unitNameB64).toString('base64')
+            ) : undefined,
           url: assetInfo.params.url,
-          urlB64: assetInfo.params.urlB64,
+          urlB64: assetInfo.params.urlB64 ? 
+            (typeof assetInfo.params.urlB64 === 'string' ? 
+              assetInfo.params.urlB64 : 
+              Buffer.from(assetInfo.params.urlB64).toString('base64')
+            ) : undefined,
           clawback: assetInfo.params.clawback,
           freeze: assetInfo.params.freeze
         },
-        'created-at-round': assetInfo['created-at-round'],
-        'deleted-at-round': assetInfo['deleted-at-round'],
+        'created-at-round': (assetInfo as any)['created-at-round'],
+        'deleted-at-round': (assetInfo as any)['deleted-at-round'],
         creationTransaction: creationTxn,
         configHistory: configHistory,
         versioningInfo: versioningInfo,
@@ -334,7 +349,7 @@ class AlgorandService {
     }
   }
 
-  private async getAssetConfigHistory(assetId: number): Promise<AssetConfigTransaction[]> {
+  private async getAssetConfigHistory(assetId: number): Promise<any[]> {
     try {
       const response = await this.indexerClient
         .searchForTransactions()
