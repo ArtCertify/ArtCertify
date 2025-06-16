@@ -5,7 +5,6 @@ import ErrorMessage from './ui/ErrorMessage';
 import { AssetDetailsSkeleton } from './ui/AssetDetailsSkeleton';
 import { VersioningSection } from './VersioningSection';
 import { algorandService } from '../services/algorand';
-import { config } from '../config/environment';
 import type { AssetInfo } from '../services/algorand';
 
 const AssetDetailsPage: React.FC = () => {
@@ -14,11 +13,17 @@ const AssetDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Default asset ID if none provided in URL (from environment config)
-  const targetAssetId = assetId || config.defaultAssetId;
+  // Require asset ID in URL
+  const targetAssetId = assetId;
 
   useEffect(() => {
     const fetchAsset = async () => {
+      if (!targetAssetId) {
+        setError('Asset ID is required');
+        setLoading(false);
+        return;
+      }
+      
       try {
         setLoading(true);
         setError(null);
