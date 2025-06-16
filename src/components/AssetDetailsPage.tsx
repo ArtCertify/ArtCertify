@@ -381,7 +381,9 @@ const AssetDetailsPage: React.FC = () => {
                       typeof asset.params.metadataHash === 'string' 
                         ? asset.params.metadataHash 
                         : asset.params.metadataHash 
-                          ? Buffer.from(asset.params.metadataHash).toString('hex')
+                          ? Array.from(new Uint8Array(asset.params.metadataHash))
+                              .map(b => b.toString(16).padStart(2, '0'))
+                              .join('')
                           : undefined
                     )}
                   </p>
