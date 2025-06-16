@@ -41,7 +41,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       
       onLogin(address.trim());
       navigate('/');
-    } catch (err) {
+    } catch {
       setError('Errore durante l\'accesso. Riprova.');
     } finally {
       setIsLoading(false);
@@ -59,7 +59,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center p-1">
+            <div className="w-10 h-10 flex items-center justify-center">
               <img src="/logo.png" alt="ArtCertify Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-2xl font-bold text-white">ArtCertify</span>
