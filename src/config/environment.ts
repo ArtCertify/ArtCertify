@@ -17,35 +17,13 @@ const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
   return value || '';
 };
 
-// Helper function to parse array from environment variable
-const getEnvArray = (key: string, fallback: string[] = []): string[] => {
-  try {
-    const value = getEnvVar(key, true);
-    if (!value) return fallback;
-    
-    // Support both comma-separated and JSON array formats
-    if (value.startsWith('[') && value.endsWith(']')) {
-      return JSON.parse(value);
-    } else {
-      return value.split(',').map(item => item.trim()).filter(item => item.length > 0);
-    }
-  } catch (error) {
-    console.warn(`Failed to parse array from ${key}, using fallback:`, error);
-    return fallback;
-  }
-};
+
 
 // Environment configuration - ALL VALUES MUST COME FROM .env
 export const config = {
   // Pinata IPFS Gateway
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY'),
-  
-  // Default Asset ID for testing
-  defaultAssetId: getEnvVar('VITE_DEFAULT_ASSET_ID'),
-  
-  // Array of Asset IDs for certificates list
-  assetIds: getEnvArray('VITE_ASSET_IDS', [getEnvVar('VITE_DEFAULT_ASSET_ID')]),
-  
+
   // Algorand Network
   algorandNetwork: getEnvVar('VITE_ALGORAND_NETWORK'),
   
@@ -68,8 +46,6 @@ export const validateConfig = () => {
   try {
     // Try to access all config values - this will throw if any are missing
     // Using void to suppress linter warnings about unused expressions
-    void config.pinataGateway;
-    void config.defaultAssetId;
     void config.algorandNetwork;
     void config.algod.token;
     void config.algod.server;
@@ -91,9 +67,6 @@ export const logConfig = () => {
   // Only log in production to reduce console noise during development
   if (import.meta.env.MODE === 'production') {
     console.log('🔧 Current Configuration:');
-    console.log('  Pinata Gateway:', config.pinataGateway);
-    console.log('  Default Asset ID:', config.defaultAssetId);
-    console.log('  Asset IDs:', config.assetIds);
     console.log('  Algorand Network:', config.algorandNetwork);
     console.log('  Algod Server:', config.algod.server);
     console.log('  Indexer Server:', config.indexer.server);

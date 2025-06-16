@@ -264,10 +264,8 @@ export class CidDecoder {
    * Legge ricorsivamente le versioni precedenti dal campo prev_version
    */
   static async readVersionHistory(cid: string): Promise<any[]> {
-    // Skip IPFS calls in development to avoid CORS and timeout errors
-    if (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'development') {
-      return []; // Return empty array in development mode
-    }
+    // Skip IPFS calls to avoid CORS and timeout errors
+    return []; // Return empty array to avoid CORS issues
 
     const versions: any[] = [];
     let currentCid = cid;

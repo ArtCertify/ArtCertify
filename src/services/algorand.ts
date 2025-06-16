@@ -165,162 +165,27 @@ class AlgorandService {
   }
 
   private async extractDescription(params: AssetParams): Promise<string> {
-    // Skip IPFS calls in development to avoid CORS and timeout errors
-    if (import.meta.env.MODE === 'development') {
-      return params.name || 'Nessuna descrizione disponibile (modalità sviluppo).';
-    }
-
-    // 1. Try to get description from reserve address (CID)
-    if (params.reserve) {
-      
-      try {
-        // Use the new ARC-0019 CID decoder
-        const cidResult = CidDecoder.decodeReserveAddressToCid(params.reserve);
-        
-        if (cidResult.success && cidResult.gatewayUrl) {
-          
-          try {
-            const response = await fetch(cidResult.gatewayUrl);
-            if (response.ok) {
-              const contentType = response.headers.get('content-type');
-              
-              // Try to parse as JSON first
-              if (contentType && contentType.includes('application/json')) {
-                const metadata = await response.json();
-                if (metadata.description) {
-                  return metadata.description;
-                }
-              }
-              
-              // Try as plain text
-              const textContent = await response.text();
-              if (textContent && textContent.length > 10 && textContent.length < 5000) {
-                return textContent.trim();
-              }
-            }
-          } catch (e) {
-            // Failed to fetch from IPFS gateway
-          }
-        }
-      } catch (e) {
-        // Failed to decode reserve address
-      }
-    }
-
-    // 2. Try to fetch from URL if it's a metadata URL
-    if (params.url && this.isValidUrl(params.url)) {
-      try {
-        const response = await fetch(params.url);
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const metadata = await response.json();
-            if (metadata.description) {
-              return metadata.description;
-            }
-          }
-        }
-      } catch (e) {
-        // Failed to fetch from URL
-      }
-    }
-
-    // 3. Try to decode from name or unit name if they contain meaningful text
-    if (params.name && params.name.length > 10) {
+    // Skip IPFS calls to avoid CORS and timeout errors
+    // Return basic description from asset parameters only
+    if (params.name && params.name.length > 3) {
       return params.name;
     }
-
-    // No description found
+    
     return 'Nessuna descrizione disponibile per questo asset.';
   }
 
   private async extractNftMetadata(params: AssetParams): Promise<NftMetadata> {
     const metadata: NftMetadata = {};
 
-    // Skip IPFS calls in development to avoid CORS and timeout errors
-    if (import.meta.env.MODE === 'development') {
-      // Return basic metadata from asset params only
-      if (params.name) metadata.name = params.name;
-      if (params.unitName) metadata.description = `Unit: ${params.unitName}`;
-      return metadata;
-    }
-
-    // 1. Try to get metadata from reserve address (CID)
-    if (params.reserve) {
-      
-      try {
-        const cidResult = CidDecoder.decodeReserveAddressToCid(params.reserve);
-        
-        if (cidResult.success && cidResult.cid) {
-          try {
-            const gatewayUrl = `https://${cidResult.cid}.ipfs.dweb.link/`;
-            const response = await fetch(gatewayUrl);
-            if (response.ok) {
-              const contentType = response.headers.get('content-type');
-              
-              if (contentType && contentType.includes('application/json')) {
-                const jsonMetadata = await response.json();
-                
-                // Map standard NFT metadata fields
-                if (jsonMetadata.name) metadata.name = jsonMetadata.name;
-                if (jsonMetadata.description) metadata.description = jsonMetadata.description;
-                if (jsonMetadata.image) metadata.image = jsonMetadata.image;
-                if (jsonMetadata.external_url) metadata.external_url = jsonMetadata.external_url;
-                if (jsonMetadata.attributes) metadata.attributes = jsonMetadata.attributes;
-                if (jsonMetadata.properties) metadata.properties = jsonMetadata.properties;
-                
-                return metadata;
-              }
-            }
-                      } catch (e) {
-              // Failed to fetch metadata from IPFS gateway
-            }
-          }
-        } catch (e) {
-          // Failed to decode reserve address for metadata
-        }
-      }
-
-      // 2. Try to get metadata from URL
-      if (params.url && this.isValidUrl(params.url)) {
-      try {
-        const response = await fetch(params.url);
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const jsonMetadata = await response.json();
-            
-            // Map standard NFT metadata fields
-            if (jsonMetadata.name) metadata.name = jsonMetadata.name;
-            if (jsonMetadata.description) metadata.description = jsonMetadata.description;
-            if (jsonMetadata.image) metadata.image = jsonMetadata.image;
-            if (jsonMetadata.external_url) metadata.external_url = jsonMetadata.external_url;
-            if (jsonMetadata.attributes) metadata.attributes = jsonMetadata.attributes;
-            if (jsonMetadata.properties) metadata.properties = jsonMetadata.properties;
-            
-            return metadata;
-          }
-        }
-      } catch (e) {
-        // Failed to fetch metadata from URL
-      }
-    }
-
-    // 3. Fallback to asset params
+    // Skip IPFS calls to avoid CORS and timeout errors
+    // Return basic metadata from asset params only
     if (params.name) metadata.name = params.name;
     if (params.unitName) metadata.description = `Unit: ${params.unitName}`;
 
     return metadata;
   }
 
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return !url.includes('template-') && !url.includes('{') && !url.includes('}');
-    } catch {
-      return false;
-    }
-  }
+
 
   private async getAssetCreationTransaction(assetId: number): Promise<unknown> {
     try {
