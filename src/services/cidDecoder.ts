@@ -263,61 +263,9 @@ export class CidDecoder {
   /**
    * Legge ricorsivamente le versioni precedenti dal campo prev_version
    */
-  static async readVersionHistory(cid: string): Promise<any[]> {
+  static async readVersionHistory(_cid: string): Promise<any[]> {
     // Skip IPFS calls to avoid CORS and timeout errors
     return []; // Return empty array to avoid CORS issues
-
-    const versions: any[] = [];
-    let currentCid = cid;
-    let depth = 0;
-    const maxDepth = 10; // Limite per evitare loop infiniti
-
-    while (currentCid && depth < maxDepth) {
-      try {
-        const gatewayUrl = `https://${currentCid}.ipfs.dweb.link/`;
-        const response = await fetch(gatewayUrl);
-        
-        if (!response.ok) {
-          break;
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          break;
-        }
-
-        const metadata = await response.json();
-        
-        // Aggiungi questa versione alla lista
-        versions.push({
-          cid: currentCid,
-          gatewayUrl: gatewayUrl,
-          metadata: metadata,
-          version: depth + 1
-        });
-
-        // Cerca la versione precedente
-        const prevVersion = metadata.properties?.prev_version;
-        if (prevVersion && typeof prevVersion === 'string') {
-          // Estrai il CID dall'URL IPFS
-          if (prevVersion.startsWith('ipfs://')) {
-            currentCid = prevVersion.replace('ipfs://', '');
-          } else {
-            currentCid = prevVersion;
-          }
-        } else {
-          // Nessuna versione precedente trovata
-          break;
-        }
-
-        depth++;
-      } catch (error) {
-        // Errore nel fetch, interrompi la ricerca
-        break;
-      }
-    }
-
-    return versions;
   }
 
   /**
