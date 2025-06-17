@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import { ErrorMessage, Button, Card, Tooltip } from './ui';
+import { ErrorMessage, Button, Card, Tooltip, TabsContainer } from './ui';
 import { walletService, type WalletInfo, type WalletTransaction } from '../services/walletService';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -443,18 +443,36 @@ export const WalletPage: React.FC = () => {
     );
   }
 
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Bilancio',
+      content: (
+        <div className="space-y-4">
+          {state.walletInfo?.assets && state.walletInfo.assets.length > 0 && renderAssets()}
+        </div>
+      )
+    },
+    {
+      id: 'transactions',
+      label: 'Transazioni',
+      content: renderTransactions()
+    },
+    {
+      id: 'assets',
+      label: 'Certificazioni',
+      content: renderAssets()
+    }
+  ];
+
   return (
     <ResponsiveLayout title="Gestione Wallet">
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-page-title text-white">Gestione Wallet</h1>
-            <p className="text-slate-400 text-body-regular mt-1">
-              Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
-            </p>
-          </div>
-          
+        {/* Description and Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <p className="text-slate-400 text-sm">
+            Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
+          </p>
           <Tooltip content="Aggiorna i dati del wallet dalla blockchain Algorand">
             <Button
               onClick={() => fetchWalletData(false)}
@@ -475,55 +493,13 @@ export const WalletPage: React.FC = () => {
         {renderStats()}
 
         {/* Tabs */}
-        <Card variant="default" padding="sm">
-          <div className="flex bg-slate-900 rounded-lg p-1">
-            {[
-              { 
-                id: 'overview', 
-                label: 'Bilancio', 
-                icon: <WalletIcon className="h-4 w-4" />,
-                tooltip: 'Panoramica generale del wallet con saldo e statistiche'
-              },
-              { 
-                id: 'transactions', 
-                label: 'Transazioni', 
-                icon: <ArrowUpIcon className="h-4 w-4" />,
-                tooltip: 'Storico delle transazioni ALGO in entrata e uscita'
-              },
-              { 
-                id: 'assets', 
-                label: 'Certificazioni', 
-                icon: <Squares2X2Icon className="h-4 w-4" />,
-                tooltip: 'Certificazioni NFT soulbound associate al wallet'
-              }
-            ].map((tab) => (
-              <Tooltip key={tab.id} content={tab.tooltip}>
-                <button
-                  onClick={() => setState(prev => ({ ...prev, activeTab: tab.id as any }))}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md text-body-secondary font-medium transition-all duration-200 ${
-                    state.activeTab === tab.id
-                      ? 'bg-primary-600 text-white shadow-lg'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              </Tooltip>
-            ))}
-          </div>
-        </Card>
-
-        {/* Tab Content */}
-        <div>
-          {state.activeTab === 'overview' && (
-            <div className="space-y-4">
-              {state.walletInfo?.assets && state.walletInfo.assets.length > 0 && renderAssets()}
-            </div>
-          )}
-          {state.activeTab === 'transactions' && renderTransactions()}
-          {state.activeTab === 'assets' && renderAssets()}
-        </div>
+        <TabsContainer
+          tabs={tabs}
+          activeTab={state.activeTab}
+          onTabChange={(tabId) => setState(prev => ({ ...prev, activeTab: tabId as 'overview' | 'transactions' | 'assets' }))}
+          variant="pills"
+          responsive={true}
+        />
       </div>
     </ResponsiveLayout>
   );

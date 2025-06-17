@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import { Button, Card, Input, Select, Modal } from './ui';
+import { Button, Card, Input, Select, Modal, SearchAndFilter } from './ui';
 import {
   PlusIcon,
-  MagnifyingGlassIcon,
   UserIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
@@ -111,15 +110,11 @@ export const RolesPage: React.FC = () => {
   return (
     <ResponsiveLayout title="Gestione Ruoli">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-page-title text-white">Gestione Ruoli</h1>
-            <p className="text-slate-400 text-body-regular mt-1">
-              Gestisci utenti e permessi dell'organizzazione
-            </p>
-          </div>
-          
+          <p className="text-slate-400 text-sm">
+            Gestisci utenti e permessi dell'organizzazione
+          </p>
           <Button
             onClick={() => setShowAddUserModal(true)}
             icon={<PlusIcon className="h-5 w-5" />}
@@ -130,35 +125,20 @@ export const RolesPage: React.FC = () => {
         </div>
 
         {/* Search and Filters */}
-        <Card variant="default" padding="lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-label-form text-slate-300 mb-2">
-                Ricerca utente
-              </label>
-              <Input
-                type="text"
-                placeholder="Cerca per nome o email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<MagnifyingGlassIcon className="h-4 w-4" />}
-              />
-            </div>
-
-            {/* Role Filter */}
-            <div>
-              <label className="block text-label-form text-slate-300 mb-2">
-                Filtra per ruolo
-              </label>
-              <Select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                options={roleOptions}
-              />
-            </div>
-          </div>
-        </Card>
+        <SearchAndFilter
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Cerca per nome o email..."
+          filterValue={roleFilter}
+          onFilterChange={setRoleFilter}
+          filterOptions={roleOptions}
+          resultCount={filteredUsers.length}
+          onClearFilters={() => {
+            setSearchTerm('');
+            setRoleFilter('all');
+          }}
+          showClearFilters={searchTerm !== '' || roleFilter !== 'all'}
+        />
 
         {/* Users Table */}
         <Card variant="default">
@@ -168,7 +148,8 @@ export const RolesPage: React.FC = () => {
             </h3>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-800/50">
                 <tr>
@@ -213,22 +194,60 @@ export const RolesPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <UserIcon className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-                <h3 className="text-subsection-title text-white mb-2">
-                  Nessun utente trovato
-                </h3>
-                <p className="text-body-regular text-slate-400">
-                  {searchTerm || roleFilter !== 'all' 
-                    ? 'Prova a modificare i filtri di ricerca'
-                    : 'Non ci sono ancora utenti nell\'organizzazione'
-                  }
-                </p>
-              </div>
-            )}
           </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden p-4 space-y-4">
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center text-xl flex-shrink-0">
+                    {user.avatar}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-medium text-base truncate">
+                          {user.name}
+                        </h4>
+                        <p className="text-slate-300 text-sm truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">
+                        Ruolo
+                      </label>
+                      <Select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
+                        options={newUserRoleOptions}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-12 px-4">
+              <UserIcon className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+              <h3 className="text-subsection-title text-white mb-2">
+                Nessun utente trovato
+              </h3>
+              <p className="text-body-regular text-slate-400">
+                {searchTerm || roleFilter !== 'all' 
+                  ? 'Prova a modificare i filtri di ricerca'
+                  : 'Non ci sono ancora utenti nell\'organizzazione'
+                }
+              </p>
+            </div>
+          )}
         </Card>
 
         {/* Add User Modal */}

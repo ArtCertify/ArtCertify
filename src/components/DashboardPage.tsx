@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MagnifyingGlassIcon, FunnelIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import ResponsiveLayout from './layout/ResponsiveLayout';
 import { CertificateCard } from './CertificateCard';
-import ErrorMessage from './ui/ErrorMessage';
+import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';
 import { nftService } from '../services/nftService';
 import { useAuth } from '../contexts/AuthContext';
 import type { AssetInfo } from '../services/algorand';
@@ -156,15 +156,11 @@ export const DashboardPage: React.FC = () => {
   return (
     <ResponsiveLayout title="Dashboard">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-page-title text-white">Dashboard</h1>
-            <p className="text-slate-400 text-body-regular mt-1">
-              Visualizza e gestisci le tue certificazioni per documenti e artefatti
-            </p>
-          </div>
-          
+          <p className="text-slate-400 text-sm">
+            Visualizza e gestisci le tue certificazioni per documenti e artefatti
+          </p>
           <Link
             to="/certificates"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
@@ -175,69 +171,30 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cerca per titolo, autore..."
-                  value={state.searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <FunnelIcon className="h-5 w-5 text-slate-400" />
-                <select
-                  value={state.filterType}
-                  onChange={(e) => handleFilterChange(e.target.value)}
-                  className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">Tutti</option>
-                  <option value="document">Documenti</option>
-                  <option value="artefatto">Artefatti</option>
-                  <option value="sbt">SBT</option>
-                </select>
-              </div>
-
-              <select
-                value={state.sortBy}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="date-desc">Data decrescente</option>
-                <option value="date-asc">Data crescente</option>
-                <option value="name-asc">Nome A-Z</option>
-                <option value="name-desc">Nome Z-A</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Results Count */}
-        {!state.loading && (
-          <div className="flex items-center justify-between">
-            <p className="text-slate-400 text-sm">
-              {filteredAndSortedCertificates.length} certificazioni trovate
-            </p>
-            
-            {(state.searchTerm || state.filterType !== 'all') && (
-              <button
-                onClick={() => setState(prev => ({ ...prev, searchTerm: '', filterType: 'all' }))}
-                className="text-blue-400 hover:text-blue-300 text-sm underline"
-              >
-                Cancella filtri
-              </button>
-            )}
-          </div>
-        )}
+        <SearchAndFilter
+          searchValue={state.searchTerm}
+          onSearchChange={handleSearch}
+          searchPlaceholder="Cerca per titolo, autore..."
+          filterValue={state.filterType}
+          onFilterChange={handleFilterChange}
+          filterOptions={[
+            { value: 'all', label: 'Tutti' },
+            { value: 'document', label: 'Documenti' },
+            { value: 'artefatto', label: 'Artefatti' },
+            { value: 'sbt', label: 'SBT' }
+          ]}
+          sortValue={state.sortBy}
+          onSortChange={handleSortChange}
+          sortOptions={[
+            { value: 'date-desc', label: 'Data decrescente' },
+            { value: 'date-asc', label: 'Data crescente' },
+            { value: 'name-asc', label: 'Nome A-Z' },
+            { value: 'name-desc', label: 'Nome Z-A' }
+          ]}
+          resultCount={!state.loading ? filteredAndSortedCertificates.length : undefined}
+          onClearFilters={() => setState(prev => ({ ...prev, searchTerm: '', filterType: 'all' }))}
+          showClearFilters={state.searchTerm !== '' || state.filterType !== 'all'}
+        />
 
         {/* Certificates Grid */}
         {state.loading ? (
@@ -256,39 +213,28 @@ export const DashboardPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          /* Empty State */
-          <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-slate-700 rounded-full flex items-center justify-center">
-              <svg className="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            
-            <h3 className="text-xl font-semibold text-white mb-2">
-              {emptyState.title}
-            </h3>
-            
-            <p className="text-slate-400 mb-6 max-w-md mx-auto">
-              {emptyState.description}
-            </p>
-            
-            {emptyState.showFilters ? (
-              <button
-                onClick={() => setState(prev => ({ ...prev, searchTerm: '', filterType: 'all' }))}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors"
-              >
-                Cancella filtri
-              </button>
-                         ) : (
-               <Link
-                 to="/certificates"
-                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-               >
-                 <PlusIcon className="h-5 w-5" />
-                 Crea la tua prima certificazione
-               </Link>
-             )}
-          </div>
+          <EmptyState
+            title={emptyState.title}
+            description={emptyState.description}
+            action={
+              emptyState.showFilters ? (
+                <button
+                  onClick={() => setState(prev => ({ ...prev, searchTerm: '', filterType: 'all' }))}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors"
+                >
+                  Cancella filtri
+                </button>
+              ) : (
+                <Link
+                  to="/certificates"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Crea la tua prima certificazione
+                </Link>
+              )
+            }
+          />
         )}
       </div>
     </ResponsiveLayout>

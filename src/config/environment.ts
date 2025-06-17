@@ -23,7 +23,7 @@ const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
 export const config = {
   // Pinata IPFS Gateway
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY'),
-
+  
   // Algorand Network
   algorandNetwork: getEnvVar('VITE_ALGORAND_NETWORK'),
   

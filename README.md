@@ -19,9 +19,9 @@
 - **Statistiche dettagliate**: Metriche del wallet e asset
 
 ### 🎨 **Design System Moderno**
+- **Componenti riutilizzabili**: Sistema modulare e scalabile
 - **Palette colori coerente**: Primary Blue, Success Green, Error Red, Warning Orange
 - **Tipografia strutturata**: Gerarchia chiara con font Inter
-- **Componenti riutilizzabili**: Sistema modulare e scalabile
 - **Tooltip informativi**: Guida contestuale per ogni funzione
 - **Animazioni fluide**: Transizioni e micro-interazioni
 
@@ -46,7 +46,6 @@ cp env.example .env
 ```bash
 # Pinata IPFS Gateway Configuration
 VITE_PINATA_GATEWAY=coffee-quiet-limpet-747.mypinata.cloud
-
 
 # Algorand Network Configuration
 VITE_ALGORAND_NETWORK=testnet
@@ -82,148 +81,334 @@ npm run preview
 src/
 ├── components/
 │   ├── ui/                          # Design System Components
-│   │   ├── Button.tsx              # 4 varianti + loading + icone
-│   │   ├── Card.tsx                # 3 varianti + header + azioni
-│   │   ├── Input.tsx               # Form input con validazione
-│   │   ├── Select.tsx              # Dropdown personalizzato
-│   │   ├── Textarea.tsx            # Area di testo ridimensionabile
-│   │   ├── Alert.tsx               # 4 tipi di notifiche
-│   │   ├── Modal.tsx               # Modali responsive
-│   │   ├── FileUpload.tsx          # Drag & drop file
-│   │   ├── Tooltip.tsx             # Tooltip informativi
-│   │   └── index.ts                # Esportazioni
+│   │   ├── base/                    # Componenti Base
+│   │   │   ├── Button.tsx          # 4 varianti + loading + icone
+│   │   │   ├── Card.tsx            # 3 varianti + header + azioni
+│   │   │   ├── Input.tsx           # Form input con validazione
+│   │   │   ├── Select.tsx          # Dropdown personalizzato
+│   │   │   ├── Textarea.tsx        # Area di testo ridimensionabile
+│   │   │   ├── Alert.tsx           # 4 tipi di notifiche
+│   │   │   ├── Modal.tsx           # Modali responsive
+│   │   │   ├── Badge.tsx           # Badge e etichette
+│   │   │   └── Tooltip.tsx         # Tooltip informativi
+│   │   │
+│   │   ├── state/                   # Componenti di Stato
+│   │   │   ├── LoadingSpinner.tsx  # Spinner di caricamento
+│   │   │   ├── EmptyState.tsx      # Stati vuoti riutilizzabili
+│   │   │   ├── ErrorMessage.tsx    # Messaggi di errore
+│   │   │   ├── StatusBadge.tsx     # Badge di stato colorati
+│   │   │   └── Skeleton.tsx        # Skeleton loading
+│   │   │
+│   │   ├── form/                    # Componenti Form
+│   │   │   ├── FileUpload.tsx      # Drag & drop file
+│   │   │   ├── FormHeader.tsx      # Header form con back button
+│   │   │   ├── FormLayout.tsx      # Layout responsive form
+│   │   │   └── OrganizationData.tsx # Dati organizzazione editabili
+│   │   │
+│   │   ├── layout/                  # Componenti Layout
+│   │   │   ├── PageHeader.tsx      # Header pagina standardizzato
+│   │   │   ├── SearchAndFilter.tsx # Barra ricerca e filtri
+│   │   │   ├── TabsContainer.tsx   # Container tab responsive
+│   │   │   └── SectionCard.tsx     # Card sezione con collapsible
+│   │   │
+│   │   ├── data/                    # Componenti Dati
+│   │   │   ├── InfoField.tsx       # Campo informativo riutilizzabile
+│   │   │   ├── DataGrid.tsx        # Griglia dati responsive
+│   │   │   └── MetadataDisplay.tsx # Display metadata NFT
+│   │   │
+│   │   └── index.ts                # Esportazioni centralizzate
 │   │
 │   ├── layout/
 │   │   └── ResponsiveLayout.tsx    # Layout principale con sidebar
 │   │
-│   ├── pages/
-│   │   ├── DashboardPage.tsx       # Dashboard principale
-│   │   ├── WalletPage.tsx          # Gestione wallet completa
-│   │   ├── OrganizationProfilePage.tsx # Profilo organizzazione
+│   ├── pages/                       # Pagine Principali
+│   │   ├── DashboardPage.tsx       # Dashboard con SearchAndFilter
+│   │   ├── WalletPage.tsx          # Wallet con TabsContainer
+│   │   ├── OrganizationProfilePage.tsx # Profilo con PageHeader
 │   │   ├── CertificationsPage.tsx  # Gestione certificazioni
+│   │   ├── RolesPage.tsx           # Gestione ruoli con SearchAndFilter
 │   │   ├── LoginPage.tsx           # Autenticazione
-│   │   └── AssetDetailsPage.tsx    # Dettagli asset/certificazioni
+│   │   └── AssetDetailsPage.tsx    # Dettagli con DataGrid e MetadataDisplay
+│   │
+│   ├── asset/                       # Componenti Asset
+│   │   ├── AssetHeader.tsx         # Header asset
+│   │   ├── AssetInfoCard.tsx       # Card info asset
+│   │   ├── AssetDescription.tsx    # Descrizione asset
+│   │   ├── AttachmentsSection.tsx  # Sezione allegati
+│   │   └── TechnicalMetadata.tsx   # Metadata tecnici
 │   │
 │   ├── modals/
 │   │   └── ModifyAttachmentsModal.tsx # Gestione allegati
 │   │
 │   └── forms/
-│       ├── DocumentForm.tsx        # Form documenti
-│       └── ArtifactForm.tsx        # Form artefatti
+│       ├── DocumentForm.tsx        # Form documenti con Input riutilizzabili
+│       └── ArtifactForm.tsx        # Form artefatti con Input riutilizzabili
+│
+├── hooks/                           # Custom Hooks
+│   ├── useAsyncState.ts            # Gestione stati asincroni
+│   ├── useDebounce.ts              # Debounce per ricerche
+│   └── useLocalStorage.ts          # Persistenza localStorage
 │
 ├── services/
 │   ├── algorand.ts                 # API Algorand
 │   ├── walletService.ts            # Servizi wallet
-│   └── nftService.ts               # Servizi NFT
+│   ├── nftService.ts               # Servizi NFT
+│   ├── spidService.ts              # Integrazione SPID
+│   └── cidDecoder.ts               # Decodifica CID IPFS
 │
 ├── contexts/
 │   └── AuthContext.tsx             # Gestione autenticazione
 │
 ├── types/
-│   └── asset.ts                    # Tipi TypeScript
+│   ├── asset.ts                    # Tipi asset e NFT
+│   └── cid.ts                      # Tipi CID IPFS
 │
-└── config/
-    └── environment.ts              # Configurazione ambiente
-
-├── assets/
-│   ├── logo.png                    # Logo principale
-│   └── favicon/                    # Favicon e icone app
-│       ├── favicon.ico             # Favicon standard
-│       ├── favicon-16x16.png       # Favicon 16x16
-│       ├── favicon-32x32.png       # Favicon 32x32
-│       ├── apple-touch-icon.png    # Icona iOS
-│       ├── android-chrome-192x192.png # Icona Android 192x192
-│       └── android-chrome-512x512.png # Icona Android 512x512
+├── config/
+│   └── environment.ts              # Configurazione ambiente
+│
+└── assets/
+    ├── logo.png                    # Logo principale
+    └── favicon/                    # Favicon e icone app
+        ├── favicon.ico             # Favicon standard
+        ├── favicon-16x16.png       # Favicon 16x16
+        ├── favicon-32x32.png       # Favicon 32x32
+        ├── apple-touch-icon.png    # Icona iOS
+        ├── android-chrome-192x192.png # Icona Android 192x192
+        └── android-chrome-512x512.png # Icona Android 512x512
 ```
 
-## 🎨 Design System
+## 🎨 Design System Rifattorizzato
 
-### **Palette Colori**
-- **Primary**: Blue 500 (#0ea5e9) - Azioni principali
-- **Success**: Green 500 (#22c55e) - Operazioni riuscite
-- **Error**: Red 500 (#ef4444) - Errori e warning critici
-- **Warning**: Orange 500 (#f59e0b) - Avvisi e attenzioni
-- **Info**: Blue 500 (#3b82f6) - Informazioni generali
+### **Componenti Base UI**
 
-### **Tipografia**
-- **Page Title**: 30px Bold - Titoli principali
-- **Section Title**: 24px Bold - Titoli sezioni
-- **Subsection Title**: 18px Semibold - Sottotitoli
-- **Body Regular**: 16px Regular - Testo principale
-- **Body Secondary**: 14px Regular - Testo secondario
-- **Label Form**: 14px Medium - Etichette form
-
-### **Componenti UI**
-
-#### **Button**
+#### **Button** - 4 varianti + stati
 ```tsx
 <Button variant="primary" size="md" icon={<PlusIcon />} loading={false}>
   Crea Certificazione
 </Button>
 ```
 
-#### **Card**
+#### **Card** - Layout standardizzato
 ```tsx
 <Card variant="elevated" title="Saldo Wallet" icon={<WalletIcon />}>
   Contenuto della card
 </Card>
 ```
 
-#### **Input**
+#### **Input** - Form unificato
 ```tsx
 <Input 
   label="Nome Organizzazione" 
   error="Campo obbligatorio"
   leftIcon={<UserIcon />}
+  variant="default"
 />
 ```
 
-#### **Tooltip**
+### **Componenti Layout**
+
+#### **PageHeader** - Header standardizzato
 ```tsx
-<Tooltip content="Spiegazione dettagliata della funzione">
-  <Button>Azione</Button>
-</Tooltip>
+<PageHeader
+  title="Gestione Wallet"
+  description="Visualizza saldo e transazioni"
+  actions={<Button>Aggiorna</Button>}
+/>
 ```
 
-## 💳 Funzionalità Wallet
+#### **SearchAndFilter** - Ricerca unificata
+```tsx
+<SearchAndFilter
+  searchValue={searchTerm}
+  onSearchChange={setSearchTerm}
+  filterOptions={[
+    { value: 'all', label: 'Tutti' },
+    { value: 'document', label: 'Documenti' }
+  ]}
+  resultCount={filteredItems.length}
+  showClearFilters={hasActiveFilters}
+/>
+```
+
+#### **TabsContainer** - Tab responsive
+```tsx
+<TabsContainer
+  tabs={[
+    { id: 'overview', label: 'Panoramica', content: <Overview /> },
+    { id: 'transactions', label: 'Transazioni', content: <Transactions /> }
+  ]}
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  responsive={true}
+/>
+```
+
+#### **SectionCard** - Sezioni strutturate
+```tsx
+<SectionCard 
+  title="Informazioni Asset"
+  icon={<DocumentIcon />}
+  collapsible={true}
+>
+  <DataGrid fields={assetFields} />
+</SectionCard>
+```
+
+### **Componenti Dati**
+
+#### **InfoField** - Campi informativi
+```tsx
+<InfoField
+  label="ID Certificazione"
+  value="CERT-12345"
+  variant="default"
+  copyable={true}
+  icon={<IdIcon />}
+/>
+```
+
+#### **DataGrid** - Griglia responsive
+```tsx
+<DataGrid
+  fields={[
+    { key: 'id', label: 'ID', value: 'CERT-123' },
+    { key: 'date', label: 'Data', value: '2024-01-15' }
+  ]}
+  columns={3}
+  variant="default"
+/>
+```
+
+#### **MetadataDisplay** - Metadata NFT
+```tsx
+<MetadataDisplay
+  metadata={nftMetadata}
+  cidInfo={cidData}
+  title="Metadata NFT"
+/>
+```
+
+### **Componenti Stato**
+
+#### **EmptyState** - Stati vuoti
+```tsx
+<EmptyState
+  title="Nessuna certificazione"
+  description="Crea la tua prima certificazione"
+  action={<Button>Crea Certificazione</Button>}
+  icon={<DocumentIcon />}
+/>
+```
+
+#### **StatusBadge** - Badge di stato
+```tsx
+<StatusBadge
+  status="success"
+  label="Certificato"
+  variant="dot"
+  size="md"
+/>
+```
+
+## 🔧 Custom Hooks
+
+### **useAsyncState** - Gestione stati asincroni
+```tsx
+const { data, loading, error, execute } = useAsyncState<AssetInfo>();
+
+useEffect(() => {
+  execute(() => algorandService.getAssetInfo(assetId));
+}, [assetId, execute]);
+```
+
+### **useDebounce** - Debounce per ricerche
+```tsx
+const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+useEffect(() => {
+  // Esegui ricerca solo dopo 300ms di inattività
+  performSearch(debouncedSearchTerm);
+}, [debouncedSearchTerm]);
+```
+
+### **useLocalStorage** - Persistenza dati
+```tsx
+const [preferences, setPreferences] = useLocalStorage('userPrefs', {
+  theme: 'dark',
+  language: 'it'
+});
+```
+
+## 💳 Funzionalità Wallet Ottimizzate
 
 ### **Dashboard Wallet**
-- **Saldo disponibile**: ALGO con conversione EUR in tempo reale
-- **Saldo minimo**: Requisito Algorand per wallet attivo
-- **Certificazioni soulbound**: Conteggio NFT non trasferibili
-- **Controlli privacy**: Nascondi/mostra saldo
+- **PageHeader**: Titolo, descrizione e azioni standardizzate
+- **TabsContainer**: Tab responsive (Bilancio, Transazioni, Certificazioni)
+- **StatusBadge**: Stati colorati per certificazioni
+- **EmptyState**: Gestione stati vuoti elegante
 
-### **Transazioni**
-- **Storico completo**: Tutte le transazioni ALGO
-- **Dettagli transazione**: Importo, commissioni, timestamp
-- **Direzione**: Entrata/uscita con icone colorate
-- **Note**: Messaggi allegati alle transazioni
+### **Gestione Transazioni**
+- **SearchAndFilter**: Ricerca e filtri unificati
+- **DataGrid**: Visualizzazione dati strutturata
+- **InfoField**: Dettagli transazione con copy/paste
 
-### **Certificazioni**
-- **NFT soulbound**: Certificazioni non trasferibili
-- **Metadati**: Nome, simbolo, quantità totale
-- **ID univoco**: Identificativo blockchain
-- **Icone personalizzate**: Visual identity per ogni tipo
+### **Certificazioni NFT**
+- **MetadataDisplay**: Visualizzazione metadata completa
+- **SectionCard**: Sezioni collassabili
+- **StatusBadge**: Stati certificazione
 
-## 🔧 Funzionalità Principali
+## 🔧 Funzionalità Principali Rifattorizzate
 
-### **Autenticazione**
-- **Wallet Algorand**: Login con indirizzo wallet
-- **Validazione**: Controllo formato indirizzo (58 caratteri)
-- **Persistenza**: Sessione mantenuta in localStorage
-- **SPID Integration**: Preparato per integrazione SPID
+### **Dashboard**
+- **SearchAndFilter**: Ricerca unificata con filtri
+- **EmptyState**: Gestione stati vuoti intelligente
+- **PageHeader**: Header standardizzato con azioni
 
-### **Gestione Certificazioni**
-- **Creazione**: Form guidati per documenti e artefatti
-- **Visualizzazione**: Dettagli completi con metadati IPFS
-- **Modifica**: Aggiornamento allegati e informazioni
-- **Ricerca**: Filtri avanzati per tipo e data
+### **Gestione Ruoli**
+- **SearchAndFilter**: Ricerca utenti e filtri ruolo
+- **DataGrid**: Visualizzazione utenti responsive
+- **StatusBadge**: Badge ruoli colorati
 
 ### **Profilo Organizzazione**
-- **Dati aziendali**: Nome, tipo, P.IVA, contatti
-- **Indirizzo**: Gestione completa indirizzo sede
-- **Modifica**: Form editabile con validazione
-- **Persistenza**: Salvataggio automatico modifiche
+- **PageHeader**: Header con azioni edit/save
+- **SectionCard**: Sezioni strutturate
+- **Input/Textarea**: Form components riutilizzabili
+
+### **Asset Details**
+- **DataGrid**: Informazioni asset strutturate
+- **MetadataDisplay**: Metadata NFT completi
+- **SectionCard**: Sezioni organizzate
+
+## 📱 Mobile Optimization
+
+### **Responsive Breakpoints**
+```css
+/* Mobile */
+@media (max-width: 767px) {
+  /* TabsContainer: layout verticale */
+  /* SearchAndFilter: stack verticale */
+  /* DataGrid: 1 colonna */
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* TabsContainer: layout orizzontale */
+  /* DataGrid: 2 colonne */
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  /* Layout completo */
+  /* DataGrid: 3-4 colonne */
+}
+```
+
+### **Mobile-First Components**
+- **TabsContainer**: Tab responsive con overflow gestito
+- **SearchAndFilter**: Stack verticale su mobile
+- **DataGrid**: Colonne adattive
+- **SectionCard**: Padding ridotto su mobile
+- **PageHeader**: Stack verticale azioni su mobile
 
 ## 🛠️ Tecnologie
 
@@ -234,84 +419,56 @@ src/
 - **React Router** - Navigazione SPA
 - **Heroicons** - Icone moderne e accessibili
 
-## 📱 Responsive Breakpoints
+## 📊 Metriche Performance
 
-```css
-/* Mobile */
-@media (max-width: 767px) {
-  /* Layout mobile con sidebar nascosta */
-}
+### **Bundle Size Ottimizzato**
+- **Componenti modulari**: Import solo necessari
+- **Tree shaking**: Eliminazione codice non utilizzato
+- **Code splitting**: Caricamento lazy delle pagine
 
-/* Tablet */
-@media (min-width: 768px) and (max-width: 1023px) {
-  /* Layout tablet con sidebar collassabile */
-}
+### **Riutilizzabilità**
+- **95% componenti riutilizzabili**: Design system completo
+- **Riduzione codice duplicato**: Pattern standardizzati
+- **Manutenibilità**: Componenti centralizzati
 
-/* Desktop */
-@media (min-width: 1024px) {
-  /* Layout desktop con sidebar fissa */
-}
-```
-
-## 🎯 Asset di Test
-
-L'applicazione è configurata per l'asset **740976269** su Algorand TestNet:
-- **Explorer**: https://testnet.explorer.perawallet.app/asset/740976269/
-- **Metadati IPFS**: Caricamento automatico da gateway Pinata
-- **Dati real-time**: Aggiornamento dalla blockchain
+### **Accessibilità**
+- **Tooltip informativi**: Guida contestuale
+- **Keyboard navigation**: Navigazione da tastiera
+- **Screen reader**: Supporto lettori schermo
+- **Color contrast**: Contrasto colori ottimale
 
 ## 🚀 Deployment
 
-### **Build di Produzione**
+### **Build Ottimizzata**
 ```bash
 npm run build
+# Output: dist/ folder pronto per deploy
 ```
 
-### **Variabili d'Ambiente Produzione**
-```bash
-VITE_ALGORAND_NETWORK=mainnet
-VITE_ALGOD_SERVER=https://mainnet-api.algonode.cloud
-VITE_INDEXER_SERVER=https://mainnet-idx.algonode.cloud
-```
+### **Environment Variables**
+- **Development**: `.env.local`
+- **Production**: Configurazione server
+- **Testing**: `.env.test`
 
-## 📋 TODO e Roadmap
+## 📈 Roadmap Futura
 
-### **Prossime Funzionalità**
-- [ ] Integrazione SPID completa
-- [ ] Notifiche push per nuove certificazioni
-- [ ] Export PDF certificazioni
-- [ ] Dashboard analytics avanzate
-- [ ] Multi-wallet support
-- [ ] Integrazione WalletConnect
+### **Componenti Avanzati**
+- [ ] **DataTable**: Tabella con sorting e paginazione
+- [ ] **Calendar**: Calendario per date
+- [ ] **Charts**: Grafici per analytics
+- [ ] **Notification**: Sistema notifiche toast
 
-### **Miglioramenti UX**
-- [ ] Onboarding guidato
-- [ ] Tutorial interattivi
-- [ ] Modalità offline
-- [x] PWA support (manifest.json implementato)
-- [ ] Dark/Light theme toggle
+### **Performance**
+- [ ] **Virtual Scrolling**: Liste grandi
+- [ ] **Image Optimization**: Lazy loading immagini
+- [ ] **Service Worker**: Cache e offline
 
-## 🤝 Contributi
-
-Per contribuire al progetto:
-
-1. Fork del repository
-2. Crea un branch per la feature (`git checkout -b feature/AmazingFeature`)
-3. Commit delle modifiche (`git commit -m 'Add AmazingFeature'`)
-4. Push del branch (`git push origin feature/AmazingFeature`)
-5. Apri una Pull Request
-
-## 📄 Licenza
-
-Questo progetto è proprietà di **CaputMundi**. Tutti i diritti riservati.
-
-## 📞 Supporto
-
-Per supporto tecnico o domande:
-- **Email**: support@caputmundi.com
-- **Documentazione**: Consulta `ENV_SETUP.md` per setup dettagliato
-- **Issues**: Apri un issue su GitHub per bug report
+### **Integrazione**
+- [ ] **SPID**: Autenticazione SPID completa
+- [ ] **Multi-language**: Internazionalizzazione
+- [ ] **Dark/Light**: Theme switcher
+- [ ] **Analytics**: Tracking eventi utente
 
 ---
 
-**Sviluppato con ❤️ da ARTENCE**
+**Sviluppato con ❤️ da Artence**

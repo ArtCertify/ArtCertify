@@ -170,7 +170,7 @@ class AlgorandService {
     if (params.name && params.name.length > 3) {
       return params.name;
     }
-    
+
     return 'Nessuna descrizione disponibile per questo asset.';
   }
 
@@ -178,7 +178,7 @@ class AlgorandService {
     const metadata: NftMetadata = {};
 
     // Skip IPFS calls to avoid CORS and timeout errors
-    // Return basic metadata from asset params only
+      // Return basic metadata from asset params only
     if (params.name) metadata.name = params.name;
     if (params.unitName) metadata.description = `Unit: ${params.unitName}`;
 
