@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import LoadingSpinner from './ui/LoadingSpinner';
-import ErrorMessage from './ui/ErrorMessage';
-import Button from './ui/Button';
+import { LoadingSpinner, ErrorMessage, Button, SectionCard, Input, Textarea } from './ui';
 import { 
   BuildingOfficeIcon, 
   PencilIcon, 
@@ -90,35 +88,35 @@ export const OrganizationProfilePage: React.FC = () => {
   ) => {
     const value = isEditing ? editedProfile[field] : profile[field];
     
+    if (isEditing) {
+      return isTextarea ? (
+        <Textarea
+          label={label}
+          value={value}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          placeholder={placeholder}
+          rows={4}
+        />
+      ) : (
+        <Input
+          label={label}
+          value={value}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          placeholder={placeholder}
+          leftIcon={icon}
+        />
+      );
+    }
+
     return (
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
           {icon}
           {label}
         </label>
-        {isEditing ? (
-          isTextarea ? (
-            <textarea
-              value={value}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              placeholder={placeholder}
-              rows={4}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-          ) : (
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              placeholder={placeholder}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          )
-        ) : (
-          <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 min-h-[40px] flex items-center">
-            {value || <span className="text-slate-500">Non specificato</span>}
-          </div>
-        )}
+        <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 min-h-[40px] flex items-center">
+          {value || <span className="text-slate-500">Non specificato</span>}
+        </div>
       </div>
     );
   };
@@ -139,15 +137,11 @@ export const OrganizationProfilePage: React.FC = () => {
   return (
     <ResponsiveLayout title="Profilo Organizzazione">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Profilo Organizzazione</h1>
-            <p className="text-slate-400 mt-1">
-              Gestisci le informazioni della tua organizzazione
-            </p>
-          </div>
-          
+          <p className="text-slate-400 text-sm">
+            Gestisci le informazioni della tua organizzazione
+          </p>
           <div className="flex gap-3">
             {isEditing ? (
               <>
@@ -186,7 +180,7 @@ export const OrganizationProfilePage: React.FC = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+        <SectionCard>
           {/* Logo Section */}
           <div className="p-6 bg-slate-900 border-b border-slate-700">
             <div className="flex items-center gap-4">
@@ -261,11 +255,13 @@ export const OrganizationProfilePage: React.FC = () => {
               true
             )}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Additional Information */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Informazioni Aggiuntive</h3>
+        <SectionCard 
+          title="Informazioni Aggiuntive"
+          icon={<BuildingOfficeIcon className="h-5 w-5" />}
+        >
           <div className="space-y-3 text-sm text-slate-400">
             <p>
               • Le informazioni del profilo verranno utilizzate per identificare la tua organizzazione 
@@ -278,7 +274,7 @@ export const OrganizationProfilePage: React.FC = () => {
               • Assicurati che tutte le informazioni siano accurate e aggiornate.
             </p>
           </div>
-        </div>
+        </SectionCard>
       </div>
     </ResponsiveLayout>
   );

@@ -1,46 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import ErrorMessage from './ui/ErrorMessage';
-import { AssetDetailsSkeleton } from './ui/AssetDetailsSkeleton';
+import { ErrorMessage, AssetDetailsSkeleton, SectionCard, DataGrid, StatusBadge } from './ui';
 import { VersioningSection } from './VersioningSection';
 import ModifyAttachmentsModal from './modals/ModifyAttachmentsModal';
 import { algorandService } from '../services/algorand';
+import { useAsyncState } from '../hooks/useAsyncState';
 import type { AssetInfo } from '../services/algorand';
 
 const AssetDetailsPage: React.FC = () => {
   const { assetId } = useParams<{ assetId: string }>();
-  const [asset, setAsset] = useState<AssetInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: asset, loading, error, execute } = useAsyncState<AssetInfo>();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   // Require asset ID in URL
   const targetAssetId = assetId;
 
   useEffect(() => {
-    const fetchAsset = async () => {
-      if (!targetAssetId) {
-        setError('Asset ID is required');
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        setError(null);
-        const assetData = await algorandService.getAssetInfo(targetAssetId);
-        setAsset(assetData);
-      } catch (err) {
-        console.error('Error fetching asset:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch asset information');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!targetAssetId) {
+      return;
+    }
 
-    fetchAsset();
-  }, [targetAssetId]);
+    execute(() => algorandService.getAssetInfo(targetAssetId));
+  }, [targetAssetId, execute]);
 
   const formatDate = (timestamp?: number): string => {
     if (!timestamp) {
@@ -121,16 +103,13 @@ const AssetDetailsPage: React.FC = () => {
   return (
     <ResponsiveLayout title="Dettagli Certificazione">
       <div className="space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">
-              {asset.params.name || `Asset ${asset.index}`}
-            </h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800">
-              Documento
-            </span>
-          </div>
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3">
+          <StatusBadge
+            status="success"
+            label="Certificato"
+            variant="dot"
+          />
           <button 
             onClick={() => setIsModifyModalOpen(true)}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -139,83 +118,50 @@ const AssetDetailsPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Main Content - Full Width */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* ID Certificazione */}
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                ID Certificazione
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <p className="text-white text-sm">CERT-{asset.index}</p>
-              </div>
-            </div>
-
-            {/* Data Creazione */}
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Data Creazione
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <p className="text-white text-sm">{formatDate(creationDate)}</p>
-              </div>
-            </div>
-
-            {/* Stato */}
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Stato
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <span className="inline-flex items-center text-sm text-green-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                  Certificato
-                </span>
-              </div>
-            </div>
-
-            {/* Hash Blockchain - Full Width */}
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Hash Blockchain (Transazione di Creazione)
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <p className="text-white font-mono text-sm break-all">
-                  {(asset.creationTransaction as any)?.id || 'Non disponibile'}
-                </p>
-              </div>
-            </div>
-
-            {/* Autore - Full Width */}
-            <div className="sm:col-span-2 lg:col-span-2">
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Autore (Creatore)
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <p className="text-white text-sm font-mono break-all">{asset.params.creator}</p>
-              </div>
-            </div>
-
-            {/* Ultima Modifica */}
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Ultima Modifica
-              </label>
-              <div className="bg-slate-700 rounded p-3">
-                <p className="text-white text-sm">{formatDate(lastConfigDate)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Asset Information */}
+        <SectionCard title="Informazioni Certificazione">
+          <DataGrid
+            columns={3}
+            fields={[
+              {
+                key: 'id',
+                label: 'ID Certificazione',
+                value: `CERT-${asset.index}`
+              },
+              {
+                key: 'creation',
+                label: 'Data Creazione',
+                value: formatDate(creationDate)
+              },
+              {
+                key: 'modified',
+                label: 'Ultima Modifica',
+                value: formatDate(lastConfigDate)
+              },
+              {
+                key: 'hash',
+                label: 'Hash Blockchain (Transazione di Creazione)',
+                value: (asset.creationTransaction as any)?.id || 'Non disponibile',
+                copyable: true,
+                fullWidth: true
+              },
+              {
+                key: 'creator',
+                label: 'Autore (Creatore)',
+                value: asset.params.creator,
+                copyable: true,
+                fullWidth: true
+              }
+            ]}
+          />
+        </SectionCard>
 
         {/* Descrizione Section */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Descrizione</h3>
+        <SectionCard title="Descrizione">
           <p className="text-slate-300 leading-relaxed text-sm">
             {asset.description || 'Nessuna descrizione disponibile'}
           </p>
-        </div>
+        </SectionCard>
 
         {/* NFT Metadata e Versioning Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

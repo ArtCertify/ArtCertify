@@ -103,30 +103,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 flex items-center justify-center">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 flex items-center justify-center">
               <img src="/logo.png" alt="ArtCertify Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-2xl font-bold text-white">ArtCertify</span>
+            <span className="text-xl font-bold text-white">ArtCertify</span>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-xl font-semibold text-white mb-2">
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <div className="text-center mb-5">
+            <h1 className="text-lg font-semibold text-white mb-1">
               Accedi al tuo account
             </h1>
           </div>
 
           {/* SPID Authentication Section */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-white mb-3">
+          <div className="mb-5">
+            <h3 className="text-sm font-medium text-white mb-2">
               Accesso con Identità Digitale
             </h3>
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-4">
-              <p className="text-xs text-blue-400 mb-2">
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-3">
+              <p className="text-xs text-blue-400">
                 <strong>Modalità Demo:</strong> L'autenticazione SPID è simulata per scopi dimostrativi.
               </p>
             </div>
@@ -137,7 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 url="/auth/spid/{{idp}}"
                 supported={supportedProviders}
                 lang="it"
-                size="md"
+                size="sm"
                 theme="negative"
                 type="modal"
                 fluid={false}
@@ -150,7 +150,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
 
           {/* Divider */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-600"></div>
             </div>
@@ -159,7 +159,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Address Input */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
@@ -171,7 +171,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   placeholder="Inserisci l'indirizzo Algorand della tua organizzazione"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-12"
+                  className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-12"
                   disabled={isLoading}
                 />
                 <button
@@ -187,7 +187,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 </button>
               </div>
               {error && (
-                <p className="mt-2 text-sm text-red-400">{error}</p>
+                <p className="mt-1.5 text-sm text-red-400">{error}</p>
               )}
             </div>
 
@@ -195,7 +195,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-800 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center"
+              className="w-full px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-800 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center"
             >
               {isLoading ? (
                 <>
@@ -223,22 +223,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         </div>
 
         {/* Help Text */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-slate-400 mb-2">
+        <div className="mt-4 text-center">
+          <p className="text-sm text-slate-400 mb-1">
             Accedi con SPID per un'esperienza sicura e integrata,
           </p>
           <p className="text-sm text-slate-400">
             oppure inserisci direttamente l'indirizzo Algorand della tua organizzazione
           </p>
-        </div>
-
-        {/* Demo Info */}
-        <div className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <h4 className="text-sm font-medium text-white mb-2">Modalità Demo - Indirizzi di Test:</h4>
-          <div className="space-y-1 text-xs text-slate-400">
-            <p><strong>Organizzazione Demo:</strong></p>
-            <p className="font-mono break-all">KYN4QYQCC3ZCXNBJMT5KAVAF5SUAJBLR7VXTAHPIBJ24HFFLTMMTT33JNM</p>
-          </div>
         </div>
       </div>
 
@@ -257,6 +248,102 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           margin: 0 auto;
           display: block;
         }
+        
+        /* Stili per rendere il modale SPID più compatto */
+        .spid-modal {
+          max-width: 500px !important;
+          width: 90vw !important;
+        }
+        
+        .spid-modal .spid-modal-content {
+          padding: 1rem !important;
+          max-height: 70vh !important;
+          overflow-y: auto;
+        }
+        
+        .spid-modal .spid-providers {
+          gap: 0.5rem !important;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+        }
+        
+        .spid-modal .spid-provider {
+          padding: 0.5rem !important;
+          min-height: 60px !important;
+        }
+        
+        .spid-modal .spid-provider img {
+          max-height: 40px !important;
+          max-width: 100px !important;
+        }
+        
+        .spid-modal .spid-header {
+          padding: 1rem !important;
+          font-size: 1.1rem !important;
+        }
+        
+        .spid-modal .spid-footer {
+          padding: 0.75rem 1rem !important;
+          font-size: 0.85rem !important;
+        }
+        
+        /* Riduce lo spacing nel modale */
+        .spid-modal h2 {
+          margin-bottom: 0.75rem !important;
+          font-size: 1.25rem !important;
+        }
+        
+        /* Overlay più trasparente */
+        .spid-modal-overlay {
+          background-color: rgba(0, 0, 0, 0.6) !important;
+        }
+        
+        /* Icona dell'omino in basso a destra più piccola e visibile */
+        .spid-modal .spid-info-icon,
+        .spid-modal .spid-avatar,
+        .spid-modal .spid-help-icon {
+          width: 40px !important;
+          height: 40px !important;
+          bottom: 20px !important;
+          right: 20px !important;
+          opacity: 0.8 !important;
+          z-index: 9999 !important;
+        }
+        
+        /* Assicura che l'icona sia visibile su tutti gli schermi */
+        .spid-modal .spid-info-icon img,
+        .spid-modal .spid-avatar img,
+        .spid-modal .spid-help-icon img {
+          max-width: 32px !important;
+          max-height: 32px !important;
+        }
+        
+                 /* Per schermi più grandi, posiziona meglio l'icona */
+        @media (min-width: 768px) {
+          .spid-modal .spid-info-icon,
+          .spid-modal .spid-avatar,
+          .spid-modal .spid-help-icon {
+            bottom: 30px !important;
+            right: 30px !important;
+            width: 35px !important;
+            height: 35px !important;
+          }
+          
+          .spid-modal .spid-info-icon img,
+          .spid-modal .spid-avatar img,
+          .spid-modal .spid-help-icon img {
+            max-width: 28px !important;
+            max-height: 28px !important;
+          }
+        }
+        
+        /* Opzione alternativa: nascondere completamente l'icona se crea problemi */
+        /*
+        .spid-modal .spid-info-icon,
+        .spid-modal .spid-avatar,
+        .spid-modal .spid-help-icon {
+          display: none !important;
+        }
+        */
       `}</style>
     </div>
   );
