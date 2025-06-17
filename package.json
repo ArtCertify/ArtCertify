@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@algorandfoundation/algokit-utils": "^9.1.0",
+    "@dej611/spid-react-button": "^0.4.0",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@perawallet/connect": "^1.4.2",
