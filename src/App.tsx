@@ -4,6 +4,7 @@ import AssetDetailsPage from './components/AssetDetailsPage';
 import { DashboardPage } from './components/DashboardPage';
 import { CertificationsPage } from './components/CertificationsPage';
 import { LoginPage } from './components/LoginPage';
+import { SPIDCallbackPage } from './components/SPIDCallbackPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
 import { WalletPage } from './components/WalletPage';
 import { RolesPage } from './components/RolesPage';
@@ -31,6 +32,10 @@ const AppRoutes: React.FC = () => {
             <Navigate to="/" replace /> : 
             <LoginPage onLogin={login} />
           } 
+        />
+        <Route 
+          path="/auth/spid/callback" 
+          element={<SPIDCallbackPage />} 
         />
         <Route 
           path="/" 

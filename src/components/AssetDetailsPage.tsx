@@ -4,6 +4,7 @@ import ResponsiveLayout from './layout/ResponsiveLayout';
 import ErrorMessage from './ui/ErrorMessage';
 import { AssetDetailsSkeleton } from './ui/AssetDetailsSkeleton';
 import { VersioningSection } from './VersioningSection';
+import ModifyAttachmentsModal from './modals/ModifyAttachmentsModal';
 import { algorandService } from '../services/algorand';
 import type { AssetInfo } from '../services/algorand';
 
@@ -12,6 +13,7 @@ const AssetDetailsPage: React.FC = () => {
   const [asset, setAsset] = useState<AssetInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   // Require asset ID in URL
   const targetAssetId = assetId;
@@ -129,7 +131,10 @@ const AssetDetailsPage: React.FC = () => {
               Documento
             </span>
           </div>
-          <button className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+          <button 
+            onClick={() => setIsModifyModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
             Modifica Allegati
           </button>
         </div>
@@ -455,6 +460,15 @@ const AssetDetailsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modify Attachments Modal */}
+      {asset && (
+        <ModifyAttachmentsModal
+          isOpen={isModifyModalOpen}
+          onClose={() => setIsModifyModalOpen(false)}
+          asset={asset}
+        />
+      )}
     </ResponsiveLayout>
   );
 };

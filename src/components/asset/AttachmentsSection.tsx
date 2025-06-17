@@ -102,7 +102,7 @@ const AttachmentsSection: React.FC<AttachmentsSectionProps> = ({ asset }) => {
       <ModifyAttachmentsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        assetId={asset.index.toString()}
+        asset={asset}
         currentAttachments={attachments}
       />
     </>
