@@ -86,20 +86,41 @@ export const DashboardPage: React.FC = () => {
       );
     }
 
-    // Apply type filter
+    // Apply type filter based on NFT metadata
     if (state.filterType !== 'all') {
       filtered = filtered.filter(cert => {
-        const name = cert.params.name?.toLowerCase() || '';
-        switch (state.filterType) {
-          case 'document':
-            return name.includes('document') || (!name.includes('artefatto') && !name.includes('sbt'));
-          case 'artefatto':
-            return name.includes('artefatto');
-          case 'sbt':
-            return name.includes('sbt');
-          default:
-            return true;
-        }
+        // Get certificate type from NFT metadata (same logic as CertificateCard)
+        const getCertificateType = () => {
+          // 1. Try certification_data.asset_type 
+          if (cert.nftMetadata?.certification_data?.asset_type) {
+            const assetType = cert.nftMetadata.certification_data.asset_type.toLowerCase();
+            if (assetType === 'document') return 'document';
+            if (assetType === 'artefatto' || assetType === 'artifact') return 'artefatto';
+          }
+
+          // 2. Try attributes "Asset Type" trait
+          if (cert.nftMetadata?.attributes) {
+            const assetTypeAttr = cert.nftMetadata.attributes.find(
+              attr => attr.trait_type === 'Asset Type' || attr.trait_type === 'Tipo Certificazione'
+            );
+            if (assetTypeAttr) {
+              const value = String(assetTypeAttr.value).toLowerCase();
+              if (value === 'document' || value === 'documento') return 'document';
+              if (value === 'artefatto' || value === 'artifact') return 'artefatto';
+            }
+          }
+
+          // 3. Fallback to name (for backward compatibility)
+          const name = cert.params.name?.toLowerCase() || '';
+          if (name.includes('document')) return 'document';
+          if (name.includes('artefatto')) return 'artefatto';
+
+          // 4. Default is document for unknown types
+          return 'document';
+        };
+
+        const certType = getCertificateType();
+        return certType === state.filterType;
       });
     }
 
@@ -186,8 +207,7 @@ export const DashboardPage: React.FC = () => {
           filterOptions={[
             { value: 'all', label: 'Tutti' },
             { value: 'document', label: 'Documenti' },
-            { value: 'artefatto', label: 'Artefatti' },
-            { value: 'sbt', label: 'SBT' }
+            { value: 'artefatto', label: 'Artefatti' }
           ]}
           sortValue={state.sortBy}
           onSortChange={handleSortChange}

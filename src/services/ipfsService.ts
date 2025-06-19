@@ -182,11 +182,7 @@ class IPFSService {
       const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
       const individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }> = [];
       
-      console.log(`Starting upload of ${files.length} files to IPFS...`);
-      
       for (const file of files) {
-        console.log(`Uploading file: ${file.name} (${file.size} bytes)`);
-        
         const uploadResult = await this.uploadFile(file, {
           name: `${certificationData?.unique_id || 'file'}_${file.name}`,
           keyvalues: {
@@ -211,8 +207,6 @@ class IPFSService {
           ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
           gatewayUrl: this.getCustomGatewayUrl(uploadResult.IpfsHash)
         });
-        
-        console.log(`✓ File uploaded: ${file.name} -> ${uploadResult.IpfsHash}`);
       }
 
       // Create comprehensive metadata with all form data and file references
@@ -273,8 +267,6 @@ class IPFSService {
         } : undefined
       };
 
-      console.log('Creating metadata JSON with all form data and file CIDs...');
-
       // Upload comprehensive metadata JSON
       const metadataResult = await this.uploadJSON(metadata, {
         name: `${certificationData?.unique_id || 'metadata'}_metadata.json`,
@@ -287,8 +279,6 @@ class IPFSService {
           upload_timestamp: new Date().toISOString()
         }
       });
-
-      console.log(`✓ Metadata JSON uploaded: ${metadataResult.IpfsHash}`);
 
       return {
         metadataHash: metadataResult.IpfsHash,

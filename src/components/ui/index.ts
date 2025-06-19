@@ -33,6 +33,7 @@ export { FileUpload } from './FileUpload';
 export { FormHeader } from './FormHeader';
 export { FormLayout } from './FormLayout';
 export { OrganizationData } from './OrganizationData';
+export { DateInput } from './DateInput';
 
 // Layout & Navigation Components
 export { default as PageHeader } from './PageHeader';
@@ -43,4 +44,5 @@ export { default as SectionCard } from './SectionCard';
 // Data Display Components
 export { default as InfoField } from './InfoField';
 export { default as DataGrid } from './DataGrid';
-export { default as MetadataDisplay } from './MetadataDisplay'; 
+export { default as MetadataDisplay } from './MetadataDisplay';
+export { TruncatedText } from './TruncatedText'; 
