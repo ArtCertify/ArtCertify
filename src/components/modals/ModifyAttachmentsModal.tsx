@@ -223,7 +223,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       
       for (const { file, type } of filesToUpload) {
         try {
-          console.log(`📁 Uploading ${type}: ${file.name}`);
           const uploadResult = await ipfsService.uploadFile(file, {
             name: file.name,
             keyvalues: {
@@ -260,8 +259,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
               size: file.size
             });
           }
-          
-          console.log(`✅ ${type} uploaded: ${uploadResult.IpfsHash}`);
         } catch (error) {
           console.error(`❌ Error uploading ${type} ${file.name}:`, error);
           throw new Error(`Errore durante l'upload di ${file.name}: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);

@@ -84,9 +84,7 @@ class NFTMintingService {
    */
   private fromCidToAddress(cidStr: string): string {
     try {
-      console.log(`🔗 Converting CID ${cidStr} to address (Python pattern)...`);
       const address = CidDecoder.fromCidToAddress(cidStr);
-      console.log(`🔗 CID ${cidStr} -> Address: ${address}`);
       return address;
     } catch (error) {
       console.error('Error converting CID to address:', error);
@@ -132,9 +130,9 @@ class NFTMintingService {
   }
 
   /**
-   * Complete SBT Minting Process - TRUE ARC-19 + ARC-3 compliance
+   * Complete SBT Minting Process - ARC-3 + ARC-19 compliance
    * 
-   * TRUE ARC-19 workflow (following Python reference exactly):
+   * ARC-3 + ARC-19 workflow (following Python reference exactly):
    * 1. Upload to IPFS -> get CID
    * 2. Convert CID to reserve address: from_cid_to_address(CID)
    * 3. Create asset WITH ARC-19 template URL + reserve address
@@ -145,25 +143,17 @@ class NFTMintingService {
     formData: FormData 
   }): Promise<MintingResult> {
     try {
-      console.log('🚀 Starting TRUE ARC-19 + ARC-3 SBT Minting Process...');
-
-      // Step 1: Upload to IPFS (same as before)
-      console.log('📁 Step 1: Uploading to IPFS...');
+      // Step 1: Upload to IPFS
       const ipfsResult = await this.ipfsService.uploadCertificationAssets(
         params.files,
         params.certificationData,
         params.formData
       );
 
-      console.log(`✅ IPFS Upload completed: ${ipfsResult.metadataHash}`);
-
-      // Step 2: Convert CID to reserve address - Following Python: from_cid_to_address
-      console.log('🔗 Step 2: Converting CID to reserve address...');
+      // Step 2: Convert CID to reserve address
       const reserveAddress = this.fromCidToAddress(ipfsResult.metadataHash);
-      console.log(`🔗 Reserve address: ${reserveAddress}`);
 
-      // Step 3: Create TRUE ARC-19 + ARC-3 compliant SBT
-      console.log('🏗️ Step 3: Creating TRUE ARC-19 + ARC-3 compliant SBT...');
+      // Step 3: Create ARC-3 + ARC-19 compliant SBT
       const createResult = await this.createARC19SBTAsset({
         mnemonic: params.mnemonic,
         assetName: params.assetName,
@@ -172,8 +162,6 @@ class NFTMintingService {
         metadataCid: ipfsResult.metadataHash,
         metadataUrl: ipfsResult.metadataUrl // For debugging/reference
       });
-
-      console.log(`✅ TRUE ARC-19 + ARC-3 SBT created successfully: Asset ID ${createResult.assetId}`);
 
       const account = this.getAccountFromMnemonic(params.mnemonic);
 
@@ -198,10 +186,10 @@ class NFTMintingService {
   }
 
   /**
-   * Create TRUE ARC-19 + ARC-3 compliant SBT Asset
+   * Create ARC-3 + ARC-19 compliant SBT Asset
    * 
+   * ARC-3 compliance: NFT metadata standard (without @arc3 naming requirement)
    * ARC-19 compliance: Template URL with reserve address resolution
-   * ARC-3 compliance: @arc3 naming convention for visualization
    * 
    * Following Python reference: ARC19_URL = "template-ipfs://{ipfscid:1:raw:reserve:sha2-256}"
    */
@@ -215,27 +203,18 @@ class NFTMintingService {
     managerAddress?: string;
   }): Promise<{ assetId: number; txId: string; confirmedRound: number }> {
     try {
-      console.log(`🏗️ Creating TRUE ARC-19 + ARC-3 SBT Asset...`);
-      
       // ARC-19 Template URL - Using format exactly like working asset 740976269
       const arc19TemplateUrl = "template-ipfs://{ipfscid:0:dag-pb:reserve:sha2-256}";
       
-      console.log(`   - Asset Name: ${params.assetName}@arc3`); // ARC-3 naming convention
-      console.log(`   - Unit Name: ${params.unitName}`);
-      console.log(`   - ARC-19 Template URL: ${arc19TemplateUrl}`); // TRUE ARC-19 compliance
-      console.log(`   - Reserve Address: ${params.reserveAddress}`); // CID resolution
-      console.log(`   - Metadata CID: ${params.metadataCid}`);
-      console.log(`   - Manager Address: ${params.managerAddress || 'same as creator'}`);
-
       const account = this.getAccountFromMnemonic(params.mnemonic);
       const suggestedParams = await this.getSuggestedParams();
 
-      // TRUE ARC-19 + ARC-3 implementation
+      // ARC-3 + ARC-19 implementation
       const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
         sender: account.addr,
         total: 1,                                    // NFT = 1 total supply
         decimals: 0,                                 // NFTs have 0 decimals
-        assetName: `${params.assetName}@arc3`,      // ARC-3 naming convention for visualization
+        assetName: params.assetName,                // Use asset name as provided
         unitName: params.unitName,
         assetURL: arc19TemplateUrl,                 // ARC-19: Template URL for immutable resolution
         defaultFrozen: true,                        // SBT requirement
@@ -249,28 +228,10 @@ class NFTMintingService {
         suggestedParams,
       });
 
-      console.log(`🔧 TRUE ARC-19 + ARC-3 Asset Creation Parameters:`, {
-        sender: account.addr,
-        total: 1,
-        decimals: 0,
-        assetName: `${params.assetName}@arc3`,
-        unitName: params.unitName,
-        assetURL: arc19TemplateUrl,
-        defaultFrozen: true,
-        manager: params.managerAddress || account.addr,
-        reserve: params.reserveAddress,
-        freeze: 'undefined',
-        clawback: 'undefined',
-        standard: 'TRUE ARC-19 + ARC-3 Hybrid',
-        expectedResolution: `CID ${params.metadataCid} -> Address ${params.reserveAddress}`
-      });
-
       // Sign and submit
       const signedTxn = assetCreateTxn.signTxn(account.sk);
       const response = await this.algodClient.sendRawTransaction(signedTxn).do();
       const txId = response.txid;
-
-      console.log(`🏗️ Asset creation transaction submitted: ${txId}`);
 
       // Wait for confirmation
       const confirmedTxn = await this.waitForConfirmation(txId);
@@ -292,58 +253,18 @@ class NFTMintingService {
         throw new Error('Failed to extract Asset ID from confirmed transaction');
       }
 
-      console.log(`✅ TRUE ARC-19 + ARC-3 SBT Asset created successfully: Asset ID ${assetId}`);
-
-      // Immediate verification
-      console.log(`🔍 Verifying TRUE ARC-19 + ARC-3 compliance...`);
+      // Verify compliance
       const assetInfo = await this.algodClient.getAssetByID(assetId).do();
       
-      console.log(`🔍 Asset Verification:`, {
-        assetId,
-        name: assetInfo.params.name,
-        url: assetInfo.params.url,
-        reserveSet: assetInfo.params.reserve,
-        expectedReserve: params.reserveAddress,
-        reserveMatches: assetInfo.params.reserve === params.reserveAddress,
-        manager: assetInfo.params.manager,
-        creator: assetInfo.params.creator,
-        frozen: assetInfo.params.defaultFrozen,
-        arc3Compliant: assetInfo.params.name?.includes('@arc3'),
-        arc19Compliant: assetInfo.params.url === arc19TemplateUrl && !!assetInfo.params.reserve,
-        templateUrl: assetInfo.params.url === arc19TemplateUrl,
-        standards: {
-          'ARC-3': assetInfo.params.name?.includes('@arc3') ? '✅' : '❌',
-          'ARC-19': (assetInfo.params.url === arc19TemplateUrl && !!assetInfo.params.reserve) ? '✅' : '❌'
-        }
-      });
-
       // Verify ARC-19 compliance
-      if (assetInfo.params.url === arc19TemplateUrl) {
-        console.log(`✅ SUCCESS! ARC-19 template URL correctly set: ${assetInfo.params.url}`);
-      } else {
-        console.log(`❌ FAILURE! Asset URL is: ${assetInfo.params.url || 'undefined'}`);
+      if (assetInfo.params.url !== arc19TemplateUrl) {
         throw new Error(`ARC-19 template URL not set correctly during asset creation`);
       }
 
       // Verify reserve address
-      if (assetInfo.params.reserve === params.reserveAddress) {
-        console.log(`✅ SUCCESS! Reserve address correctly set to: ${assetInfo.params.reserve}`);
-      } else {
-        console.log(`❌ FAILURE! Reserve address is: ${assetInfo.params.reserve || 'undefined'}`);
+      if (assetInfo.params.reserve !== params.reserveAddress) {
         throw new Error(`Reserve address not set correctly during asset creation`);
       }
-
-      // Verify ARC-3 compliance
-      if (assetInfo.params.name?.includes('@arc3')) {
-        console.log(`✅ SUCCESS! ARC-3 naming convention correctly applied: ${assetInfo.params.name}`);
-      } else {
-        console.log(`❌ WARNING! ARC-3 naming convention not found in: ${assetInfo.params.name || 'undefined'}`);
-      }
-
-      console.log(`🎉 FINAL RESULT: Asset ${assetId} is now BOTH ARC-19 and ARC-3 compliant!`);
-      console.log(`   📋 ARC-3: Supports NFT visualization with @arc3 naming`);
-      console.log(`   🔗 ARC-19: Supports immutable metadata resolution via reserve address`);
-      console.log(`   🔍 Template URL resolves: ${params.metadataCid} via ${params.reserveAddress}`);
 
       return {
         assetId,
@@ -352,7 +273,7 @@ class NFTMintingService {
       };
 
     } catch (error) {
-      console.error('Error creating TRUE ARC-19 + ARC-3 SBT asset:', error);
+      console.error('Error creating ARC-3 + ARC-19 SBT asset:', error);
       throw new Error(`Failed to create SBT asset: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -439,23 +360,11 @@ class NFTMintingService {
     metadataUrl?: string;
   }): Promise<{ txId: string; confirmedRound: number }> {
     try {
-      console.log(`🔄 Updating Asset Reserve (Python Pattern)...`);
-      console.log(`   - Asset ID: ${params.assetId}`);
-      console.log(`   - New Reserve: ${params.newReserveAddress}`);
-
       const managerAccount = this.getAccountFromMnemonic(params.managerMnemonic);
       const suggestedParams = await this.getSuggestedParams();
 
       // Get current asset info to preserve existing parameters
       const currentAssetInfo = await this.algodClient.getAssetByID(params.assetId).do();
-      
-      console.log(`🔍 Current Asset State:`, {
-        manager: currentAssetInfo.params.manager,
-        reserve: currentAssetInfo.params.reserve,
-        freeze: currentAssetInfo.params.freeze || 'undefined',
-        clawback: currentAssetInfo.params.clawback || 'undefined',
-        url: currentAssetInfo.params.url
-      });
 
       // Following Python pattern - only include defined parameters
       const configParams = {
@@ -470,30 +379,17 @@ class NFTMintingService {
       // Only include freeze if it was originally set
       if (currentAssetInfo.params.freeze && currentAssetInfo.params.freeze !== '') {
         (configParams as any).freeze = currentAssetInfo.params.freeze;
-        console.log(`✅ Preserving freeze: ${currentAssetInfo.params.freeze}`);
       }
 
       // Only include clawback if it was originally set  
       if (currentAssetInfo.params.clawback && currentAssetInfo.params.clawback !== '') {
         (configParams as any).clawback = currentAssetInfo.params.clawback;
-        console.log(`✅ Preserving clawback: ${currentAssetInfo.params.clawback}`);
       }
 
       // Update URL if provided (for ARC-3 compliance)
       if (params.metadataUrl) {
         (configParams as any).assetURL = params.metadataUrl;
-        console.log(`✅ Updating URL: ${params.metadataUrl}`);
       }
-
-      console.log(`🔧 Asset Config Params (Python Pattern):`, {
-        sender: configParams.sender.toString(),
-        assetIndex: configParams.assetIndex,
-        manager: configParams.manager,
-        reserve: configParams.reserve,
-        freeze: (configParams as any).freeze || 'NOT_INCLUDED',
-        clawback: (configParams as any).clawback || 'NOT_INCLUDED',
-        assetURL: (configParams as any).assetURL || 'NOT_INCLUDED'
-      });
 
       // Create asset configuration transaction
       const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject(configParams);
@@ -503,28 +399,13 @@ class NFTMintingService {
       const response = await this.algodClient.sendRawTransaction(signedTxn).do();
       const txId = response.txid;
 
-      console.log(`🔄 Asset config transaction submitted: ${txId}`);
-
       // Wait for confirmation
       const confirmedTxn = await this.waitForConfirmation(txId);
-      console.log(`✅ Transaction confirmed in round: ${confirmedTxn['confirmed-round']}`);
 
-      // Immediate verification
-      console.log(`🔍 Verifying reserve address update...`);
+      // Verify reserve address update
       const updatedAssetInfo = await this.algodClient.getAssetByID(params.assetId).do();
       
-      console.log(`🔍 Updated Asset State:`, {
-        reserve: updatedAssetInfo.params.reserve,
-        expected: params.newReserveAddress,
-        matches: updatedAssetInfo.params.reserve === params.newReserveAddress,
-        manager: updatedAssetInfo.params.manager,
-        url: updatedAssetInfo.params.url
-      });
-
-      if (updatedAssetInfo.params.reserve === params.newReserveAddress) {
-        console.log(`✅ SUCCESS! Reserve address updated to: ${updatedAssetInfo.params.reserve}`);
-      } else {
-        console.log(`❌ FAILURE! Reserve address is: ${updatedAssetInfo.params.reserve || 'undefined'}`);
+      if (updatedAssetInfo.params.reserve !== params.newReserveAddress) {
         throw new Error(`Reserve address update failed - expected: ${params.newReserveAddress}, got: ${updatedAssetInfo.params.reserve}`);
       }
 
@@ -556,22 +437,15 @@ class NFTMintingService {
     metadataUrl: string;
   }> {
     try {
-      console.log('🔄 Updating Certification Metadata...');
-      console.log(`   - Asset ID: ${params.assetId}`);
-
       // Step 1: Upload new metadata to IPFS
-      console.log('📁 Uploading updated metadata to IPFS...');
       const ipfsResult = await this.ipfsService.uploadCertificationAssets(
         params.newFiles,
         params.newCertificationData,
         params.formData
       );
 
-      console.log(`✅ New metadata uploaded: ${ipfsResult.metadataHash}`);
-
       // Step 2: Convert new CID to reserve address
       const newReserveAddress = this.fromCidToAddress(ipfsResult.metadataHash);
-      console.log(`🔗 New reserve address: ${newReserveAddress}`);
 
       // Step 3: Update asset reserve address
       const updateResult = await this.updateAssetReserve({
@@ -580,8 +454,6 @@ class NFTMintingService {
         managerMnemonic: params.mnemonic,
         metadataUrl: ipfsResult.metadataUrl
       });
-
-      console.log(`✅ Certification metadata updated successfully!`);
 
       return {
         txId: updateResult.txId,

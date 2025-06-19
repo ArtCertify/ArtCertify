@@ -71,8 +71,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       const account = algosdk.mnemonicToSecretKey(mnemonic);
       const algorandAddress = account.addr.toString();
 
-      console.log('Login with .env private key:', algorandAddress);
-
       // Login with derived address
       onLogin(algorandAddress);
       navigate('/');

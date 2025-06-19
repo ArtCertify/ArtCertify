@@ -39,7 +39,6 @@ class NFTService {
       return await operation();
     } catch (error: any) {
       if (retries > 0 && (error.status === 429 || error.status >= 500)) {
-        console.warn(`Request failed with ${error.status}, retrying in ${delay}ms... (${retries} retries left)`);
         await this.sleep(delay);
         return this.withRetry(operation, retries - 1, delay * 2);
       }
@@ -237,11 +236,10 @@ class NFTService {
           }
           
         } catch (error) {
-          console.warn(`Error processing batch ${i}-${i + SEARCH_BATCH_SIZE}:`, error);
+          // Silently skip failed batches
         }
       }
 
-      console.log(`Successfully loaded ${nftDetails.length} NFTs using optimized approach`);
       return nftDetails;
       
     } catch (error) {
