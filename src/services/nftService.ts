@@ -16,6 +16,82 @@ export interface AccountAssets {
 }
 
 class NFTService {
+  private readonly RATE_LIMIT_DELAY = 200; // Increased delay for safety
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY = 1000;
+
+  /**
+   * Sleep utility function
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry utility with exponential backoff
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    retries: number = this.MAX_RETRIES,
+    delay: number = this.RETRY_DELAY
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (retries > 0 && (error.status === 429 || error.status >= 500)) {
+        await this.sleep(delay);
+        return this.withRetry(operation, retries - 1, delay * 2);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Process items in chunks with rate limiting and retry logic
+   * Currently unused but kept for future batch processing needs
+   */
+  /*
+  private async processInChunks<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    chunkSize: number = this.CHUNK_SIZE
+  ): Promise<R[]> {
+    const results: R[] = [];
+    
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      
+      // Process chunk with rate limiting
+      const chunkPromises = chunk.map(async (item, index) => {
+        // Add delay between requests within chunk
+        if (index > 0) {
+          await this.sleep(this.RATE_LIMIT_DELAY);
+        }
+        
+        return this.withRetry(() => processor(item));
+      });
+
+      const chunkResults = await Promise.allSettled(chunkPromises);
+      
+      // Extract successful results
+      chunkResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          console.warn(`Failed to process item ${chunk[index]}:`, result.reason);
+        }
+      });
+
+      // Add delay between chunks
+      if (i + chunkSize < items.length) {
+        await this.sleep(this.RATE_LIMIT_DELAY * 2);
+      }
+    }
+
+    return results;
+  }
+  */
+
   /**
    * Fetch all assets owned by an Algorand address
    */
@@ -24,7 +100,9 @@ class NFTService {
       const indexer = algorandService.getIndexer();
       
       // Use lookupAccountAssets to get assets owned by the account
-      const accountAssetsResponse = await indexer.lookupAccountAssets(address).do();
+      const accountAssetsResponse = await this.withRetry(() => 
+        indexer.lookupAccountAssets(address).do()
+      );
       
       if (!accountAssetsResponse.assets) {
         return {
@@ -65,11 +143,12 @@ class NFTService {
   }
 
   /**
-   * Fetch detailed information for owned NFTs/SBTs
-   * Filters out fungible tokens and focuses on NFTs
+   * Optimized method to fetch NFT details using indexer search API
+   * This reduces API calls by using the assets search endpoint
    */
   async getOwnedNFTs(address: string): Promise<AssetInfo[]> {
     try {
+      // Step 1: Get owned assets (fast call)
       const ownedAssets = await this.getOwnedAssets(address);
       
       // Filter assets that are likely NFTs (amount = 1, non-divisible)
@@ -79,31 +158,90 @@ class NFTService {
         return [];
       }
 
-      // Fetch detailed information for each NFT
-      const nftPromises = nftAssets.map(asset => 
-        algorandService.getAssetInfo(asset.assetId)
-      );
+      console.log(`Found ${nftAssets.length} potential NFTs. Fetching details using optimized approach...`);
 
-      const nftDetails = await Promise.allSettled(nftPromises);
+      // Step 2: Use indexer search to get asset details more efficiently
+      const indexer = algorandService.getIndexer();
+      const nftDetails: AssetInfo[] = [];
       
-      // Filter successful results and NFTs only
-      const validNFTs: AssetInfo[] = [];
+      // Process in smaller batches to avoid overwhelming the indexer
+      const SEARCH_BATCH_SIZE = 20;
       
-      nftDetails.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          const asset = result.value;
-          // Additional filtering for NFTs: total supply = 1, decimals = 0
-          // Handle bigint comparison properly
-          const total = typeof asset.params.total === 'bigint' ? Number(asset.params.total) : asset.params.total;
-          if (total === 1 && asset.params.decimals === 0) {
-            validNFTs.push(asset);
+      for (let i = 0; i < nftAssets.length; i += SEARCH_BATCH_SIZE) {
+        const batch = nftAssets.slice(i, i + SEARCH_BATCH_SIZE);
+        
+        try {
+          // For each asset in the batch, get its details using indexer
+          const batchPromises = batch.map(async (asset) => {
+            await this.sleep(this.RATE_LIMIT_DELAY); // Rate limiting
+            
+            return this.withRetry(async () => {
+              const assetResponse = await indexer.lookupAssetByID(parseInt(asset.assetId)).do();
+              
+              if (assetResponse.asset) {
+                const assetData = assetResponse.asset;
+                
+                // Check if it's actually an NFT (total = 1, decimals = 0)
+                const total = typeof assetData.params.total === 'bigint' ? Number(assetData.params.total) : assetData.params.total;
+                
+                if (total === 1 && assetData.params.decimals === 0) {
+                  // Transform indexer response to our AssetInfo format
+                  const assetInfo: AssetInfo = {
+                    index: typeof assetData.index === 'bigint' ? Number(assetData.index) : assetData.index,
+                    params: {
+                      creator: assetData.params.creator,
+                      decimals: assetData.params.decimals,
+                      defaultFrozen: assetData.params.defaultFrozen ?? false,
+                      manager: assetData.params.manager,
+                      metadataHash: assetData.params.metadataHash,
+                      name: assetData.params.name || `Asset ${assetData.index}`,
+                      nameB64: assetData.params.nameB64,
+                      reserve: assetData.params.reserve,
+                      total: BigInt(total),
+                      unitName: assetData.params.unitName,
+                      unitNameB64: assetData.params.unitNameB64,
+                      url: assetData.params.url,
+                      urlB64: assetData.params.urlB64,
+                      clawback: assetData.params.clawback,
+                      freeze: assetData.params.freeze
+                    },
+                    'created-at-round': assetData.createdAtRound ? 
+                      (typeof assetData.createdAtRound === 'bigint' ? Number(assetData.createdAtRound) : assetData.createdAtRound) : 
+                      undefined,
+                    'deleted-at-round': assetData.destroyedAtRound ? 
+                      (typeof assetData.destroyedAtRound === 'bigint' ? Number(assetData.destroyedAtRound) : assetData.destroyedAtRound) : 
+                      undefined,
+                    description: assetData.params.name || 'NFT Certificate'
+                  };
+                  
+                  return assetInfo;
+                }
+              }
+              return null;
+            });
+          });
+
+          const batchResults = await Promise.allSettled(batchPromises);
+          
+          // Extract successful results
+          batchResults.forEach((result) => {
+            if (result.status === 'fulfilled' && result.value !== null) {
+              nftDetails.push(result.value);
+            }
+          });
+
+          // Delay between batches
+          if (i + SEARCH_BATCH_SIZE < nftAssets.length) {
+            await this.sleep(this.RATE_LIMIT_DELAY * 3);
           }
-        } else {
-          console.warn(`Failed to fetch asset ${nftAssets[index].assetId}:`, result.reason);
+          
+        } catch (error) {
+          // Silently skip failed batches
         }
-      });
+      }
 
-      return validNFTs;
+      return nftDetails;
+      
     } catch (error) {
       console.error('Error fetching owned NFTs:', error);
       throw new Error(`Failed to fetch NFTs for address ${address}`);
@@ -157,7 +295,9 @@ class NFTService {
   async getAccountInfo(address: string) {
     try {
       const indexer = algorandService.getIndexer();
-      const accountInfo = await indexer.lookupAccountByID(address).do();
+      const accountInfo = await this.withRetry(() => 
+        indexer.lookupAccountByID(address).do()
+      );
       
       if (!accountInfo.account) {
         throw new Error('Account not found');

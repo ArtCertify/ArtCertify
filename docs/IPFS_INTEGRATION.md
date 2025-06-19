@@ -1,744 +1,588 @@
-# 🌐 Integrazione IPFS con Pinata
+# 📁 Integrazione IPFS - Caput Mundi FE
 
-Documentazione completa per l'integrazione IPFS utilizzando Pinata come gateway e servizio di pinning per ArtCertify.
+Documentazione completa per l'integrazione IPFS tramite Pinata per l'archiviazione decentralizzata dei metadata e file delle certificazioni digitali.
 
 ## 📋 Panoramica
 
 L'integrazione IPFS permette di:
-- **Archiviare metadata NFT** in modo decentralizzato
-- **Garantire immutabilità** dei dati certificati
-- **Ridurre costi** rispetto a storage on-chain
-- **Migliorare performance** con gateway ottimizzati
+- **✅ Archiviazione decentralizzata** di metadata e file certificazioni
+- **✅ Immutabilità** dei contenuti tramite hash crittografici
+- **✅ Ridondanza** con multiple regions Pinata
+- **✅ ARC-19 compliance** per Algorand NFT
+- **✅ Gateway personalizzati** per accesso ottimizzato
+- **✅ Metadata strutturati** per certificazioni complete
 
 ## 🔧 Configurazione
 
-### Variabili d'Ambiente
+### Variabili d'Ambiente Richieste
 
 ```bash
 # Pinata IPFS Gateway Configuration
-VITE_PINATA_GATEWAY=coffee-quiet-limpet-747.mypinata.cloud
+VITE_PINATA_GATEWAY=your-gateway.mypinata.cloud
 
-# Pinata API (per upload - solo backend)
-PINATA_API_KEY=your_api_key
-PINATA_SECRET_API_KEY=your_secret_key
-PINATA_JWT=your_jwt_token
+# Pinata API Configuration
+VITE_PINATA_API_KEY=your_api_key
+VITE_PINATA_API_SECRET=your_api_secret
+VITE_PINATA_JWT=your_jwt_token
 ```
 
-### Setup Pinata Account
+### Setup Account Pinata
 
 1. **Registrazione**: https://pinata.cloud/
-2. **API Keys**: Genera chiavi API nel dashboard
-3. **Gateway**: Configura gateway personalizzato
-4. **Billing**: Configura piano (free tier disponibile)
+2. **API Keys**: Dashboard > API Keys > New Key
+3. **Gateway**: Dashboard > Gateways > Create Dedicated Gateway
+4. **Permissions**: Admin access per upload/pin/unpin
 
-## 🏗️ Architettura
+## 🏗️ Architettura IPFS Service
 
-### Flusso Dati
+### IPFSService (`src/services/ipfsService.ts`)
 
-```
-Frontend → Backend API → Pinata → IPFS Network
-    ↓                              ↓
-Algorand ← CID Hash ← Gateway URL ← IPFS
-```
-
-### Componenti
+**Servizio completo per gestione IPFS** tramite Pinata:
 
 ```typescript
-// Servizio CID Decoder
-class CIDDecoder {
-  decodeCID(url: string): CIDInfo
-  validateCID(cid: string): boolean
-  getGatewayUrl(cid: string): string
-}
+class IPFSService {
+  private readonly apiKey: string;
+  private readonly apiSecret: string;
+  private readonly jwt: string;
+  private readonly baseURL = 'https://api.pinata.cloud';
 
-// Servizio NFT con IPFS
-class NFTService {
-  uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string>
-  fetchMetadataFromIPFS(url: string): Promise<NFTMetadata>
-  validateIPFSUrl(url: string): boolean
+  // ✅ File upload with metadata
+  async uploadFile(file: File, metadata?: IPFSFileMetadata): Promise<IPFSUploadResponse>
+  
+  // ✅ JSON upload with structured data
+  async uploadJSON(jsonData: IPFSMetadata, metadata?: IPFSFileMetadata): Promise<IPFSUploadResponse>
+  
+  // ✅ Complete certification assets upload
+  async uploadCertificationAssets(
+    files: File[],
+    certificationData: IPFSMetadata['certification_data'],
+    formData: Record<string, any>
+  ): Promise<CertificationUploadResult>
+  
+  // ✅ URL generation for different gateways
+  getIPFSUrl(hash: string): string
+  getCustomGatewayUrl(hash: string, gateway?: string): string
+  
+  // ✅ Connection testing
+  async testConnection(): Promise<boolean>
 }
 ```
 
-## 📤 Upload Metadata
+### Interfacce TypeScript
 
-### Struttura Metadata NFT
+```typescript
+export interface IPFSUploadResponse {
+  IpfsHash: string;
+  PinSize: number;
+  Timestamp: string;
+  isDuplicate?: boolean;
+}
 
-```json
-{
-  "name": "Certificazione Documento - Contratto Affitto",
-  "description": "Certificazione digitale per documento legale",
-  "image": "ipfs://QmYourImageHash",
-  "external_url": "https://artcertify.com/cert/12345",
-  "attributes": [
-    {
-      "trait_type": "Tipo Certificazione",
-      "value": "Documento"
-    },
-    {
-      "trait_type": "Organizzazione",
-      "value": "Studio Legale Roma"
-    },
-    {
-      "trait_type": "Data Certificazione",
-      "value": "2024-01-15"
-    },
-    {
-      "trait_type": "Hash Documento",
-      "value": "sha256:abcd1234..."
+export interface IPFSFileMetadata {
+  name?: string;
+  keyvalues?: Record<string, string | number>;
+}
+
+export interface IPFSMetadata {
+  name: string;
+  description: string;
+  image: string;
+  attributes?: Array<{
+    trait_type: string;
+    value: string | number;
+  }>;
+  properties?: Record<string, unknown>;
+  certification_data?: {
+    asset_type: string;
+    unique_id: string;
+    title: string;
+    author: string;
+    creation_date: string;
+    organization: OrganizationInfo;
+    technical_specs?: Record<string, string>;
+    files?: Array<FileInfo>;
+  };
+}
+
+export interface CertificationUploadResult {
+  metadataHash: string;
+  fileHashes: Array<FileInfo>;
+  metadataUrl: string;
+  individualFileUrls: Array<{
+    name: string;
+    ipfsUrl: string;
+    gatewayUrl: string;
+  }>;
+}
+```
+
+## 🎯 Workflow Upload Completo
+
+### 1. Upload Files Individuali
+
+```typescript
+// Upload ogni file separatamente con metadata specifici
+for (const file of files) {
+  const uploadResult = await this.uploadFile(file, {
+    name: `${certificationData?.unique_id || 'file'}_${file.name}`,
+    keyvalues: {
+      asset_id: certificationData?.unique_id || '',
+      file_type: file.type,
+      file_size: file.size.toString(),
+      upload_timestamp: new Date().toISOString()
     }
+  });
+
+  fileHashes.push({
+    name: file.name,
+    hash: uploadResult.IpfsHash,
+    type: file.type,
+    size: file.size
+  });
+}
+```
+
+### 2. Creazione Metadata ARC-3
+
+```typescript
+// Struttura metadata completa per ARC-3 + certificazioni
+const metadata: IPFSMetadata = {
+  name: `Certificazione ${certificationData.asset_type} - ${certificationData.title}`,
+  description: `Certificazione digitale per ${certificationData.asset_type}`,
+  image: imageHash ? `ipfs://${imageHash}` : '',
+  external_url: `https://gateway.pinata.cloud/ipfs/${certificationData.unique_id}`,
+  
+  // ARC-3 attributes
+  attributes: [
+    { trait_type: "Tipo Asset", value: certificationData.asset_type },
+    { trait_type: "Organizzazione", value: certificationData.organization.name },
+    { trait_type: "Autore", value: certificationData.author },
+    { trait_type: "Data Creazione", value: certificationData.creation_date }
   ],
-  "properties": {
-    "certification_type": "document",
-    "organization_id": "ORG-001",
-    "document_hash": "sha256:abcd1234efgh5678",
-    "created_at": "2024-01-15T10:30:00Z",
-    "creator_address": "ALGORAND_ADDRESS",
-    "version": "1.0"
-  }
-}
-```
-
-### Processo Upload
-
-#### 1. Preparazione Metadata
-
-```typescript
-// src/services/nftService.ts
-const prepareMetadata = (data: CertificationData): NFTMetadata => {
-  return {
-    name: `Certificazione ${data.type} - ${data.name}`,
-    description: `Certificazione digitale per ${data.type.toLowerCase()}`,
-    image: data.imageUrl ? `ipfs://${data.imageUrl}` : undefined,
-    external_url: `https://artcertify.com/cert/${data.id}`,
-    attributes: [
-      {
-        trait_type: "Tipo Certificazione",
-        value: data.type
-      },
-      {
-        trait_type: "Organizzazione",
-        value: data.organization.name
-      },
-      {
-        trait_type: "Data Certificazione",
-        value: new Date().toISOString().split('T')[0]
-      },
-      {
-        trait_type: "Hash Documento",
-        value: data.documentHash
-      }
-    ],
-    properties: {
-      certification_type: data.type.toLowerCase(),
-      organization_id: data.organization.id,
-      document_hash: data.documentHash,
-      created_at: new Date().toISOString(),
-      creator_address: data.creatorAddress,
-      version: "1.0"
-    }
-  };
-};
-```
-
-#### 2. Upload a Pinata
-
-```typescript
-// Backend API endpoint
-const uploadToPinata = async (metadata: NFTMetadata): Promise<string> => {
-  const url = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
   
-  const data = {
-    pinataContent: metadata,
-    pinataMetadata: {
-      name: `ArtCertify-${metadata.name}`,
-      keyvalues: {
-        app: 'artcertify',
-        type: metadata.properties?.certification_type || 'unknown',
-        organization: metadata.properties?.organization_id || 'unknown'
-      }
-    },
-    pinataOptions: {
-      cidVersion: 1
-    }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.PINATA_JWT}`
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Pinata upload failed: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  return result.IpfsHash;
-};
-```
-
-#### 3. Frontend Integration
-
-```typescript
-// src/services/nftService.ts
-export class NFTService {
-  async createDocumentCertification(data: DocumentData): Promise<number> {
-    try {
-      // 1. Prepara metadata
-      const metadata = this.prepareMetadata(data);
-      
-      // 2. Upload metadata a IPFS
-      const ipfsHash = await this.uploadMetadataToIPFS(metadata);
-      const metadataUrl = `ipfs://${ipfsHash}`;
-      
-      // 3. Crea NFT su Algorand con URL IPFS
-      const assetId = await algorandService.createAsset({
-        name: metadata.name,
-        unitName: 'CERT',
-        total: 1,
-        decimals: 0,
-        url: metadataUrl,
-        metadataHash: undefined, // Opzionale: hash dei metadata
-        manager: creatorAddress,
-        reserve: creatorAddress,
-        freeze: creatorAddress,
-        clawback: creatorAddress
-      });
-      
-      return assetId;
-    } catch (error) {
-      console.error('Error creating certification:', error);
-      throw error;
-    }
-  }
-
-  private async uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string> {
-    const response = await fetch('/api/ipfs/upload', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(metadata)
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload metadata to IPFS');
-    }
-
-    const result = await response.json();
-    return result.ipfsHash;
-  }
-}
-```
-
-## 📥 Fetch Metadata
-
-### CID Decoder
-
-```typescript
-// src/services/cidDecoder.ts
-export interface CIDInfo {
-  success: boolean;
-  cid: string;
-  gatewayUrl: string;
-  error?: string;
-}
-
-export const decodeCID = (url: string): CIDInfo => {
-  try {
-    // Gestisce formati: ipfs://QmHash, https://gateway/ipfs/QmHash
-    let cid: string;
-    
-    if (url.startsWith('ipfs://')) {
-      cid = url.replace('ipfs://', '');
-    } else if (url.includes('/ipfs/')) {
-      cid = url.split('/ipfs/')[1];
-    } else {
-      throw new Error('Invalid IPFS URL format');
-    }
-
-    // Valida CID
-    if (!isValidCID(cid)) {
-      throw new Error('Invalid CID format');
-    }
-
-    const gatewayUrl = `https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${cid}`;
-
-    return {
-      success: true,
-      cid,
-      gatewayUrl
-    };
-  } catch (error) {
-    return {
-      success: false,
-      cid: '',
-      gatewayUrl: '',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-const isValidCID = (cid: string): boolean => {
-  // CID v0: inizia con Qm, 46 caratteri
-  const cidV0Regex = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
+  // File links
+  properties: {
+    files: individualFileUrls.map(file => ({
+      name: file.name,
+      ipfsUrl: file.ipfsUrl,
+      gatewayUrl: file.gatewayUrl
+    }))
+  },
   
-  // CID v1: più complesso, inizia con b (base32) o z (base58)
-  const cidV1Regex = /^b[a-z2-7]{58}$|^z[1-9A-HJ-NP-Za-km-z]+$/;
-  
-  return cidV0Regex.test(cid) || cidV1Regex.test(cid);
+  // Extended certification data
+  certification_data: {
+    ...certificationData,
+    files: fileHashes
+  }
 };
 ```
 
-### Fetch da Gateway
+### 3. Upload Metadata JSON
 
 ```typescript
-// src/services/nftService.ts
-export const fetchMetadataFromIPFS = async (ipfsUrl: string): Promise<NFTMetadata | null> => {
-  try {
-    const cidInfo = decodeCID(ipfsUrl);
-    
-    if (!cidInfo.success) {
-      console.error('Invalid IPFS URL:', cidInfo.error);
-      return null;
-    }
-
-    const response = await fetch(cidInfo.gatewayUrl, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const metadata = await response.json();
-    
-    // Valida struttura metadata
-    if (!isValidNFTMetadata(metadata)) {
-      throw new Error('Invalid NFT metadata structure');
-    }
-
-    return metadata;
-  } catch (error) {
-    console.error('Error fetching IPFS metadata:', error);
-    return null;
+// Upload del metadata JSON su IPFS
+const metadataUploadResult = await this.uploadJSON(metadata, {
+  name: `metadata_${certificationData.unique_id}`,
+  keyvalues: {
+    asset_type: certificationData.asset_type,
+    unique_id: certificationData.unique_id,
+    organization: certificationData.organization.code,
+    upload_type: 'certification_metadata',
+    files_count: fileHashes.length.toString()
   }
-};
-
-const isValidNFTMetadata = (data: any): data is NFTMetadata => {
-  return (
-    typeof data === 'object' &&
-    typeof data.name === 'string' &&
-    typeof data.description === 'string'
-  );
-};
-```
-
-## 🎨 Componenti UI
-
-### MetadataDisplay Component
-
-```tsx
-// src/components/ui/MetadataDisplay.tsx
-interface MetadataDisplayProps {
-  metadata: NFTMetadata | null;
-  cidInfo?: CIDInfo;
-  loading?: boolean;
-  error?: string;
-}
-
-const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
-  metadata,
-  cidInfo,
-  loading,
-  error
-}) => {
-  if (loading) {
-    return (
-      <SectionCard title="Metadata NFT">
-        <div className="space-y-3">
-          <Skeleton height={20} />
-          <Skeleton height={40} />
-          <Skeleton height={60} />
-        </div>
-      </SectionCard>
-    );
-  }
-
-  if (error) {
-    return (
-      <SectionCard title="Metadata NFT">
-        <ErrorMessage 
-          message={`Errore caricamento metadata: ${error}`}
-          variant="warning"
-        />
-      </SectionCard>
-    );
-  }
-
-  if (!metadata) {
-    return (
-      <SectionCard title="Metadata NFT">
-        <EmptyState
-          title="Nessun metadata"
-          description="Metadata NFT non disponibili"
-          icon={<DocumentIcon />}
-        />
-      </SectionCard>
-    );
-  }
-
-  return (
-    <SectionCard title="Metadata NFT">
-      <div className="space-y-4">
-        {/* Basic Info */}
-        <InfoField label="Nome" value={metadata.name} />
-        <InfoField label="Descrizione" value={metadata.description} />
-        
-        {/* External URL */}
-        {metadata.external_url && (
-          <InfoField
-            label="URL Esterno"
-            value={
-              <a 
-                href={metadata.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 underline"
-              >
-                {metadata.external_url}
-              </a>
-            }
-          />
-        )}
-
-        {/* Image */}
-        {metadata.image && (
-          <InfoField
-            label="Immagine"
-            value={
-              <div>
-                <p className="text-xs text-slate-400 mb-2">{metadata.image}</p>
-                <a 
-                  href={metadata.image.startsWith('ipfs://') 
-                    ? decodeCID(metadata.image).gatewayUrl 
-                    : metadata.image
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300"
-                >
-                  Visualizza Immagine →
-                </a>
-              </div>
-            }
-          />
-        )}
-
-        {/* Attributes */}
-        {metadata.attributes && metadata.attributes.length > 0 && (
-          <div>
-            <p className="text-sm font-medium text-slate-300 mb-3">Attributi:</p>
-            <div className="bg-slate-700 rounded-lg p-4 space-y-2">
-              {metadata.attributes.map((attr, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-slate-400">{attr.trait_type}:</span>
-                  <span className="text-sm text-slate-200 font-medium">{attr.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* IPFS Info */}
-        {cidInfo?.success && (
-          <div className="border-t border-slate-700 pt-4">
-            <InfoField
-              label="CID IPFS"
-              value={
-                <div>
-                  <p className="font-mono text-xs text-slate-300 mb-2">{cidInfo.cid}</p>
-                  <a 
-                    href={cidInfo.gatewayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    Visualizza su IPFS →
-                  </a>
-                </div>
-              }
-            />
-          </div>
-        )}
-      </div>
-    </SectionCard>
-  );
-};
-```
-
-### IPFS Status Indicator
-
-```tsx
-const IPFSStatusIndicator: React.FC<{ cidInfo: CIDInfo }> = ({ cidInfo }) => {
-  if (!cidInfo.success) {
-    return (
-      <StatusBadge
-        status="error"
-        label="IPFS Non Valido"
-        icon={<ExclamationTriangleIcon />}
-      />
-    );
-  }
-
-  return (
-    <StatusBadge
-      status="success"
-      label="IPFS Verificato"
-      icon={<CheckCircleIcon />}
-    />
-  );
-};
-```
-
-## 🔒 Sicurezza
-
-### Validazione CID
-
-```typescript
-const validateCIDSecurity = (cid: string): boolean => {
-  // Verifica lunghezza
-  if (cid.length < 46 || cid.length > 100) {
-    return false;
-  }
-
-  // Verifica caratteri validi
-  const validChars = /^[a-zA-Z0-9]+$/;
-  if (!validChars.test(cid)) {
-    return false;
-  }
-
-  // Verifica prefissi CID validi
-  const validPrefixes = ['Qm', 'b', 'z'];
-  const hasValidPrefix = validPrefixes.some(prefix => cid.startsWith(prefix));
-  
-  return hasValidPrefix;
-};
-```
-
-### Sanitizzazione URL
-
-```typescript
-const sanitizeIPFSUrl = (url: string): string => {
-  // Rimuovi protocolli pericolosi
-  const sanitized = url.replace(/^(javascript|data|vbscript):/i, '');
-  
-  // Assicurati che sia IPFS
-  if (!sanitized.startsWith('ipfs://') && !sanitized.includes('/ipfs/')) {
-    throw new Error('URL non è IPFS valido');
-  }
-
-  return sanitized;
-};
-```
-
-### Rate Limiting
-
-```typescript
-class IPFSRateLimiter {
-  private requests: Map<string, number[]> = new Map();
-  private readonly maxRequests = 100; // per minuto
-  private readonly windowMs = 60 * 1000; // 1 minuto
-
-  canMakeRequest(clientId: string): boolean {
-    const now = Date.now();
-    const requests = this.requests.get(clientId) || [];
-    
-    // Rimuovi richieste vecchie
-    const recentRequests = requests.filter(time => now - time < this.windowMs);
-    
-    if (recentRequests.length >= this.maxRequests) {
-      return false;
-    }
-
-    // Aggiungi nuova richiesta
-    recentRequests.push(now);
-    this.requests.set(clientId, recentRequests);
-    
-    return true;
-  }
-}
-```
-
-## 📊 Monitoraggio
-
-### Metriche IPFS
-
-```typescript
-interface IPFSMetrics {
-  uploadCount: number;
-  downloadCount: number;
-  errorRate: number;
-  averageUploadTime: number;
-  averageDownloadTime: number;
-  totalStorageUsed: number;
-}
-
-class IPFSMonitor {
-  private metrics: IPFSMetrics = {
-    uploadCount: 0,
-    downloadCount: 0,
-    errorRate: 0,
-    averageUploadTime: 0,
-    averageDownloadTime: 0,
-    totalStorageUsed: 0
-  };
-
-  trackUpload(startTime: number, size: number, success: boolean) {
-    const duration = Date.now() - startTime;
-    
-    this.metrics.uploadCount++;
-    if (success) {
-      this.metrics.totalStorageUsed += size;
-      this.updateAverageUploadTime(duration);
-    } else {
-      this.updateErrorRate();
-    }
-  }
-
-  trackDownload(startTime: number, success: boolean) {
-    const duration = Date.now() - startTime;
-    
-    this.metrics.downloadCount++;
-    if (success) {
-      this.updateAverageDownloadTime(duration);
-    } else {
-      this.updateErrorRate();
-    }
-  }
-
-  getMetrics(): IPFSMetrics {
-    return { ...this.metrics };
-  }
-}
-```
-
-### Logging
-
-```typescript
-const logIPFSOperation = (operation: string, data: any) => {
-  console.log(`[IPFS] ${operation}:`, {
-    timestamp: new Date().toISOString(),
-    gateway: import.meta.env.VITE_PINATA_GATEWAY,
-    ...data
-  });
-};
-```
-
-## 🧪 Testing
-
-### Mock IPFS per Testing
-
-```typescript
-// src/services/__mocks__/ipfs.ts
-export const mockIPFSService = {
-  uploadMetadata: jest.fn().mockResolvedValue('QmMockHash123'),
-  fetchMetadata: jest.fn().mockResolvedValue({
-    name: 'Test NFT',
-    description: 'Test Description',
-    attributes: []
-  }),
-  decodeCID: jest.fn().mockReturnValue({
-    success: true,
-    cid: 'QmMockHash123',
-    gatewayUrl: 'https://mock-gateway.com/ipfs/QmMockHash123'
-  })
-};
-```
-
-### Test Integration
-
-```typescript
-import { render, screen, waitFor } from '@testing-library/react';
-import { MetadataDisplay } from '../MetadataDisplay';
-
-describe('MetadataDisplay', () => {
-  it('should display metadata correctly', async () => {
-    const mockMetadata = {
-      name: 'Test Certification',
-      description: 'Test Description',
-      attributes: [
-        { trait_type: 'Type', value: 'Document' }
-      ]
-    };
-
-    render(<MetadataDisplay metadata={mockMetadata} />);
-
-    expect(screen.getByText('Test Certification')).toBeInTheDocument();
-    expect(screen.getByText('Test Description')).toBeInTheDocument();
-    expect(screen.getByText('Type:')).toBeInTheDocument();
-    expect(screen.getByText('Document')).toBeInTheDocument();
-  });
 });
 ```
 
-## 🚀 Ottimizzazioni
-
-### Caching
+### 4. Risultato Completo
 
 ```typescript
-class IPFSCache {
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private readonly ttl = 5 * 60 * 1000; // 5 minuti
+return {
+  metadataHash: metadataUploadResult.IpfsHash,
+  fileHashes: fileHashes,
+  metadataUrl: this.getIPFSUrl(metadataUploadResult.IpfsHash),
+  individualFileUrls: individualFileUrls
+};
+```
 
-  get(cid: string): any | null {
-    const cached = this.cache.get(cid);
-    if (!cached) return null;
+## 🔗 ARC-19 Integration
 
-    if (Date.now() - cached.timestamp > this.ttl) {
-      this.cache.delete(cid);
-      return null;
-    }
+### CID to Address Conversion
 
-    return cached.data;
+```typescript
+// Il metadata hash viene convertito in reserve address per ARC-19
+const reserveAddress = CidDecoder.fromCidToAddress(metadataHash);
+
+// Questo reserve address viene utilizzato nell'asset Algorand
+const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParams(
+  account.addr,
+  undefined,
+  1, // total
+  0, // decimals
+  false, // default frozen
+  account.addr, // manager
+  reserveAddress, // reserve (ARC-19 compliance)
+  account.addr, // freeze
+  account.addr, // clawback
+  unitName,
+  assetName,
+  `template-ipfs://{ipfscid:1:raw:reserve:sha2-256}`, // ARC-19 template URL
+  undefined,
+  suggestedParams
+);
+```
+
+## 🌐 Gateway Management
+
+### Multiple Gateway Support
+
+```typescript
+// Default IPFS gateway
+getIPFSUrl(hash: string): string {
+  return `ipfs://${hash}`;
+}
+
+// Custom gateway (Pinata dedicated)
+getCustomGatewayUrl(hash: string, gateway?: string): string {
+  const gatewayDomain = gateway || import.meta.env.VITE_PINATA_GATEWAY;
+  
+  if (!gatewayDomain) {
+    return `https://gateway.pinata.cloud/ipfs/${hash}`;
   }
+  
+  return `https://${gatewayDomain}/ipfs/${hash}`;
+}
 
-  set(cid: string, data: any): void {
-    this.cache.set(cid, {
-      data,
-      timestamp: Date.now()
-    });
+// Esempi di URL generati:
+// ipfs://QmHash...
+// https://your-gateway.mypinata.cloud/ipfs/QmHash...
+// https://gateway.pinata.cloud/ipfs/QmHash...
+```
+
+### Fallback Gateways
+
+```typescript
+const FALLBACK_GATEWAYS = [
+  'gateway.pinata.cloud',
+  'cloudflare-ipfs.com',
+  'dweb.link',
+  'ipfs.io'
+];
+
+// Retry logic per accesso a contenuti IPFS
+async function fetchWithFallback(hash: string) {
+  for (const gateway of FALLBACK_GATEWAYS) {
+    try {
+      const url = `https://${gateway}/ipfs/${hash}`;
+      const response = await fetch(url, { timeout: 5000 });
+      if (response.ok) return response.json();
+    } catch (error) {
+      console.warn(`Gateway ${gateway} failed for ${hash}`);
+    }
+  }
+  throw new Error('All gateways failed');
+}
+```
+
+## 📊 Pinata Configuration
+
+### Regional Replication
+
+```typescript
+// Configurazione ridondanza per upload
+const pinataOptions = {
+  cidVersion: 1,
+  customPinPolicy: {
+    regions: [
+      {
+        id: 'FRA1', // Frankfurt
+        desiredReplicationCount: 1
+      },
+      {
+        id: 'NYC1', // New York
+        desiredReplicationCount: 1
+      }
+    ]
+  }
+};
+```
+
+### File Metadata Tracking
+
+```typescript
+// Metadata associati a ogni file per tracking
+const fileMetadata = {
+  name: `${certificationData.unique_id}_${file.name}`,
+  keyvalues: {
+    asset_id: certificationData.unique_id,
+    file_type: file.type,
+    file_size: file.size.toString(),
+    upload_timestamp: new Date().toISOString(),
+    organization: certificationData.organization.code,
+    asset_type: certificationData.asset_type
+  }
+};
+```
+
+## 🔒 Security e Best Practices
+
+### API Key Management
+
+```typescript
+constructor() {
+  // ✅ Environment variables only
+  this.apiKey = import.meta.env.VITE_PINATA_API_KEY;
+  this.apiSecret = import.meta.env.VITE_PINATA_API_SECRET;
+  this.jwt = import.meta.env.VITE_PINATA_JWT;
+
+  // ✅ Validation
+  if (!this.apiKey || !this.apiSecret || !this.jwt) {
+    throw new Error('Pinata API credentials not found in environment variables');
   }
 }
 ```
 
-### Retry Logic
+### Content Validation
 
 ```typescript
-const fetchWithRetry = async (url: string, maxRetries = 3): Promise<Response> => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return response;
-      
-      if (i === maxRetries - 1) throw new Error(`HTTP ${response.status}`);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      
-      // Backoff esponenziale
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-    }
+// Validazione file prima dell'upload
+const validateFile = (file: File): boolean => {
+  // Size limit (10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('File troppo grande (max 10MB)');
   }
   
-  throw new Error('Max retries exceeded');
+  // Allowed types
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif',
+    'application/pdf', 'text/plain',
+    'video/mp4', 'video/quicktime',
+    'model/gltf+json', 'model/gltf-binary'
+  ];
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Tipo file non supportato');
+  }
+  
+  return true;
 };
 ```
 
----
+### Hash Verification
 
-**Integrazione IPFS completa per ArtCertify - Storage decentralizzato e sicuro** 
+```typescript
+// Verifica integrità dopo upload
+const verifyUpload = async (hash: string, originalFile: File): Promise<boolean> => {
+  try {
+    const ipfsUrl = this.getCustomGatewayUrl(hash);
+    const response = await fetch(ipfsUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    
+    // Compare file sizes (basic check)
+    return arrayBuffer.byteLength === originalFile.size;
+  } catch (error) {
+    console.error('Upload verification failed:', error);
+    return false;
+  }
+};
+```
+
+## 🧪 Testing e Diagnostica
+
+### Connection Testing
+
+```typescript
+async testConnection(): Promise<boolean> {
+  try {
+    const response = await axios.get(`${this.baseURL}/data/testAuthentication`, {
+      headers: {
+        'pinata_api_key': this.apiKey,
+        'pinata_secret_api_key': this.apiSecret,
+      },
+      timeout: 10000,
+    });
+
+    return response.status === 200 && response.data.message === 'Congratulations! You are communicating with the Pinata API!';
+  } catch (error) {
+    console.error('Pinata connection test failed:', error);
+    return false;
+  }
+}
+```
+
+### Upload Testing
+
+```typescript
+// Test complete upload workflow
+const testUploadWorkflow = async () => {
+  // 1. Test file upload
+  const testFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
+  const fileResult = await ipfsService.uploadFile(testFile);
+  console.log('File upload test:', fileResult.IpfsHash);
+  
+  // 2. Test JSON upload
+  const testMetadata = { name: 'Test', description: 'Test metadata' };
+  const jsonResult = await ipfsService.uploadJSON(testMetadata);
+  console.log('JSON upload test:', jsonResult.IpfsHash);
+  
+  // 3. Test URL generation
+  const ipfsUrl = ipfsService.getIPFSUrl(fileResult.IpfsHash);
+  const gatewayUrl = ipfsService.getCustomGatewayUrl(fileResult.IpfsHash);
+  console.log('URLs generated:', { ipfsUrl, gatewayUrl });
+};
+```
+
+## 📈 Performance Optimization
+
+### Parallel Uploads
+
+```typescript
+// Upload multipli file in parallelo con rate limiting
+const uploadFiles = async (files: File[]): Promise<FileInfo[]> => {
+  const CONCURRENT_UPLOADS = 3; // Limite concorrenza
+  const results: FileInfo[] = [];
+  
+  for (let i = 0; i < files.length; i += CONCURRENT_UPLOADS) {
+    const batch = files.slice(i, i + CONCURRENT_UPLOADS);
+    
+    const batchPromises = batch.map(async (file, index) => {
+      // Delay progressivo per evitare rate limiting
+      await new Promise(resolve => setTimeout(resolve, index * 100));
+      
+      const result = await this.uploadFile(file, {
+        name: `file_${i + index}_${file.name}`,
+        keyvalues: { batch: `${Math.floor(i / CONCURRENT_UPLOADS)}` }
+      });
+      
+      return {
+        name: file.name,
+        hash: result.IpfsHash,
+        type: file.type,
+        size: file.size
+      };
+    });
+    
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+    
+    // Delay tra batch
+    if (i + CONCURRENT_UPLOADS < files.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  
+  return results;
+};
+```
+
+### Caching Strategy
+
+```typescript
+// Cache per metadata frequentemente accessibili
+const metadataCache = new Map<string, IPFSMetadata>();
+
+const getCachedMetadata = async (hash: string): Promise<IPFSMetadata | null> => {
+  // Check cache first
+  if (metadataCache.has(hash)) {
+    return metadataCache.get(hash)!;
+  }
+  
+  try {
+    const url = ipfsService.getCustomGatewayUrl(hash);
+    const response = await fetch(url);
+    const metadata = await response.json();
+    
+    // Cache result
+    metadataCache.set(hash, metadata);
+    return metadata;
+  } catch (error) {
+    console.error('Metadata fetch failed:', error);
+    return null;
+  }
+};
+```
+
+## 🔍 Monitoring e Analytics
+
+### Upload Tracking
+
+```typescript
+interface UploadStats {
+  totalFiles: number;
+  totalSize: number;
+  successfulUploads: number;
+  failedUploads: number;
+  averageUploadTime: number;
+  errorsByType: Record<string, number>;
+}
+
+class UploadMonitor {
+  private stats: UploadStats = {
+    totalFiles: 0,
+    totalSize: 0,
+    successfulUploads: 0,
+    failedUploads: 0,
+    averageUploadTime: 0,
+    errorsByType: {}
+  };
+  
+  recordUpload(file: File, success: boolean, uploadTime: number, error?: Error) {
+    this.stats.totalFiles++;
+    this.stats.totalSize += file.size;
+    
+    if (success) {
+      this.stats.successfulUploads++;
+    } else {
+      this.stats.failedUploads++;
+      
+      if (error) {
+        const errorType = error.message.includes('timeout') ? 'timeout' : 'unknown';
+        this.stats.errorsByType[errorType] = (this.stats.errorsByType[errorType] || 0) + 1;
+      }
+    }
+    
+    // Update average upload time
+    this.stats.averageUploadTime = 
+      (this.stats.averageUploadTime * (this.stats.successfulUploads - 1) + uploadTime) / 
+      this.stats.successfulUploads;
+  }
+  
+  getStats(): UploadStats {
+    return { ...this.stats };
+  }
+}
+```
+
+## 🎯 Stato Implementazione
+
+### ✅ Completato
+- [x] Pinata API integration completa
+- [x] File upload con metadata
+- [x] JSON upload strutturato
+- [x] Certificazioni upload workflow
+- [x] ARC-19 CID handling
+- [x] Multiple gateway support
+- [x] Error handling e retry logic
+- [x] Connection testing
+- [x] TypeScript interfaces complete
+- [x] Security best practices
+
+### 🚦 Ready for Production
+
+Il servizio IPFS è **completamente funzionale** e integrato con:
+- ✅ NFT Minting Service per ARC-19 compliance
+- ✅ Form UI per upload certificazioni
+- ✅ Asset display per visualizzazione metadata
+- ✅ Error handling per user experience ottimale
+
+### 🔄 Integration Points
+
+```typescript
+// Used by NFTMintingService
+const ipfsResult = await ipfsService.uploadCertificationAssets(files, certificationData, formData);
+
+// Used by AssetDetailsPage  
+const metadata = await getCachedMetadata(assetInfo.currentCidInfo?.hash);
+
+// Used by FileUpload component
+const uploadResult = await ipfsService.uploadFile(file, { name: file.name });
+``` 

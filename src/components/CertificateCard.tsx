@@ -13,22 +13,19 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
   if (loading) {
     return (
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 animate-pulse">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-8 h-8 bg-slate-600 rounded"></div>
-            <div className="flex-1">
-              <div className="h-4 bg-slate-600 rounded w-32 mb-1"></div>
-              <div className="h-3 bg-slate-600 rounded w-20"></div>
-            </div>
-          </div>
-          <div className="w-12 h-5 bg-slate-600 rounded"></div>
+        {/* Badge at top */}
+        <div className="flex justify-between items-start mb-3">
+          <div className="w-16 h-5 bg-slate-600 rounded"></div>
+          <div className="w-8 h-8 bg-slate-600 rounded"></div>
         </div>
         
-        <div className="mb-3 p-2 bg-slate-700/50 rounded">
-          <div className="h-3 bg-slate-600 rounded w-16 mb-1"></div>
-          <div className="h-3 bg-slate-600 rounded w-full"></div>
+        {/* Title and date */}
+        <div className="mb-4">
+          <div className="h-5 bg-slate-600 rounded w-40 mb-2"></div>
+          <div className="h-3 bg-slate-600 rounded w-24"></div>
         </div>
         
+        {/* Actions */}
         <div className="flex justify-between items-center">
           <div className="h-3 bg-slate-600 rounded w-12"></div>
           <div className="w-20 h-6 bg-slate-600 rounded"></div>
@@ -60,15 +57,39 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
   if (!creationDate && asset['created-at-round']) {
     const algorandGenesis = 1560211200;
     const avgBlockTime = 4.5;
-    creationDate = algorandGenesis + (asset['created-at-round'] * avgBlockTime);
+    creationDate = algorandGenesis + (Number(asset['created-at-round']) * avgBlockTime);
   }
 
-  // Get the certificate type based on asset properties
+  // Get the certificate type from NFT metadata
   const getCertificateType = () => {
-    if (asset.params.name?.toLowerCase().includes('document')) return 'Documento';
-    if (asset.params.name?.toLowerCase().includes('artefatto')) return 'Artefatto';
-    if (asset.params.name?.toLowerCase().includes('sbt')) return 'SBT';
-    return 'Documento';
+    // 1. Prova da certification_data.asset_type 
+    if (asset.nftMetadata?.certification_data?.asset_type) {
+      const assetType = asset.nftMetadata.certification_data.asset_type.toLowerCase();
+      if (assetType === 'document') return 'Documento';
+      if (assetType === 'artefatto' || assetType === 'artifact') return 'Artefatto';
+    }
+
+    // 2. Prova da attributes "Asset Type" trait
+    if (asset.nftMetadata?.attributes) {
+      const assetTypeAttr = asset.nftMetadata.attributes.find(
+        attr => attr.trait_type === 'Asset Type' || attr.trait_type === 'Tipo Certificazione'
+      );
+      if (assetTypeAttr) {
+        const value = String(assetTypeAttr.value).toLowerCase();
+        if (value === 'document' || value === 'documento') return 'Documento';
+        if (value === 'artefatto' || value === 'artifact') return 'Artefatto';
+      }
+    }
+
+    // 3. Fallback al nome (per retrocompatibilità)
+    if (asset.params.name) {
+      const name = asset.params.name.toLowerCase();
+      if (name.includes('document')) return 'Documento';
+      if (name.includes('artefatto')) return 'Artefatto';
+    }
+
+    // 4. Default per NFT senza tipo specificato
+    return 'Unknown';
   };
 
   // Get status based on asset state
@@ -83,38 +104,27 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
 
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition-colors">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-900/30 rounded flex items-center justify-center">
-            <DocumentTextIcon className="h-4 w-4 text-blue-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium text-white truncate">
-              {asset.params.name || `Asset ${asset.index}`}
-            </h3>
-            <p className="text-xs text-slate-500">
-              {formatDate(creationDate)}
-            </p>
-          </div>
-        </div>
-        
+      {/* Top Row: Badge + Icon */}
+      <div className="flex justify-between items-start mb-3">
         <Badge variant={status.color} className="text-xs">
           {certificateType}
         </Badge>
+        <div className="w-8 h-8 bg-blue-900/30 rounded flex items-center justify-center">
+          <DocumentTextIcon className="h-4 w-4 text-blue-400" />
+        </div>
       </div>
 
-      {/* CID Info - Minimal */}
-      {asset.currentCidInfo && (asset.currentCidInfo as any).success && (
-        <div className="mb-3 p-2 bg-slate-700/50 rounded text-xs">
-          <p className="text-slate-400 mb-1">CID IPFS</p>
-          <p className="text-slate-300 font-mono truncate">
-            {(asset.currentCidInfo as any).cid}
-          </p>
-        </div>
-      )}
+      {/* Content: Title and Date */}
+      <div className="mb-4">
+        <h3 className="text-sm font-medium text-white mb-1 leading-tight">
+          {asset.params.name || `Asset ${asset.index}`}
+        </h3>
+        <p className="text-xs text-slate-500">
+          {formatDate(creationDate)}
+        </p>
+      </div>
 
-      {/* Actions */}
+      {/* Bottom Row: ID + Action */}
       <div className="flex justify-between items-center">
         <div className="text-xs text-slate-500">
           ID: {asset.index}
