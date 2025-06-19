@@ -7,6 +7,7 @@ interface DocumentCertificationFormProps {
 
 interface DocumentFormData {
   documentName: string;
+  description: string;
   authorName: string;
   date: string;
   documentType: 'tipologia' | 'altro';
@@ -17,6 +18,7 @@ interface DocumentFormData {
 export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack }) => {
   const [formData, setFormData] = useState<DocumentFormData>({
     documentName: '',
+    description: '',
     authorName: '',
     date: '',
     documentType: 'tipologia',
@@ -60,31 +62,46 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
       }
     >
       <FormHeader title="Certifica Documento" onBack={onBack} />
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
+
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Document Name */}
         <Input
           label="Nome Documento"
-          placeholder="Inserisci il nome del documento"
-          value={formData.documentName}
-          onChange={(e) => handleInputChange('documentName', e.target.value)}
-        />
+                    placeholder="Inserisci il nome del documento"
+                    value={formData.documentName}
+                    onChange={(e) => handleInputChange('documentName', e.target.value)}
+                  />
 
-        {/* Author Name */}
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Descrizione *
+                  </label>
+                  <textarea
+                    placeholder="Inserisci una descrizione dettagliata del documento"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={4}
+                    required
+                  />
+                </div>
+
+                {/* Author Name */}
         <Input
           label="Nome Autore"
-          placeholder="Inserisci il nome dell'autore"
-          value={formData.authorName}
-          onChange={(e) => handleInputChange('authorName', e.target.value)}
-        />
+                    placeholder="Inserisci il nome dell'autore"
+                    value={formData.authorName}
+                    onChange={(e) => handleInputChange('authorName', e.target.value)}
+                  />
 
-        {/* Date */}
+                {/* Date */}
         <Input
           label="Data"
-          placeholder="gg/mm/aa"
-          value={formData.date}
-          onChange={(e) => handleInputChange('date', e.target.value)}
-        />
+                    placeholder="gg/mm/aa"
+                    value={formData.date}
+                    onChange={(e) => handleInputChange('date', e.target.value)}
+                  />
 
                 {/* Document Type */}
                 <div>
@@ -139,22 +156,22 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
                   id="document-file-upload"
                 />
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 pt-6">
+                {/* Action Buttons */}
+                <div className="flex gap-4 pt-6">
           <Button
-            type="button"
-            onClick={onBack}
+                    type="button"
+                    onClick={onBack}
             variant="secondary"
-          >
-            Annulla
+                  >
+                    Annulla
           </Button>
           <Button
-            type="submit"
+                    type="submit"
             variant="primary"
-          >
-            Certifica
+                  >
+                    Certifica
           </Button>
-        </div>
+                </div>
               </form>
     </FormLayout>
   );

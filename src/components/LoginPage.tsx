@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { SPIDReactButton } from '@dej611/spid-react-button';
 import SPIDService, { SPID_PROVIDERS } from '../services/spidService';
+import * as algosdk from 'algosdk';
 
 // Import SPID button styles
 import '@dej611/spid-react-button/dist/index.css';
@@ -53,7 +54,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
   };
 
-  const handleSPIDLogin = async (providerEntry: any) => {
+  const handleEnvLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Get mnemonic from environment variables
+      const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
+      
+      if (!mnemonic) {
+        setError('Mnemonic non configurata nel file .env. Aggiungi VITE_PRIVATE_KEY_MNEMONIC.');
+        return;
+      }
+
+      // Derive address from mnemonic
+      const account = algosdk.mnemonicToSecretKey(mnemonic);
+      const algorandAddress = account.addr.toString();
+
+      console.log('Login with .env private key:', algorandAddress);
+
+      // Login with derived address
+      onLogin(algorandAddress);
+      navigate('/');
+    } catch (error) {
+      console.error('Error with .env login:', error);
+      setError('Errore nella derivazione dell\'indirizzo dalla mnemonic .env');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSPIDLogin = async (providerEntry: { entityID: string; entityName: string }) => {
     try {
       setIsLoading(true);
       setError('');
@@ -156,6 +187,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-slate-800 text-slate-400">oppure accedi con</span>
+            </div>
+          </div>
+
+          {/* ENV Private Key Login */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleEnvLogin}
+              disabled={isLoading}
+              className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center mb-3"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : null}
+              🔑 .env p.key
+            </button>
+            <p className="text-xs text-slate-400 text-center">
+              Accedi usando la mnemonic configurata nel file .env
+            </p>
+          </div>
+
+          {/* Second Divider */}
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-slate-800 text-slate-400">o inserisci manualmente</span>
             </div>
           </div>
 

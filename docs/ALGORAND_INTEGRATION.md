@@ -1,411 +1,522 @@
-# 🔗 Integrazione Algorand Blockchain
+# 🔗 Integrazione Algorand Blockchain - Caput Mundi FE
 
-Questa documentazione spiega come l'applicazione ArtCertify si integra con la blockchain Algorand per la gestione di NFT soulbound e certificazioni digitali.
+Documentazione completa per l'integrazione con Algorand blockchain per la gestione di NFT soulbound e certificazioni digitali nel progetto Caput Mundi.
 
 ## 📋 Panoramica
 
 L'integrazione con Algorand permette di:
-- **Creare NFT soulbound** per certificazioni non trasferibili
-- **Gestire wallet** e visualizzare saldi/transazioni
-- **Archiviare metadata** su IPFS tramite Pinata
-- **Validare certificazioni** tramite blockchain
+- **✅ Creare NFT soulbound (SBT)** per certificazioni non trasferibili
+- **✅ Gestire wallet** e visualizzare saldi/transazioni/asset
+- **✅ Archiviare metadata** su IPFS tramite Pinata con ARC-19 compliance
+- **✅ Validare certificazioni** tramite blockchain con CID decoding
+- **✅ Versioning metadata** tramite reserve address updates
+- **✅ Explorer integration** per debugging e trasparenza
 
 ## 🔧 Configurazione
 
-### Variabili d'Ambiente
+### Variabili d'Ambiente Richieste
 
 ```bash
 # Algorand Network Configuration
 VITE_ALGORAND_NETWORK=testnet
 
-# Algorand API Endpoints
+# Algorand API Endpoints - TUTTI OBBLIGATORI
 VITE_ALGOD_TOKEN=
 VITE_ALGOD_SERVER=https://testnet-api.algonode.cloud
 VITE_ALGOD_PORT=443
 VITE_INDEXER_TOKEN=
 VITE_INDEXER_SERVER=https://testnet-idx.algonode.cloud
 VITE_INDEXER_PORT=443
+
+# Minting Configuration
+VITE_PRIVATE_KEY_MNEMONIC=  # Account per minting
+VITE_MANAGER_MNEMONIC=      # Account per gestione asset
 ```
 
-### Configurazione Client
+### Configurazione Client Aggiornata
 
 ```typescript
 // src/config/environment.ts
-export const algorandConfig = {
-  network: import.meta.env.VITE_ALGORAND_NETWORK || 'testnet',
+export const config = {
+  algorandNetwork: getEnvVar('VITE_ALGORAND_NETWORK'),
+  
   algod: {
-    token: import.meta.env.VITE_ALGOD_TOKEN || '',
-    server: import.meta.env.VITE_ALGOD_SERVER || 'https://testnet-api.algonode.cloud',
-    port: parseInt(import.meta.env.VITE_ALGOD_PORT || '443')
+    token: getEnvVar('VITE_ALGOD_TOKEN', true), // Allow empty for public nodes
+    server: getEnvVar('VITE_ALGOD_SERVER'),
+    port: parseInt(getEnvVar('VITE_ALGOD_PORT'))
   },
+  
   indexer: {
-    token: import.meta.env.VITE_INDEXER_TOKEN || '',
-    server: import.meta.env.VITE_INDEXER_SERVER || 'https://testnet-idx.algonode.cloud',
-    port: parseInt(import.meta.env.VITE_INDEXER_PORT || '443')
+    token: getEnvVar('VITE_INDEXER_TOKEN', true), // Allow empty for public nodes
+    server: getEnvVar('VITE_INDEXER_SERVER'),
+    port: parseInt(getEnvVar('VITE_INDEXER_PORT'))
   }
 };
 ```
 
-## 🏗️ Architettura Servizi
+## 🏗️ Architettura Servizi Implementati
 
-### AlgorandService (`src/services/algorand.ts`)
+### 1. AlgorandService (`src/services/algorand.ts`)
 
-Servizio principale per interagire con la blockchain:
+**Servizio principale potenziato** per interagire con blockchain:
 
 ```typescript
 class AlgorandService {
-  // Inizializzazione client
-  private initializeClients(): void
+  // ✅ Client management
+  getAlgod(): algosdk.Algodv2
+  getIndexer(): algosdk.Indexer
   
-  // Gestione wallet
-  getAccountInfo(address: string): Promise<AccountInfo>
-  getAccountBalance(address: string): Promise<number>
+  // ✅ Enhanced asset info with CID decoding
+  async getAssetInfo(assetId: string): Promise<AssetInfo>
   
-  // Gestione asset/NFT
-  getAssetInfo(assetId: number): Promise<AssetInfo>
-  getAccountAssets(address: string): Promise<AssetHolding[]>
+  // ✅ Versioning support
+  async getAssetConfigHistory(assetId: number): Promise<any[]>
+  async getAssetReserveHistory(assetId: number): Promise<string[]>
   
-  // Transazioni
-  getAccountTransactions(address: string): Promise<Transaction[]>
+  // ✅ Creation transaction tracking
+  private async getAssetCreationTransaction(assetId: number): Promise<unknown>
   
-  // Creazione NFT
-  createNFT(params: NFTCreationParams): Promise<number>
+  // ✅ NFT metadata extraction
+  private async extractNftMetadata(params: AssetParams): Promise<NftMetadata>
+  
+  // ✅ Explorer URLs for debugging
+  getAssetExplorerUrl(assetId: string): string
+  getAddressExplorerUrl(address: string): string
+  getTransactionExplorerUrl(txId: string): string
 }
 ```
 
-### WalletService (`src/services/walletService.ts`)
+### 2. NFTMintingService (`src/services/nftMintingService.ts`) ⭐ NUOVO
 
-Gestione specifiche del wallet:
+**Servizio specializzato per minting** con ARC-19 + ARC-3 compliance:
 
 ```typescript
-class WalletService {
-  // Validazione
-  validateAddress(address: string): boolean
+class NFTMintingService {
+  // ✅ Complete SBT minting with IPFS + ARC-19
+  async mintCertificationSBT(params: CertificationMintParams): Promise<MintingResult>
   
-  // Formattazione
-  formatAlgoAmount(microAlgos: number): string
-  convertAlgoToEur(algos: number): Promise<number>
+  // ✅ ARC-19 compliant asset creation
+  private async createARC19SBTAsset(params): Promise<{ assetId, txId, confirmedRound }>
   
-  // Statistiche
-  calculateWalletStats(account: AccountInfo): WalletStats
+  // ✅ CID to Address conversion (Python pattern)
+  private fromCidToAddress(cidStr: string): string
+  
+  // ✅ Metadata versioning support
+  async updateCertificationMetadata(params): Promise<{ txId, newMetadataCid, newReserveAddress }>
+  
+  // ✅ Asset reserve updates
+  async updateAssetReserve(params): Promise<{ txId, confirmedRound }>
+  
+  // ✅ Service diagnostics
+  async testService(): Promise<{ ipfs: boolean; algorand: boolean }>
 }
 ```
 
-### NFTService (`src/services/nftService.ts`)
+### 3. NFTService (`src/services/nftService.ts`) ⭐ NUOVO
 
-Gestione NFT e certificazioni:
+**Gestione asset posseduti** con ottimizzazioni:
 
 ```typescript
 class NFTService {
-  // Creazione certificazioni
-  createDocumentCertification(data: DocumentData): Promise<number>
-  createArtifactCertification(data: ArtifactData): Promise<number>
+  // ✅ Optimized asset fetching with rate limiting
+  async getOwnedAssets(address: string): Promise<AccountAssets>
+  async getOwnedNFTs(address: string): Promise<AssetInfo[]>
   
-  // Metadata IPFS
-  uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string>
+  // ✅ Certificate identification
+  async getOwnedCertificates(address: string): Promise<AssetInfo[]>
   
-  // Validazione
-  validateCertification(assetId: number): Promise<boolean>
+  // ✅ Ownership verification
+  async ownsAsset(address: string, assetId: string): Promise<boolean>
+  
+  // ✅ Account info with enhanced details
+  async getAccountInfo(address: string): Promise<AccountInfo>
+  
+  // ✅ Retry logic and rate limiting
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T>
 }
 ```
 
-## 🎨 NFT Soulbound
+### 4. CidDecoder (`src/services/cidDecoder.ts`) ⭐ AGGIORNATO
 
-### Caratteristiche
+**ARC-19 compliance completa**:
 
-Gli NFT soulbound hanno le seguenti proprietà:
-- **Non trasferibili**: `clawback` e `freeze` gestiti dal creatore
-- **Metadata immutabili**: Hash IPFS nel campo URL
-- **Quantità fissa**: Total supply = 1
-- **Identificazione univoca**: Asset ID blockchain
+```typescript
+export class CidDecoder {
+  // ✅ CID ↔ Address conversion (ARC-19)
+  static fromCidToAddress(cidStr: string): string
+  static decodeReserveAddressToCid(reserveAddress: string): CidInfo | null
+  
+  // ✅ Versioning extraction from reserves
+  static async extractVersioningFromReserves(reserves: string[], configHistory: any[]): Promise<unknown[]>
+  static async extractVersioningInfo(configHistory: any[]): Promise<unknown[]>
+  
+  // ✅ Reserve address validation
+  static isValidReserveAddress(address: string): boolean
+  static decodeReserveAddress(reserveAddress: string): string
+}
+```
 
-### Struttura Metadata
+## 🎨 NFT Soulbound (SBT) - ARC-19 + ARC-3
+
+### Caratteristiche Implementate
+
+Gli NFT soulbound seguono **esattamente** il pattern Python con:
+- **✅ ARC-19 compliance**: CID convertito in reserve address
+- **✅ ARC-3 metadata**: JSON su IPFS con template URL
+- **✅ Non trasferibili**: `clawback` e `freeze` gestiti dal creatore
+- **✅ Quantità fissa**: Total supply = 1, decimals = 0
+- **✅ Versioning**: Reserve address aggiornabile per nuove versioni metadata
+
+### Workflow Minting Completo
+
+```typescript
+// 1. Upload files + metadata to IPFS
+const ipfsResult = await ipfsService.uploadCertificationAssets(
+  files,
+  certificationData,
+  formData
+);
+
+// 2. Convert CID to reserve address (ARC-19)
+const reserveAddress = CidDecoder.fromCidToAddress(ipfsResult.metadataHash);
+
+// 3. Create asset with ARC-19 template URL
+const createResult = await this.createARC19SBTAsset({
+  mnemonic: params.mnemonic,
+  assetName: params.assetName,
+  unitName: params.unitName,
+  reserveAddress: reserveAddress,
+  metadataCid: ipfsResult.metadataHash
+});
+
+// 4. Return complete result
+return {
+  assetId: createResult.assetId,
+  txId: createResult.txId,
+  confirmedRound: createResult.confirmedRound,
+  assetAddress: account.addr.toString(),
+  metadataUrl: ipfsResult.metadataUrl,
+  reserveAddress: reserveAddress,
+  metadataCid: ipfsResult.metadataHash,
+  ipfsHashes: { metadata, files }
+};
+```
+
+### Struttura Metadata Certificazioni
 
 ```json
 {
-  "name": "Certificazione Documento - [Nome]",
-  "description": "Certificazione digitale per documento",
-  "image": "ipfs://[hash_immagine]",
-  "external_url": "https://artcertify.com/cert/[id]",
+  "name": "Certificazione Artefatto - [Title]",
+  "description": "Certificazione digitale per artefatto",
+  "image": "ipfs://[file_hash]",
+  "external_url": "https://caput-mundi.com/cert/[unique_id]",
   "attributes": [
     {
-      "trait_type": "Tipo",
-      "value": "Documento"
+      "trait_type": "Tipo Asset",
+      "value": "artefatto-digitale"
     },
     {
       "trait_type": "Organizzazione",
       "value": "Museo Arte"
     },
     {
-      "trait_type": "Data Certificazione",
+      "trait_type": "Autore",
+      "value": "Leonardo da Vinci"
+    },
+    {
+      "trait_type": "Data Creazione",
       "value": "2024-01-15"
     }
   ],
   "properties": {
-    "certification_type": "document",
-    "organization_id": "ORG-001",
-    "document_hash": "sha256:[hash]",
-    "created_at": "2024-01-15T10:00:00Z"
+    "files": [
+      {
+        "name": "documento.pdf",
+        "ipfsUrl": "ipfs://QmHash...",
+        "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmHash..."
+      }
+    ]
+  },
+  "certification_data": {
+    "asset_type": "artefatto-digitale",
+    "unique_id": "ART-2024-001",
+    "title": "Monna Lisa Digitale",
+    "author": "Leonardo da Vinci",
+    "creation_date": "2024-01-15",
+    "organization": {
+      "name": "Museo Arte",
+      "code": "MA001",
+      "type": "Museo",
+      "city": "Roma"
+    },
+    "technical_specs": {
+      "technology": "Pittura digitale",
+      "dimensions": "1920x1080",
+      "format": "JPG"
+    },
+    "files": [
+      {
+        "name": "monna_lisa.jpg",
+        "hash": "QmHash...",
+        "type": "image/jpeg",
+        "size": 2048576
+      }
+    ]
   }
 }
 ```
 
-### Processo di Creazione
+## 💳 Gestione Wallet Avanzata
 
-1. **Preparazione Metadata**
-   ```typescript
-   const metadata = {
-     name: `Certificazione ${type} - ${name}`,
-     description: `Certificazione digitale per ${type.toLowerCase()}`,
-     attributes: buildAttributes(data),
-     properties: buildProperties(data)
-   };
-   ```
-
-2. **Upload IPFS**
-   ```typescript
-   const ipfsHash = await uploadMetadataToIPFS(metadata);
-   const metadataUrl = `ipfs://${ipfsHash}`;
-   ```
-
-3. **Creazione Asset**
-   ```typescript
-   const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParams(
-     creatorAddress,
-     undefined, // note
-     1, // total supply
-     0, // decimals
-     false, // default frozen
-     creatorAddress, // manager
-     creatorAddress, // reserve
-     creatorAddress, // freeze
-     creatorAddress, // clawback
-     metadata.name, // unit name
-     metadata.name, // asset name
-     metadataUrl, // URL
-     undefined, // metadata hash
-     suggestedParams
-   );
-   ```
-
-## 💳 Gestione Wallet
-
-### Informazioni Account
+### WalletService Aggiornato (`src/services/walletService.ts`)
 
 ```typescript
-interface AccountInfo {
+interface WalletInfo {
   address: string;
-  amount: number; // microAlgos
+  balance: {
+    algo: number;
+    eurValue?: number;
+  };
   minBalance: number;
-  assets: AssetHolding[];
-  createdAssets: Asset[];
-  participation?: AccountParticipation;
+  totalAssetsOptedIn: number;
+  ownedAssets: AssetInfo[];
+  recentTransactions: WalletTransaction[];
+}
+
+class WalletService {
+  // ✅ Complete wallet info
+  async getWalletInfo(address: string): Promise<WalletInfo>
+  
+  // ✅ Asset filtering
+  async getOwnedCertificates(address: string): Promise<AssetInfo[]>
+  
+  // ✅ Transaction formatting
+  formatTransactionType(type: string): string
+  getTransactionDirection(tx: WalletTransaction, userAddress: string): 'sent' | 'received'
+  
+  // ✅ Amount formatting
+  formatAlgo(microAlgos: number): string
+  formatEur(eurAmount: number): string
 }
 ```
 
-### Visualizzazione Saldo
+### UI Integration
 
 ```typescript
-// Conversione microAlgos -> ALGO
-const algoBalance = microAlgos / 1_000_000;
-
-// Conversione ALGO -> EUR (tramite API)
-const eurBalance = await convertAlgoToEur(algoBalance);
+// WalletPage.tsx - Enhanced features
+const WalletPage: React.FC = () => {
+  // ✅ Real-time wallet data
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  
+  // ✅ Tab navigation
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'assets'>('overview');
+  
+  // ✅ Balance visibility toggle
+  const [showBalance, setShowBalance] = useState(true);
+  
+  // ✅ Auto-refresh capability
+  const refreshWalletData = async () => {
+    const info = await walletService.getWalletInfo(userAddress);
+    setWalletInfo(info);
+  };
+  
+  return (
+    <ResponsiveLayout>
+      {/* Balance card with privacy toggle */}
+      {/* Assets tab with certificates */}
+      {/* Transactions tab with history */}
+    </ResponsiveLayout>
+  );
+};
 ```
 
-### Transazioni
+## 🔍 Asset Information e Explorer
+
+### Enhanced Asset Info
 
 ```typescript
-interface Transaction {
-  id: string;
-  sender: string;
-  receiver?: string;
-  amount: number;
-  fee: number;
-  roundTime: number;
-  txType: string;
-  note?: string;
+interface AssetInfo {
+  index: number;
+  params: AssetParams;
+  'created-at-round'?: number;
+  'deleted-at-round'?: number;
+  // ✅ Enhanced fields
+  creationTransaction?: unknown;
+  configHistory?: any[];
+  versioningInfo?: unknown[];
+  currentReserveInfo?: string;
+  currentCidInfo?: unknown;
+  nftMetadata?: NftMetadata;
+  description?: string;
 }
 ```
 
-## 🔍 Asset Discovery
-
-### Ricerca Asset
+### Explorer Integration
 
 ```typescript
-// Per asset ID specifico
-const asset = await algorandService.getAssetInfo(assetId);
+// Direct links to Algorand explorers
+const assetUrl = algorandService.getAssetExplorerUrl(assetId);
+const addressUrl = algorandService.getAddressExplorerUrl(address);
+const txUrl = algorandService.getTransactionExplorerUrl(txId);
 
-// Per account specifico
-const assets = await algorandService.getAccountAssets(address);
-
-// Filtro certificazioni (NFT con supply = 1)
-const certifications = assets.filter(asset => 
-  asset.amount === 1 && 
-  asset['asset-params']?.total === 1
-);
+// Examples:
+// https://testnet.algoexplorer.io/asset/123456
+// https://testnet.algoexplorer.io/address/ABC...XYZ
+// https://testnet.algoexplorer.io/tx/DEF...789
 ```
 
-### Validazione Certificazioni
+## 🧪 Testing e Diagnostica
+
+### Service Testing
 
 ```typescript
-const validateCertification = async (assetId: number): Promise<boolean> => {
-  try {
-    const asset = await getAssetInfo(assetId);
-    
-    // Verifica caratteristiche soulbound
-    const isSoulbound = 
-      asset.params.total === 1 &&
-      asset.params.clawback === asset.params.creator &&
-      asset.params.freeze === asset.params.creator;
-    
-    // Verifica metadata IPFS
-    const hasValidMetadata = asset.params.url?.startsWith('ipfs://');
-    
-    return isSoulbound && hasValidMetadata;
-  } catch (error) {
-    return false;
-  }
-};
+// NFT Minting Service Test
+const testResult = await nftMintingService.testService();
+console.log('IPFS Connection:', testResult.ipfs);
+console.log('Algorand Connection:', testResult.algorand);
+
+// Environment Validation
+import { validateConfig } from '../config/environment';
+const isValid = validateConfig();
+console.log('Configuration valid:', isValid);
 ```
 
-## 🌐 Integrazione IPFS
-
-### Configurazione Pinata
-
-```bash
-VITE_PINATA_GATEWAY=coffee-quiet-limpet-747.mypinata.cloud
-```
-
-### Upload Metadata
-
-```typescript
-const uploadMetadataToIPFS = async (metadata: NFTMetadata): Promise<string> => {
-  const response = await fetch('/api/pinata/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(metadata)
-  });
-  
-  const result = await response.json();
-  return result.IpfsHash;
-};
-```
-
-### Recupero Metadata
-
-```typescript
-const fetchMetadataFromIPFS = async (ipfsUrl: string): Promise<NFTMetadata> => {
-  const hash = ipfsUrl.replace('ipfs://', '');
-  const gatewayUrl = `https://${PINATA_GATEWAY}/ipfs/${hash}`;
-  
-  const response = await fetch(gatewayUrl);
-  return response.json();
-};
-```
-
-## 🔒 Sicurezza
-
-### Validazione Indirizzi
-
-```typescript
-const validateAlgorandAddress = (address: string): boolean => {
-  // Controllo lunghezza (58 caratteri)
-  if (address.length !== 58) return false;
-  
-  // Controllo caratteri validi (Base32)
-  const base32Regex = /^[A-Z2-7]+$/;
-  if (!base32Regex.test(address)) return false;
-  
-  // Validazione checksum (tramite algosdk)
-  try {
-    algosdk.decodeAddress(address);
-    return true;
-  } catch {
-    return false;
-  }
-};
-```
-
-### Gestione Errori
+### Error Handling
 
 ```typescript
 try {
-  const result = await algorandService.getAssetInfo(assetId);
-  return result;
+  const result = await nftMintingService.mintCertificationSBT(params);
+  console.log('✅ SBT minted:', result.assetId);
 } catch (error) {
-  if (error.status === 404) {
-    throw new Error('Asset non trovato');
-  } else if (error.status === 429) {
-    throw new Error('Troppi tentativi, riprova più tardi');
+  if (error.message.includes('insufficient funds')) {
+    // Handle low balance
+  } else if (error.message.includes('IPFS')) {
+    // Handle IPFS issues
   } else {
-    throw new Error('Errore di connessione alla blockchain');
+    // Handle other errors
   }
 }
 ```
 
-## 📊 Monitoraggio
+## 🚦 Rate Limiting e Performance
 
-### Metriche Blockchain
-
-- **Tempo di conferma**: ~4.5 secondi per blocco
-- **Costo transazione**: ~0.001 ALGO
-- **Throughput**: ~1000 TPS
-- **Finalità**: Immediata dopo conferma
-
-### Logging
+### Ottimizzazioni Implementate
 
 ```typescript
-const logBlockchainOperation = (operation: string, data: any) => {
-  console.log(`[Algorand] ${operation}:`, {
-    timestamp: new Date().toISOString(),
-    network: algorandConfig.network,
-    ...data
-  });
-};
+class NFTService {
+  private readonly RATE_LIMIT_DELAY = 200; // ms between requests
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY = 1000; // ms
+
+  // ✅ Rate limiting
+  private sleep(ms: number): Promise<void>
+  
+  // ✅ Retry logic with exponential backoff
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T>
+  
+  // ✅ Batch processing for large datasets
+  // Commented out for now, available for future use
+}
 ```
 
-## 🧪 Testing
+### Batch Operations
 
-### Asset di Test
+```typescript
+// Process assets in batches to avoid API limits
+const SEARCH_BATCH_SIZE = 20;
 
-Asset ID: **740976269** (TestNet)
-- **Explorer**: https://testnet.explorer.perawallet.app/asset/740976269/
-- **Metadata**: Caricati su IPFS
-- **Tipo**: NFT soulbound di esempio
-
-### Wallet di Test
-
-Per testing utilizzare wallet TestNet con:
-- **Faucet**: https://testnet.algoexplorer.io/dispenser
-- **Saldo minimo**: 0.1 ALGO per operazioni
-- **Asset opt-in**: Necessario per ricevere NFT
-
-## 🚀 Deploy
-
-### Mainnet
-
-Per deploy su Mainnet:
-
-```bash
-# Cambia configurazione
-VITE_ALGORAND_NETWORK=mainnet
-VITE_ALGOD_SERVER=https://mainnet-api.algonode.cloud
-VITE_INDEXER_SERVER=https://mainnet-idx.algonode.cloud
-
-# Costi reali
-# - Creazione asset: 0.001 ALGO
-# - Transazione: 0.001 ALGO
-# - Opt-in asset: 0.001 ALGO
+for (let i = 0; i < nftAssets.length; i += SEARCH_BATCH_SIZE) {
+  const batch = nftAssets.slice(i, i + SEARCH_BATCH_SIZE);
+  const batchResults = await Promise.allSettled(batchPromises);
+  
+  // Delay between batches
+  if (i + SEARCH_BATCH_SIZE < nftAssets.length) {
+    await this.sleep(this.RATE_LIMIT_DELAY * 3);
+  }
+}
 ```
 
-### Ottimizzazioni
+## 📊 Monitoring e Analytics
 
-- **Caching**: Cache asset info per ridurre chiamate API
-- **Batch requests**: Raggruppa richieste multiple
-- **Error handling**: Retry automatico con backoff
-- **Rate limiting**: Rispetta limiti API node
+### Asset Creation Tracking
 
----
+```typescript
+interface MintingResult {
+  assetId: number;
+  txId: string;
+  confirmedRound: number;
+  assetAddress: string;
+  metadataUrl?: string;
+  reserveAddress: string;
+  metadataCid: string;
+  ipfsHashes?: {
+    metadata: string;
+    files: Array<{ name: string; hash: string }>;
+  };
+}
+```
 
-**Documentazione tecnica per l'integrazione Algorand in ArtCertify** 
+### Transaction Monitoring
+
+```typescript
+// Get asset transactions for auditing
+const transactions = await algorandService.getAssetTransactions(assetId);
+
+// Monitor asset config changes
+const configHistory = await algorandService.getAssetConfigHistory(assetId);
+
+// Track reserve address changes (versioning)
+const reserveHistory = await algorandService.getAssetReserveHistory(assetId);
+```
+
+## 🔐 Security Considerations
+
+### Private Key Management
+
+```typescript
+// ⚠️ Environment variables only - NEVER hardcode
+const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
+if (!mnemonic) {
+  throw new Error('Mnemonic non configurata nel file .env');
+}
+
+// ✅ Account derivation
+const account = algosdk.mnemonicToSecretKey(mnemonic);
+```
+
+### Asset Security
+
+```typescript
+// ✅ SBT configuration for non-transferability
+const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParams(
+  account.addr,        // creator
+  undefined,           // note
+  1,                   // total supply
+  0,                   // decimals  
+  false,              // default frozen
+  account.addr,        // manager (can modify reserve)
+  reserveAddress,      // reserve (ARC-19 CID)
+  account.addr,        // freeze (prevent transfers)
+  account.addr,        // clawback (revoke if needed)
+  // ... other params
+);
+```
+
+## 🎯 Stato Implementazione
+
+### ✅ Completato
+- [x] Algorand client integration
+- [x] Asset creation (ARC-19 + ARC-3)
+- [x] CID ↔ Address conversion
+- [x] IPFS metadata upload
+- [x] Wallet management UI
+- [x] Asset info extraction
+- [x] Explorer integration
+- [x] Error handling
+- [x] Rate limiting
+- [x] TypeScript types
+- [x] Documentation
+
+### 🚦 Ready for Production Testing
+
+Il sistema è **completamente funzionale** e pronto per testing in ambiente TestNet con configurazione appropriata delle variabili d'ambiente. 

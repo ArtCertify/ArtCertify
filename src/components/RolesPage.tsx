@@ -113,8 +113,8 @@ export const RolesPage: React.FC = () => {
         {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-slate-400 text-sm">
-            Gestisci utenti e permessi dell'organizzazione
-          </p>
+              Gestisci utenti e permessi dell'organizzazione
+            </p>
           <Button
             onClick={() => setShowAddUserModal(true)}
             icon={<PlusIcon className="h-5 w-5" />}
@@ -138,7 +138,7 @@ export const RolesPage: React.FC = () => {
             setRoleFilter('all');
           }}
           showClearFilters={searchTerm !== '' || roleFilter !== 'all'}
-        />
+              />
 
         {/* Users Table */}
         <Card variant="default">
@@ -234,20 +234,20 @@ export const RolesPage: React.FC = () => {
             ))}
           </div>
 
-          {filteredUsers.length === 0 && (
+            {filteredUsers.length === 0 && (
             <div className="text-center py-12 px-4">
-              <UserIcon className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-subsection-title text-white mb-2">
-                Nessun utente trovato
-              </h3>
-              <p className="text-body-regular text-slate-400">
-                {searchTerm || roleFilter !== 'all' 
-                  ? 'Prova a modificare i filtri di ricerca'
-                  : 'Non ci sono ancora utenti nell\'organizzazione'
-                }
-              </p>
-            </div>
-          )}
+                <UserIcon className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                <h3 className="text-subsection-title text-white mb-2">
+                  Nessun utente trovato
+                </h3>
+                <p className="text-body-regular text-slate-400">
+                  {searchTerm || roleFilter !== 'all' 
+                    ? 'Prova a modificare i filtri di ricerca'
+                    : 'Non ci sono ancora utenti nell\'organizzazione'
+                  }
+                </p>
+              </div>
+            )}
         </Card>
 
         {/* Add User Modal */}

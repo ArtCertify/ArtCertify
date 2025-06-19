@@ -22,5 +22,5 @@ export { default as ModifyAttachmentsModal } from './modals/ModifyAttachmentsMod
 export { default as AssetDetailsPage } from './AssetDetailsPage';
 export { OrganizationProfilePage } from './OrganizationProfilePage';
 export { WalletPage } from './WalletPage';
-export { RolesPage } from './RolesPage';
+export { RolesPage } from './RolesPage'; 
 export { SPIDCallbackPage } from './SPIDCallbackPage'; 

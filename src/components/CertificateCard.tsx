@@ -60,7 +60,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
   if (!creationDate && asset['created-at-round']) {
     const algorandGenesis = 1560211200;
     const avgBlockTime = 4.5;
-    creationDate = algorandGenesis + (asset['created-at-round'] * avgBlockTime);
+    creationDate = algorandGenesis + (Number(asset['created-at-round']) * avgBlockTime);
   }
 
   // Get the certificate type based on asset properties

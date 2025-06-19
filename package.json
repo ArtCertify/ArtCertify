@@ -18,6 +18,7 @@
     "@txnlab/use-wallet": "^4.1.0",
     "@types/node": "^24.0.1",
     "algosdk": "^3.3.1",
+    "axios": "^1.10.0",
     "multiformats": "^13.3.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
