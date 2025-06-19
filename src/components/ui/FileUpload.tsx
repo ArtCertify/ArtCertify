@@ -30,8 +30,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-white mb-3">
-        {label}
-      </label>
+          {label}
+        </label>
       <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center hover:border-slate-500 transition-colors">
         <CloudArrowUpIcon className="h-12 w-12 text-slate-400 mx-auto mb-4" />
         <p className="text-slate-400 mb-2">{description}</p>
@@ -57,16 +57,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           <label className="block text-sm font-medium text-white mb-3">
             File associati
           </label>
-          <div className="space-y-2">
-            {files.map((file, index) => (
+        <div className="space-y-2">
+          {files.map((file, index) => (
               <div key={index} className="flex items-center gap-2 text-white">
                 <span className="w-2 h-2 bg-white rounded-full"></span>
                 <span>{file.name}</span>
               </div>
             ))}
-          </div>
+            </div>
         </div>
       )}
     </div>
   );
-}; 
+};

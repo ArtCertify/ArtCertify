@@ -1,10 +1,10 @@
-# 🏗️ Architettura ArtCertify
+# 🏗️ Architettura Caput Mundi FE
 
-Documentazione completa dell'architettura dell'applicazione ArtCertify, inclusi pattern architetturali, flussi di dati e decisioni di design.
+Documentazione completa dell'architettura dell'applicazione Caput Mundi Frontend, inclusi pattern architetturali, flussi di dati e implementazione blockchain.
 
 ## 📋 Panoramica
 
-ArtCertify è una Single Page Application (SPA) React che implementa un sistema di certificazione digitale basato su blockchain Algorand con storage decentralizzato IPFS.
+Caput Mundi FE è una Single Page Application (SPA) React che implementa un sistema completo di certificazione digitale basato su blockchain Algorand con storage decentralizzato IPFS e compliance ARC-19 + ARC-3.
 
 ### Stack Tecnologico
 
@@ -26,10 +26,14 @@ Storage:
 ├── LocalStorage         # Client persistence
 └── Browser Cache       # Performance
 
-Services:
-├── REST APIs            # Backend integration
-├── WebSocket           # Real-time updates
-└── Service Workers     # Offline support
+Services (Implementati):
+├── IPFSService          # Pinata integration completa
+├── NFTMintingService    # ARC-19 + ARC-3 minting
+├── AlgorandService      # Blockchain integration
+├── NFTService          # Asset management
+├── WalletService       # Wallet management
+├── CidDecoder          # ARC-19 compliance
+└── SPIDService         # Identity management
 ```
 
 ## 🏛️ Architettura Generale

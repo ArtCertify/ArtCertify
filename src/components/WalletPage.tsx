@@ -471,8 +471,8 @@ export const WalletPage: React.FC = () => {
         {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-slate-400 text-sm">
-            Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
-          </p>
+              Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
+            </p>
           <Tooltip content="Aggiorna i dati del wallet dalla blockchain Algorand">
             <Button
               onClick={() => fetchWalletData(false)}

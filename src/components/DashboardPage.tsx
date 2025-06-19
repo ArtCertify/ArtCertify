@@ -106,10 +106,16 @@ export const DashboardPage: React.FC = () => {
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (state.sortBy) {
-        case 'date-desc':
-          return (b['created-at-round'] || 0) - (a['created-at-round'] || 0);
-        case 'date-asc':
-          return (a['created-at-round'] || 0) - (b['created-at-round'] || 0);
+        case 'date-desc': {
+          const aRound = Number(a['created-at-round'] || 0);
+          const bRound = Number(b['created-at-round'] || 0);
+          return bRound - aRound;
+        }
+        case 'date-asc': {
+          const aRound = Number(a['created-at-round'] || 0);
+          const bRound = Number(b['created-at-round'] || 0);
+          return aRound - bRound;
+        }
         case 'name-asc':
           return (a.params.name || '').localeCompare(b.params.name || '');
         case 'name-desc':

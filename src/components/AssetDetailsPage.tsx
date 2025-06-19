@@ -246,17 +246,93 @@ const AssetDetailsPage: React.FC = () => {
                 {/* CID Info */}
                 {asset.currentCidInfo && (asset.currentCidInfo as any).success && (
                   <div>
-                    <p className="text-sm font-medium text-slate-400 mb-1">CID IPFS:</p>
+                    <p className="text-sm font-medium text-slate-400 mb-1">CID IPFS (Metadata):</p>
                     <div className="bg-slate-700 p-2 rounded">
                       <a 
                         href={(asset.currentCidInfo as any).gatewayUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-400 hover:text-blue-300 font-mono text-xs break-all underline"
-                        title="Clicca per visualizzare su IPFS"
+                        title="Clicca per visualizzare metadata su IPFS"
                       >
                         {(asset.currentCidInfo as any).cid}
                       </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Individual IPFS Files */}
+                {asset.nftMetadata?.properties?.files_metadata && Array.isArray(asset.nftMetadata.properties.files_metadata) && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-400 mb-2">File IPFS:</p>
+                    <div className="bg-slate-700 p-3 rounded space-y-3">
+                      {(asset.nftMetadata.properties.files_metadata as any[]).map((file, index) => (
+                        <div key={index} className="border-b border-slate-600 last:border-b-0 pb-2 last:pb-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-slate-300 font-medium">{file.name}</span>
+                            <div className="flex gap-2">
+                              <a 
+                                href={file.ipfsUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                title="Apri con IPFS"
+                              >
+                                IPFS
+                              </a>
+                              <a 
+                                href={file.gatewayUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-green-400 hover:text-green-300 underline"
+                                title="Apri con Gateway"
+                              >
+                                Gateway
+                              </a>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500 font-mono break-all">
+                            {file.ipfsUrl?.replace('ipfs://', '')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certification Data Files (fallback) */}
+                {asset.nftMetadata?.certification_data?.files && Array.isArray(asset.nftMetadata.certification_data.files) && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-400 mb-2">File Certificazione:</p>
+                    <div className="bg-slate-700 p-3 rounded space-y-2">
+                      {asset.nftMetadata.certification_data.files.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs text-slate-300">{file.name}</span>
+                            <span className="text-xs text-slate-500 ml-2">({file.type})</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <a 
+                              href={`ipfs://${file.hash}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-400 hover:text-blue-300 underline"
+                              title="Apri con IPFS"
+                            >
+                              IPFS
+                            </a>
+                            <a 
+                              href={`https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${file.hash}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-green-400 hover:text-green-300 underline"
+                              title="Apri con Gateway"
+                            >
+                              Gateway
+                            </a>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

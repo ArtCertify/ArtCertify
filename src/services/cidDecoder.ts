@@ -136,20 +136,65 @@ export class CidDecoder {
   /**
    * Converte un CID in address Algorand (per test/verifica)
    * Implementa: from_cid_to_address(cid_str: str) -> str
+   * Supporta sia CID v0 (Qm...) che CID v1 (b...)
    */
-  private static fromCidToAddress(cidStr: string): string {
+  static fromCidToAddress(cidStr: string): string {
     try {
-      // Rimuovi il prefisso multibase 'b'
-      if (!cidStr.startsWith('b')) {
-        throw new Error('CID deve iniziare con "b" (base32)');
+      let digest: Uint8Array;
+      
+      if (cidStr.startsWith('Qm')) {
+        // CID v0 (base58 encoding)
+        console.log('🔗 Processing CID v0 (base58)');
+        digest = this.extractDigestFromCidV0(cidStr);
+      } else if (cidStr.startsWith('b')) {
+        // CID v1 (base32 encoding)
+        console.log('🔗 Processing CID v1 (base32)');
+        digest = this.extractDigestFromCidV1(cidStr);
+      } else {
+        throw new Error('CID deve iniziare con "Qm" (v0) o "b" (v1)');
       }
       
+      // Codifica come indirizzo Algorand
+      return encodeAddress(digest);
+      
+    } catch (error) {
+      throw new Error(`Errore nella conversione CID to address: ${error}`);
+    }
+  }
+
+  /**
+   * Estrae il digest da un CID v0 (formato Qm...)
+   */
+  private static extractDigestFromCidV0(cidStr: string): Uint8Array {
+    try {
+      // CID v0 è direttamente il multihash in base58
+      const multihashBytes = this.decodeBase58(cidStr);
+      
+      // Verifica che sia SHA-256
+      if (multihashBytes[0] !== 0x12 || multihashBytes[1] !== 0x20) {
+        throw new Error('CID v0 deve usare SHA-256');
+      }
+      
+      // Estrai il digest (32 bytes dopo i 2 bytes di header)
+      return multihashBytes.slice(2, 34);
+      
+    } catch (error) {
+      throw new Error(`Errore nell'estrazione digest da CID v0: ${error}`);
+    }
+  }
+
+  /**
+   * Estrae il digest da un CID v1 (formato b...)
+   */
+  private static extractDigestFromCidV1(cidStr: string): Uint8Array {
+    try {
+      // Rimuovi il prefisso multibase 'b'
       const base32Part = cidStr.slice(1);
       const cidBytes = this.decodeBase32(base32Part);
       
       // Verifica la struttura del CID
       if (cidBytes.length < 36) {
-        throw new Error('CID troppo corto');
+        throw new Error('CID v1 troppo corto');
       }
       
       if (cidBytes[0] !== 0x01) {
@@ -167,15 +212,56 @@ export class CidDecoder {
         throw new Error('Solo SHA-256 supportato');
       }
       
-             // Estrai il digest (32 bytes)
-       const digest = multihashBytes.slice(2, 34);
-       
-       // Codifica come indirizzo Algorand
-       return encodeAddress(new Uint8Array(digest));
+      // Estrai il digest (32 bytes)
+      return multihashBytes.slice(2, 34);
       
     } catch (error) {
-      throw new Error(`Errore nella conversione CID to address: ${error}`);
+      throw new Error(`Errore nell'estrazione digest da CID v1: ${error}`);
     }
+  }
+
+  /**
+   * Decodifica base58 in bytes (per CID v0)
+   */
+  private static decodeBase58(base58: string): Uint8Array {
+    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    const base = 58;
+    
+    let result = [0];
+    
+    for (const char of base58) {
+      const value = alphabet.indexOf(char);
+      if (value === -1) {
+        throw new Error(`Carattere base58 non valido: ${char}`);
+      }
+      
+      let carry = value;
+      for (let i = 0; i < result.length; i++) {
+        carry += result[i] * base;
+        result[i] = carry & 0xff;
+        carry >>= 8;
+      }
+      
+      while (carry > 0) {
+        result.push(carry & 0xff);
+        carry >>= 8;
+      }
+    }
+    
+    // Conta i leading zeros
+    let leadingZeros = 0;
+    for (const char of base58) {
+      if (char === '1') leadingZeros++;
+      else break;
+    }
+    
+    // Aggiungi i leading zeros e inverti
+    const finalResult = new Uint8Array(leadingZeros + result.length);
+    for (let i = 0; i < result.length; i++) {
+      finalResult[leadingZeros + result.length - 1 - i] = result[i];
+    }
+    
+    return finalResult;
   }
 
   /**
