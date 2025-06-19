@@ -30,6 +30,27 @@ export interface NftMetadata {
     value: string | number;
   }>;
   properties?: Record<string, unknown>;
+  // Additional fields for certification
+  certification_data?: {
+    asset_type: string;
+    unique_id: string;
+    title: string;
+    author: string;
+    creation_date: string;
+    organization: {
+      name: string;
+      code: string;
+      type: string;
+      city: string;
+    };
+    technical_specs?: Record<string, string>;
+    files?: Array<{
+      name: string;
+      hash: string;
+      type: string;
+      size: number;
+    }>;
+  };
 }
 
 export interface AssetInfo {

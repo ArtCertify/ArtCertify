@@ -54,7 +54,6 @@ export const validateConfig = () => {
     void config.indexer.server;
     void config.indexer.port;
 
-    console.log('✅ All required environment variables are present');
     return true;
   } catch (error) {
     console.error('❌ Configuration validation failed:', error);

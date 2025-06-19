@@ -263,8 +263,6 @@ class SPIDService {
       // 2. Verify the user owns the address (via signature)
       // 3. Store the mapping in your database
       
-      console.log(`Linking SPID ${codiceFiscale} to Algorand address ${algorandAddress}`);
-      
       // Store in localStorage for demo
       const linkings = JSON.parse(localStorage.getItem('spid_algorand_links') || '{}');
       linkings[codiceFiscale] = algorandAddress;

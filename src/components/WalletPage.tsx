@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import { ErrorMessage, Button, Card, Tooltip, TabsContainer } from './ui';
+import { ErrorMessage, Button, Card, Tooltip, TabsContainer, TruncatedText } from './ui';
 import { walletService, type WalletInfo, type WalletTransaction } from '../services/walletService';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -329,10 +329,13 @@ export const WalletPage: React.FC = () => {
                   <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Squares2X2Icon className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <p className="text-body-regular font-medium text-white">
-                      {asset.name || `Certificazione #${asset.assetId}`}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <TruncatedText
+                      text={asset.name || `Certificazione #${asset.assetId}`}
+                      maxWidth="250px"
+                      className="text-body-regular font-medium text-white"
+                      tooltipClassName="z-50"
+                    />
                     <div className="flex items-center gap-2 text-body-secondary text-slate-400">
                       {asset.unitName && (
                         <Tooltip content="Simbolo dell'asset">
@@ -471,8 +474,8 @@ export const WalletPage: React.FC = () => {
         {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-slate-400 text-sm">
-            Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
-          </p>
+              Visualizza il saldo, le transazioni e le certificazioni del tuo wallet Algorand
+            </p>
           <Tooltip content="Aggiorna i dati del wallet dalla blockchain Algorand">
             <Button
               onClick={() => fetchWalletData(false)}
