@@ -71,7 +71,7 @@ export class CidDecoder {
          // - multihash: sha2-256 (0x12) + length (0x20) + digest (32 bytes)
          
          const cid = this.fromAddressToCid(addressObj.publicKey);
-        const gatewayUrl = `https://${cid}.ipfs.dweb.link/`;
+        const gatewayUrl = `https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${cid}`;
         
         return {
           success: true,
@@ -144,7 +144,7 @@ export class CidDecoder {
       
       if (cidStr.startsWith('Qm')) {
         // CID v0 (base58 encoding)
-        console.log('🔗 Processing CID v0 (base58)');
+    
         digest = this.extractDigestFromCidV0(cidStr);
       } else if (cidStr.startsWith('b')) {
         // CID v1 (base32 encoding)

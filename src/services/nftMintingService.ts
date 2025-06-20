@@ -435,6 +435,16 @@ class NFTMintingService {
     newMetadataCid: string;
     newReserveAddress: string;
     metadataUrl: string;
+    metadataCid: string;
+    ipfsHashes?: {
+      metadata: string;
+      files: Array<{ name: string; hash: string }>;
+    };
+    uploadedFiles?: {
+      license?: {name: string, gatewayUrl: string};
+      image?: {name: string, gatewayUrl: string};
+      attachments?: Array<{name: string, gatewayUrl: string}>;
+    };
   }> {
     try {
       // Step 1: Upload new metadata to IPFS
@@ -455,12 +465,47 @@ class NFTMintingService {
         metadataUrl: ipfsResult.metadataUrl
       });
 
+      // Step 4: Prepare IPFS hashes and uploaded files info
+      const ipfsHashes = {
+        metadata: ipfsResult.metadataHash,
+        files: ipfsResult.fileHashes.map(f => ({ name: f.name, hash: f.hash }))
+      };
+
+      // Organize uploaded files by type
+      const uploadedFiles: any = {
+        attachments: []
+      };
+
+      ipfsResult.individualFileUrls.forEach(file => {
+        const fileName = file.name.toLowerCase();
+        if (fileName.includes('license') || fileName.includes('licenza')) {
+          uploadedFiles.license = {
+            name: file.name,
+            gatewayUrl: file.gatewayUrl
+          };
+        } else if (fileName.includes('image') || fileName.includes('img') || 
+                   fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          uploadedFiles.image = {
+            name: file.name,
+            gatewayUrl: file.gatewayUrl
+          };
+        } else {
+          uploadedFiles.attachments.push({
+            name: file.name,
+            gatewayUrl: file.gatewayUrl
+          });
+        }
+      });
+
       return {
         txId: updateResult.txId,
         confirmedRound: updateResult.confirmedRound,
         newMetadataCid: ipfsResult.metadataHash,
         newReserveAddress: newReserveAddress,
-        metadataUrl: ipfsResult.metadataUrl
+        metadataUrl: ipfsResult.metadataUrl,
+        metadataCid: ipfsResult.metadataHash,
+        ipfsHashes,
+        uploadedFiles
       };
 
     } catch (error) {

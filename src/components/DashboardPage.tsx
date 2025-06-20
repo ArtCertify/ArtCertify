@@ -111,7 +111,7 @@ export const DashboardPage: React.FC = () => {
           }
 
           // 3. Fallback to name (for backward compatibility)
-          const name = cert.params.name?.toLowerCase() || '';
+        const name = cert.params.name?.toLowerCase() || '';
           if (name.includes('document')) return 'document';
           if (name.includes('artefatto')) return 'artefatto';
 

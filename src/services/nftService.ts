@@ -158,7 +158,7 @@ class NFTService {
         return [];
       }
 
-      console.log(`Found ${nftAssets.length} potential NFTs. Fetching details using optimized approach...`);
+  
 
       // Step 2: Use indexer search to get asset details more efficiently
       const indexer = algorandService.getIndexer();
@@ -227,8 +227,8 @@ class NFTService {
           batchResults.forEach((result) => {
             if (result.status === 'fulfilled' && result.value !== null) {
               nftDetails.push(result.value);
-            }
-          });
+        }
+      });
 
           // Delay between batches
           if (i + SEARCH_BATCH_SIZE < nftAssets.length) {
