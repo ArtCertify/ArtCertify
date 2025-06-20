@@ -43,6 +43,17 @@ export { default as SectionCard } from './SectionCard';
 
 // Data Display Components
 export { default as InfoField } from './InfoField';
+export { default as InfoCard } from './InfoCard';
 export { default as DataGrid } from './DataGrid';
 export { default as MetadataDisplay } from './MetadataDisplay';
-export { TruncatedText } from './TruncatedText'; 
+export { TruncatedText } from './TruncatedText';
+
+// IPFS Components
+export { default as IPFSFileCard } from './IPFSFileCard';
+
+// Versioning Components
+export { default as VersionCard } from './VersionCard';
+
+// Stepper Components
+export { Stepper, Step } from './Stepper';
+export type { StepState, StepProps } from './Stepper'; 

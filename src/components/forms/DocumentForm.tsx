@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { BaseCertificationForm, type BaseFormData, type BaseFormField, type TypeOptionGroup } from './BaseCertificationForm';
-import { Button, FormLayout } from '../ui';
+import { FormLayout } from '../ui';
 import { OrganizationData } from '../ui';
-import NFTMintingService, { type MintingResult } from '../../services/nftMintingService';
+import { CertificationModal } from '../modals/CertificationModal';
+import { useCertificationFlow } from '../../hooks/useCertificationFlow';
 
 interface DocumentCertificationFormProps {
   onBack: () => void;
@@ -16,6 +17,18 @@ interface DocumentFormData extends BaseFormData {
 }
 
 export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack }) => {
+  // Certification flow hook
+  const {
+    isModalOpen,
+    isProcessing,
+    result: mintResult,
+    steps,
+    startCertificationFlow,
+    retryStep,
+    closeModal,
+    cancelFlow
+  } = useCertificationFlow();
+
   // Organization data state
   const [organizationData, setOrganizationData] = useState({
     name: 'Museo Arte',
@@ -40,11 +53,9 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
     files: []
   });
 
-  // State management
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // State management for form validation
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [mintResult, setMintResult] = useState<MintingResult | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
@@ -111,36 +122,38 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
       return;
     }
 
-    setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      const nftMintingService = new NFTMintingService();
       const certificationData = prepareCertificationData();
       const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
       
-      const result = await nftMintingService.mintCertificationSBT({
+      const result = await startCertificationFlow({
         mnemonic,
         certificationData,
         files: formData.files,
         assetName: formData.assetName!,
         unitName: formData.unitName!,
-        formData: {
-          ...formData,
-          artifactType: 'document' as any,
-          title: formData.documentName,
-          author: formData.authorName,
-          creationDate: formData.date
-        } as any
+                  formData: {
+            ...formData,
+            artifactType: 'document',
+            title: formData.documentName,
+            author: formData.authorName,
+            creationDate: formData.date
+          }
       });
 
-      setMintResult(result);
-      setSubmitSuccess(true);
+      if (result) {
+        setSubmitSuccess(true);
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la certificazione');
-    } finally {
-      setIsSubmitting(false);
     }
+  };
+
+  const handleCertificationSuccess = () => {
+    setSubmitSuccess(true);
+    onBack(); // Redirect back to dashboard or wherever appropriate
   };
 
   // Field configurations
@@ -213,87 +226,57 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
     </>
   );
 
-  // Success content
-  const successContent = (
-    <div className="text-center py-8">
-      <h3 className="text-lg font-semibold text-green-400 mb-4">
-        ✅ Certificazione Documento Completata!
-      </h3>
-      
-      <div className="space-y-3">
-        <div className="bg-gray-900/20 border border-gray-500/30 rounded-lg p-3">
-          <p><strong>🎯 Asset ID:</strong> {mintResult?.assetId}</p>
-        </div>
-        
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
-          <p><strong>📄 Metadata IPFS URL:</strong></p>
-          <a href={`https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${mintResult?.ipfsHashes?.metadata}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm break-all">
-            {`https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${mintResult?.ipfsHashes?.metadata}`}
-          </a>
-        </div>
-        
-        {mintResult?.ipfsHashes && (
-          <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3">
-            <p><strong>📁 File IPFS Hashes:</strong></p>
-            <div className="text-sm space-y-1">
-              <p>Metadata JSON: <span className="font-mono">{mintResult.ipfsHashes.metadata}</span></p>
-              {mintResult.ipfsHashes.files.map((file, index) => (
-                <p key={index}>📎 {file.name}: <span className="font-mono text-xs">{file.hash}</span></p>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-4 mt-6">
-        <Button onClick={onBack} variant="secondary">
-          Torna alla Dashboard
-        </Button>
-        <Button 
-          onClick={() => window.open(`/asset/${mintResult?.assetId}`, '_blank')}
-          variant="primary"
-        >
-          Visualizza Certificazione
-        </Button>
-      </div>
-    </div>
-  );
+  // Success content - removed as requested
 
   return (
-    <FormLayout 
-      title="Certificazione Documento"
-      sidebar={
-        <OrganizationData 
-          data={organizationData}
-          onUpdate={handleOrganizationUpdate}
+    <>
+      <FormLayout 
+        title="Certificazione Documento"
+        sidebar={
+          <OrganizationData 
+            data={organizationData}
+            onUpdate={handleOrganizationUpdate}
+          />
+        }
+      >
+        <BaseCertificationForm
+          formData={formData}
+          onInputChange={handleInputChange}
+          onFileUpload={handleFileUpload}
+          onSubmit={handleSubmit}
+          onBack={onBack}
+          formTitle="Certificazione Documento"
+          submitButtonText="Certifica Documento"
+          submitButtonLoadingText="Certificando..."
+          nameField={nameField}
+          authorField={authorField}
+          dateField={dateField}
+          typeField={typeField}
+          customFields={customFields}
+          showNFTSection={true}
+          nftAssetField={nftAssetField}
+          nftUnitField={nftUnitField}
+          fileUploadLabel="Carica File *"
+          fileUploadDescription="Trascina qui i file del documento o clicca per selezionare"
+          fileUploadId="document-file-upload"
+          isSubmitting={isProcessing}
+          submitError={submitError}
+          submitSuccess={submitSuccess}
         />
-      }
-    >
-      <BaseCertificationForm
-        formData={formData}
-        onInputChange={handleInputChange}
-        onFileUpload={handleFileUpload}
-        onSubmit={handleSubmit}
-        onBack={onBack}
-        formTitle="Certificazione Documento"
-        submitButtonText="Certifica Documento"
-        submitButtonLoadingText="Certificando..."
-        nameField={nameField}
-        authorField={authorField}
-        dateField={dateField}
-        typeField={typeField}
-        customFields={customFields}
-        showNFTSection={true}
-        nftAssetField={nftAssetField}
-        nftUnitField={nftUnitField}
-        fileUploadLabel="Carica File *"
-        fileUploadDescription="Trascina qui i file del documento o clicca per selezionare"
-        fileUploadId="document-file-upload"
-        isSubmitting={isSubmitting}
-        submitError={submitError}
-        submitSuccess={submitSuccess}
-        successContent={successContent}
+      </FormLayout>
+
+      {/* Certification Modal with Stepper */}
+      <CertificationModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title="Certificazione Documento"
+        steps={steps}
+        onRetryStep={retryStep}
+        onCancel={cancelFlow}
+        isProcessing={isProcessing}
+        result={mintResult}
+        onSuccess={handleCertificationSuccess}
       />
-    </FormLayout>
+    </>
   );
 }; 

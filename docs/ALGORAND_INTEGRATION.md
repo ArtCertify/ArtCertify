@@ -310,7 +310,7 @@ const WalletPage: React.FC = () => {
   
   // ✅ Tab navigation
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'assets'>('overview');
-  
+
   // ✅ Balance visibility toggle
   const [showBalance, setShowBalance] = useState(true);
   
@@ -387,7 +387,7 @@ console.log('Configuration valid:', isValid);
 try {
   const result = await nftMintingService.mintCertificationSBT(params);
   console.log('✅ SBT minted:', result.assetId);
-} catch (error) {
+  } catch (error) {
   if (error.message.includes('insufficient funds')) {
     // Handle low balance
   } else if (error.message.includes('IPFS')) {
@@ -452,7 +452,7 @@ interface MintingResult {
   ipfsHashes?: {
     metadata: string;
     files: Array<{ name: string; hash: string }>;
-  };
+};
 }
 ```
 
@@ -461,10 +461,10 @@ interface MintingResult {
 ```typescript
 // Get asset transactions for auditing
 const transactions = await algorandService.getAssetTransactions(assetId);
-
+  
 // Monitor asset config changes
 const configHistory = await algorandService.getAssetConfigHistory(assetId);
-
+  
 // Track reserve address changes (versioning)
 const reserveHistory = await algorandService.getAssetReserveHistory(assetId);
 ```
@@ -478,7 +478,7 @@ const reserveHistory = await algorandService.getAssetReserveHistory(assetId);
 const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
 if (!mnemonic) {
   throw new Error('Mnemonic non configurata nel file .env');
-}
+  }
 
 // ✅ Account derivation
 const account = algosdk.mnemonicToSecretKey(mnemonic);

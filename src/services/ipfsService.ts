@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse } from 'axios';
+import { config } from '../config/environment';
 
 export interface IPFSUploadResponse {
   IpfsHash: string;
@@ -252,7 +253,7 @@ class IPFSService {
           ipfs_info: {
             uploaded_at: new Date().toISOString(),
             total_files: fileHashes.length,
-            gateway: import.meta.env.VITE_PINATA_GATEWAY
+            gateway: config.pinataGateway
           }
         },
         certification_data: certificationData ? {
@@ -296,14 +297,14 @@ class IPFSService {
    * Get IPFS URL for a hash
    */
   getIPFSUrl(hash: string): string {
-    return `https://gateway.pinata.cloud/ipfs/${hash}`;
+    return `https://${config.pinataGateway}/ipfs/${hash}`;
   }
 
   /**
    * Get IPFS URL using custom gateway
    */
   getCustomGatewayUrl(hash: string, gateway?: string): string {
-    const gatewayUrl = gateway || import.meta.env.VITE_PINATA_GATEWAY;
+    const gatewayUrl = gateway || config.pinataGateway;
     if (gatewayUrl) {
       return `https://${gatewayUrl}/ipfs/${hash}`;
     }

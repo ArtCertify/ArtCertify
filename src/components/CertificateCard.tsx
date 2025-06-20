@@ -16,7 +16,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
         {/* Badge at top */}
         <div className="flex justify-between items-start mb-3">
           <div className="w-16 h-5 bg-slate-600 rounded"></div>
-          <div className="w-8 h-8 bg-slate-600 rounded"></div>
+            <div className="w-8 h-8 bg-slate-600 rounded"></div>
         </div>
         
         {/* Title and date */}
@@ -109,21 +109,21 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
         <Badge variant={status.color} className="text-xs">
           {certificateType}
         </Badge>
-        <div className="w-8 h-8 bg-blue-900/30 rounded flex items-center justify-center">
-          <DocumentTextIcon className="h-4 w-4 text-blue-400" />
-        </div>
+          <div className="w-8 h-8 bg-blue-900/30 rounded flex items-center justify-center">
+            <DocumentTextIcon className="h-4 w-4 text-blue-400" />
+          </div>
       </div>
 
       {/* Content: Title and Date */}
       <div className="mb-4">
         <h3 className="text-sm font-medium text-white mb-1 leading-tight">
-          {asset.params.name || `Asset ${asset.index}`}
-        </h3>
-        <p className="text-xs text-slate-500">
-          {formatDate(creationDate)}
-        </p>
-      </div>
-
+              {asset.params.name || `Asset ${asset.index}`}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {formatDate(creationDate)}
+            </p>
+        </div>
+        
       {/* Bottom Row: ID + Action */}
       <div className="flex justify-between items-center">
         <div className="text-xs text-slate-500">
