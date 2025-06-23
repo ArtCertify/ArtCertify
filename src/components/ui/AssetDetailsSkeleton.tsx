@@ -15,7 +15,7 @@ export const AssetDetailsSkeleton: React.FC = () => {
         </div>
         <div className="w-36 h-10 bg-slate-700 rounded-lg"></div>
       </div>
-
+      
       {/* Asset Title Section */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
         <div className="flex items-start justify-between mb-4">
@@ -38,7 +38,7 @@ export const AssetDetailsSkeleton: React.FC = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
@@ -183,7 +183,7 @@ export const AssetDetailsSkeleton: React.FC = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Versioning Section */}
       <div className="space-y-6">
         {/* Header */}

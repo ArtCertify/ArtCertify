@@ -233,7 +233,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
           city: 'Unknown'
         },
         technical_specs: {
-          description: formData.description,
+        description: formData.description,
           version: versionInfo.nextVersion,
           previous_version: versionInfo.previousVersion.version,
           modification_date: new Date().toISOString(),
@@ -255,7 +255,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       });
 
       if (result) {
-        setSubmitSuccess(true);
+      setSubmitSuccess(true);
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la creazione della versione');
@@ -269,13 +269,13 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
   const handleClose = () => {
     if (!isVersioningProcessing) {
-      onClose();
+    onClose();
     }
   };
 
   return (
     <Fragment>
-      <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
+    <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
       
       <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -605,7 +605,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       onSuccess={handleVersioningSuccess}
     />
    </Fragment>
-   );
- };
+  );
+};
 
 export default ModifyAttachmentsModal; 

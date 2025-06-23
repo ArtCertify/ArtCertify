@@ -205,7 +205,7 @@ class NFTMintingService {
     try {
       // ARC-19 Template URL - Using format exactly like working asset 740976269
       const arc19TemplateUrl = "template-ipfs://{ipfscid:0:dag-pb:reserve:sha2-256}";
-      
+
       const account = this.getAccountFromMnemonic(params.mnemonic);
       const suggestedParams = await this.getSuggestedParams();
 
@@ -255,7 +255,7 @@ class NFTMintingService {
 
       // Verify compliance
       const assetInfo = await this.algodClient.getAssetByID(assetId).do();
-      
+
       // Verify ARC-19 compliance
       if (assetInfo.params.url !== arc19TemplateUrl) {
         throw new Error(`ARC-19 template URL not set correctly during asset creation`);

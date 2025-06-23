@@ -74,13 +74,13 @@ export const VersioningSection: React.FC<VersioningSectionProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ClockIcon className="h-6 w-6 text-slate-400" />
+        <ClockIcon className="h-6 w-6 text-slate-400" />
           <h2 className="text-2xl font-bold text-white">
             Storia delle Versioni
-          </h2>
+        </h2>
           <span className="bg-blue-900/30 text-blue-400 text-sm font-medium px-3 py-1 rounded-full border border-blue-800">
             {sortedVersions.length} {sortedVersions.length === 1 ? 'versione' : 'versioni'}
-          </span>
+        </span>
         </div>
       </div>
 
