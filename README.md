@@ -468,12 +468,11 @@ VITE_PINATA_GATEWAY=your-custom-gateway.mypinata.cloud
 
 ## 📄 Licenza
 
-Questo progetto è sviluppato da **CaputMundi** per **Activa Digital**. Tutti i diritti riservati.
+Questo progetto è sviluppato da **Activa Digital**. Tutti i diritti riservati.
 
 ## 📞 Supporto
 
 Per supporto tecnico o domande:
-- **Email**: info@caputmundi.it
 - **Repository**: https://gitlab.ccoe.activadigital.it/activa-digital/Artence/extras/poc-artcertify
 - **Documentazione**: [docs/](docs/)
 
