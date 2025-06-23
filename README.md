@@ -15,7 +15,6 @@
 - **Versioning**: Sistema completo di versionamento asset con storico immutabile
 
 ### 💳 **Gestione Wallet Completa**
-- **Integrazione Multi-Wallet**: Pera Wallet, AlgoSigner e altri provider
 - **Saldo Real-time**: Visualizzazione ALGO con conversione EUR automatica
 - **Storico Transazioni**: Cronologia completa delle operazioni blockchain
 - **Asset Management**: Gestione certificazioni soulbound e asset normali
@@ -237,9 +236,7 @@ Frontend Framework:
 
 Blockchain Integration:
 ├── AlgoKit Utils 9.1.0      # Algorand utilities
-├── Algorand SDK 3.3.1       # Core blockchain
-├── Pera Wallet 1.4.2        # Wallet integration
-└── Use-Wallet 4.1.0        # Multi-wallet support
+└── Algorand SDK 3.3.1       # Core blockchain
 
 IPFS & Storage:
 ├── Multiformats 13.3.7      # CID manipulation
@@ -399,7 +396,6 @@ const versioningInfo = await CidDecoder.extractVersioningFromReserves(
 6. **Visualization**: Display cronologia versioning
 
 ### **Wallet Integration**
-1. **Connection**: Connessione wallet (Pera/AlgoSigner)
 2. **Address Validation**: Validazione indirizzo Algorand
 3. **Balance Query**: Query saldo e asset
 4. **Transaction History**: Recupero storico transazioni
