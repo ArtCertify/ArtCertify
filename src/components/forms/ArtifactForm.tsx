@@ -211,7 +211,7 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateForm();
     if (!validation.isValid) {
       setSubmitError(validation.errors.join(', '));
@@ -234,7 +234,7 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
       });
 
       if (result) {
-        setSubmitSuccess(true);
+      setSubmitSuccess(true);
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la certificazione');
@@ -311,94 +311,94 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Opera originale di riferimento (OOR)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Riferimento opera originale"
-                  value={formData.originalReference}
-                  onChange={(e) => handleInputChange('originalReference', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Tipologia (TYP)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Tipologia artefatto"
-                  value={formData.artifactTypology}
-                  onChange={(e) => handleInputChange('artifactTypology', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-        );
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Opera originale di riferimento (OOR)
+        </label>
+        <input
+          type="text"
+          placeholder="Riferimento opera originale"
+          value={formData.originalReference}
+          onChange={(e) => handleInputChange('originalReference', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Tipologia (TYP)
+        </label>
+        <input
+          type="text"
+          placeholder="Tipologia artefatto"
+          value={formData.artifactTypology}
+          onChange={(e) => handleInputChange('artifactTypology', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      </div>
+      </div>
+  );
       case 'video':
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Regista/Autore
-                </label>
-                <input
-                  type="text"
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Regista/Autore
+        </label>
+        <input
+          type="text"
                   placeholder="Nome regista"
-                  value={formData.director}
-                  onChange={(e) => handleInputChange('director', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Durata
-                </label>
-                <input
-                  type="text"
-                  placeholder="Durata in minuti"
-                  value={formData.duration}
-                  onChange={(e) => handleInputChange('duration', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-        );
+          value={formData.director}
+          onChange={(e) => handleInputChange('director', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Durata
+        </label>
+        <input
+          type="text"
+          placeholder="Durata in minuti"
+          value={formData.duration}
+          onChange={(e) => handleInputChange('duration', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      </div>
+      </div>
+  );
       case 'modello-3d':
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Nome modello
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nome del modello 3D"
-                  value={formData.modelName}
-                  onChange={(e) => handleInputChange('modelName', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Software utilizzato
-                </label>
-                <input
-                  type="text"
-                  placeholder="es. Blender, Maya"
-                  value={formData.software}
-                  onChange={(e) => handleInputChange('software', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Nome modello
+        </label>
+        <input
+          type="text"
+          placeholder="Nome del modello 3D"
+          value={formData.modelName}
+          onChange={(e) => handleInputChange('modelName', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Software utilizzato
+        </label>
+        <input
+          type="text"
+          placeholder="es. Blender, Maya"
+          value={formData.software}
+          onChange={(e) => handleInputChange('software', e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      </div>
+      </div>
         );
       default:
         return null;
@@ -409,19 +409,19 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
 
   return (
     <>
-      <FormLayout 
+    <FormLayout 
         title="Certificazione Artefatto"
-        sidebar={
-          <OrganizationData 
-            data={organizationData}
-            onUpdate={handleOrganizationUpdate}
-          />
-        }
-      >
+      sidebar={
+        <OrganizationData 
+          data={organizationData}
+          onUpdate={handleOrganizationUpdate}
+        />
+      }
+    >
         <BaseCertificationForm
           formData={formData}
           onInputChange={handleInputChange}
-          onFileUpload={handleFileUpload}
+                  onFileUpload={handleFileUpload}
           onSubmit={handleSubmit}
           onBack={onBack}
           formTitle="Certificazione Artefatto"

@@ -212,17 +212,17 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
   // Custom fields for document type
   const customFields = (
     <>
-      {formData.documentType === 'altro' && (
-        <div className="mt-3">
-          <input
-            type="text"
-            placeholder="Specifica altro"
-            value={formData.customType}
-            onChange={(e) => handleInputChange('customType', e.target.value)}
-            className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      )}
+                  {formData.documentType === 'altro' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        placeholder="Specifica altro"
+                        value={formData.customType}
+                        onChange={(e) => handleInputChange('customType', e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  )}
     </>
   );
 
@@ -242,7 +242,7 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
         <BaseCertificationForm
           formData={formData}
           onInputChange={handleInputChange}
-          onFileUpload={handleFileUpload}
+                  onFileUpload={handleFileUpload}
           onSubmit={handleSubmit}
           onBack={onBack}
           formTitle="Certificazione Documento"
@@ -263,7 +263,7 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
           submitError={submitError}
           submitSuccess={submitSuccess}
         />
-      </FormLayout>
+    </FormLayout>
 
       {/* Certification Modal with Stepper */}
       <CertificationModal
