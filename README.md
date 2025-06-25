@@ -1,481 +1,485 @@
-# 🎨 CaputMundi ArtCertify - Certificazione Blockchain
+# 🏛️ CaputMundi ArtCertify - Piattaforma di Certificazione Blockchain
 
-**CaputMundi ArtCertify** è una piattaforma avanzata per la certificazione di documenti e artefatti culturali su blockchain Algorand, sviluppata da **CaputMundi**. Utilizza NFT soulbound (SBT) per garantire l'autenticità, la tracciabilità e la non-trasferibilità delle certificazioni digitali.
+**CaputMundi ArtCertify** è una piattaforma avanzata di certificazione digitale basata su blockchain Algorand che permette la creazione, gestione e versioning di certificazioni immutabili utilizzando Soulbound Token (SBT) con standard ARC-3 e ARC-19.
 
-![ArtCertify Logo](src/assets/logo.png)
+![React](https://img.shields.io/badge/React-19.1.0-blue?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue?logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-6.3.5-purple?logo=vite)
+![Algorand](https://img.shields.io/badge/Algorand-TestNet/MainNet-brightgreen?logo=algorand)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.17-blue?logo=tailwindcss)
+![Pera Wallet](https://img.shields.io/badge/Pera%20Wallet-1.4.2-orange)
 
-## ✨ Caratteristiche Principali
+## 🚀 Caratteristiche Principali
 
-### 🔐 **Certificazione Blockchain Avanzata**
-- **NFT Soulbound (SBT)**: Certificazioni non trasferibili legate permanentemente al wallet
-- **Compliance ARC-19 + ARC-3**: Standard Algorand per NFT con metadati IPFS
-- **Template URL ARC-19**: `template-ipfs://{ipfscid:1:raw:reserve:sha2-256}` per massima compatibilità
-- **Blockchain Algorand**: Sicurezza, velocità e sostenibilità della rete Algorand
-- **Metadati IPFS**: Archiviazione decentralizzata tramite Pinata Gateway
-- **Versioning**: Sistema completo di versionamento asset con storico immutabile
+### ✨ **Autenticazione Sicura**
+- **Pera Wallet Connect**: Unico metodo di autenticazione supportato
+- **Session Persistence**: Riconnessione automatica tra sessioni
+- **Multi-Platform**: Supporto mobile (QR Code) e desktop
+- **Zero Private Keys**: Nessuna chiave privata memorizzata nell'applicazione
 
-### 💳 **Gestione Wallet Completa**
-- **Saldo Real-time**: Visualizzazione ALGO con conversione EUR automatica
-- **Storico Transazioni**: Cronologia completa delle operazioni blockchain
-- **Asset Management**: Gestione certificazioni soulbound e asset normali
-- **Portfolio Analytics**: Statistiche dettagliate del portafoglio
+### 🏗️ **Certificazione Blockchain**
+- **Soulbound Tokens (SBT)**: Certificazioni non trasferibili
+- **Standard Compliance**: ARC-3 (Metadata) + ARC-19 (Template URL)
+- **IPFS Storage**: Storage decentralizzato con Pinata
+- **Versioning Avanzato**: Cronologia completa delle modifiche
+- **Smart Retry System**: Ripresa intelligente dai punti di fallimento
 
-### 🎨 **Design System Moderno**
-- **59 Componenti UI**: Sistema modulare e scalabile con export centralizzato
-- **Atomic Design**: Organizzazione atoms, molecules, organisms, templates
-- **Palette Colori Completa**: Primary Blue, Success Green, Error Red, Warning Orange, Info Blue
-- **Typography Scale**: 6 livelli tipografici da Page Title (30px) a Body Secondary (14px)
-- **Responsive Mobile-First**: Layout adattivo con breakpoints customizzati
-- **Animazioni Fluide**: Fade-in, slide-up, scale-in con keyframes CSS
-- **Dark Theme**: Tema scuro ottimizzato per l'esperienza utente
+### 🎨 **UI/UX Avanzata**
+- **Stepper Interattivo**: Visualizzazione real-time del progresso
+- **Link Dinamici**: Collegamenti diretti a IPFS e blockchain explorer
+- **Error Handling**: Gestione robusta degli errori con retry specifico per step
+- **Design System**: Componenti riutilizzabili con TailwindCSS
 
-### 📱 **Esperienza Utente Avanzata**
-- **Skeleton Loading**: Loading states per ogni componente
-- **Empty States**: Stati vuoti informativi e guidati
-- **Error Handling**: Gestione errori completa con recovery actions
-- **Progress Tracking**: Stepper per flussi multi-step
-- **Real-time Feedback**: Status updates durante le operazioni
-- **Tooltips Contextual**: Guida contestuale integrata
+### 🔄 **Gestione Asset**
+- **Portfolio Visualization**: Visualizzazione completa degli asset
+- **Metadata Decoding**: Decodifica automatica CID ARC-19
+- **Transaction History**: Storico completo delle transazioni
+- **Asset Details**: Visualizzazione dettagliata con allegati IPFS
 
-## 🚨 Setup Obbligatorio - Variabili d'Ambiente
+## 🏗️ Architettura Tecnica
 
-**CRITICO**: L'applicazione richiede la configurazione completa delle variabili d'ambiente per funzionare.
+### **Stack Tecnologico Core**
 
-### 1. Copia il file template
+```typescript
+Frontend Framework:
+├── React 19.1.0 + TypeScript 5.8.3  # Framework moderno
+├── Vite 6.3.5                       # Build tool veloce  
+├── React Router 7.6.2               # Routing SPA
+└── TailwindCSS 3.4.17              # Utility-first CSS
 
-```bash
-cp env.example .env
+Blockchain Integration:
+├── AlgoKit Utils 9.1.0              # Algorand utilities
+├── Algorand SDK 3.3.1               # Core blockchain
+└── Pera Wallet Connect 1.4.2        # Wallet integration
+
+IPFS & Storage:
+├── Multiformats 13.3.7              # CID manipulation
+├── Uint8arrays 5.1.0                # Binary data handling
+└── Pinata API                       # IPFS pinning service
+
+UI & UX Libraries:
+├── Headless UI 2.2.4                # Accessible components
+├── Heroicons 2.2.0 + Lucide 0.518.0 # Icon libraries
+└── CLSX + Tailwind Merge            # Class utilities
 ```
 
-### 2. Configura tutte le variabili obbligatorie
+### **Struttura del Progetto**
 
+```
+caput-mundi-fe/
+├── src/
+│   ├── components/                   # 🎨 Componenti React
+│   │   ├── ui/                      # Sistema di design base
+│   │   │   ├── Button.tsx           # Componente button con varianti
+│   │   │   ├── Card.tsx             # Card container riutilizzabile
+│   │   │   ├── Modal.tsx            # Modal dialog con overlay
+│   │   │   ├── Stepper.tsx          # Stepper interattivo per flussi
+│   │   │   ├── DataGrid.tsx         # Griglia dati con sorting/filtering
+│   │   │   ├── FileUpload.tsx       # Upload drag & drop
+│   │   │   ├── LoadingSpinner.tsx   # Indicatori di caricamento
+│   │   │   └── [27 altri componenti UI]
+│   │   │
+│   │   ├── forms/                   # 📝 Form specializzati
+│   │   │   ├── ArtifactForm.tsx     # Form certificazione artefatti
+│   │   │   ├── DocumentForm.tsx     # Form certificazione documenti
+│   │   │   └── BaseCertificationForm.tsx # Form base condiviso
+│   │   │
+│   │   ├── modals/                  # 🪟 Dialog e modal
+│   │   │   ├── CertificationModal.tsx      # Modal processo certificazione
+│   │   │   └── ModifyAttachmentsModal.tsx  # Modal modifica allegati
+│   │   │
+│   │   ├── asset/                   # 🏛️ Componenti gestione asset
+│   │   │   ├── AssetHeader.tsx      # Header dettagli asset
+│   │   │   ├── AssetInfoCard.tsx    # Card informazioni asset
+│   │   │   ├── AssetDescription.tsx # Descrizione e metadata
+│   │   │   ├── AttachmentsSection.tsx # Sezione allegati IPFS
+│   │   │   └── TechnicalMetadata.tsx # Metadata tecnici blockchain
+│   │   │
+│   │   ├── layout/                  # 🏗️ Layout e struttura
+│   │   │   └── ResponsiveLayout.tsx # Layout responsive principale
+│   │   │
+│   │   ├── DashboardPage.tsx        # 🏠 Dashboard principale
+│   │   ├── WalletPage.tsx           # 💼 Gestione wallet e portfolio
+│   │   ├── AssetDetailsPage.tsx     # 📄 Dettagli asset singolo
+│   │   ├── LoginPage.tsx            # 🔑 Autenticazione Pera Wallet
+│   │   ├── CertificationsPage.tsx   # 📋 Lista certificazioni
+│   │   ├── OrganizationProfilePage.tsx # 🏢 Profilo organizzazione
+│   │   ├── RolesPage.tsx            # 👥 Gestione ruoli
+│   │   ├── CertificateCard.tsx      # 🎫 Card certificato singolo
+│   │   └── VersioningSection.tsx    # 🔄 Sezione versioning asset
+│   │
+│   ├── hooks/                       # 🪝 Custom Hooks React
+│   │   ├── usePeraCertificationFlow.ts # Hook flusso certificazione completo
+│   │   ├── usePeraWallet.ts         # Hook integrazione Pera Wallet
+│   │   ├── useTransactionSigning.ts # Hook firma transazioni
+│   │   ├── useAsyncState.ts         # Hook gestione stati asincroni
+│   │   ├── useDebounce.ts           # Hook debounce per ricerche
+│   │   └── useLocalStorage.ts       # Hook persistenza localStorage
+│   │
+│   ├── services/                    # 🔧 Servizi Core Business Logic
+│   │   ├── peraWalletService.ts     # Servizio Pera Wallet Connect
+│   │   ├── algorand.ts              # API Algorand + gestione asset
+│   │   ├── ipfsService.ts           # Integrazione Pinata IPFS
+│   │   ├── cidDecoder.ts            # Decodifica CID ARC-19 compliance
+│   │   ├── walletService.ts         # Servizi wallet generici
+│   │   ├── nftService.ts            # Gestione NFT e portfolio
+│   │   └── spidService.ts           # Integrazione SPID (placeholder)
+│   │
+│   ├── contexts/                    # 🌐 Context React per stato globale
+│   │   └── AuthContext.tsx          # Context autenticazione Pera Wallet
+│   │
+│   ├── types/                       # 📝 Definizioni TypeScript
+│   │   ├── asset.ts                 # Tipi asset, NFT e metadata
+│   │   └── cid.ts                   # Tipi CID IPFS e decodifica
+│   │
+│   ├── config/                      # ⚙️ Configurazione applicazione
+│   │   └── environment.ts           # Validazione e configurazione env
+│   │
+│   ├── lib/                         # 🛠️ Utility e helper functions
+│   │   └── utils.ts                 # Utility functions condivise
+│   │
+│   └── assets/                      # 🎨 Asset statici
+│       ├── logo.png                 # Logo principale applicazione
+│       └── favicon/                 # Set completo favicon multi-device
+│
+├── docs/                           # 📚 Documentazione completa
+│   ├── ARCHITECTURE.md             # Architettura software
+│   ├── ALGORAND_INTEGRATION.md     # Integrazione blockchain
+│   ├── IPFS_INTEGRATION.md         # Integrazione IPFS e storage
+│   ├── PERA_CONNECT_INTEGRATION.md # Integrazione Pera Wallet
+│   ├── CID_DECODER.md              # Decodifica CID e ARC-19
+│   ├── CUSTOM_HOOKS.md             # Documentazione custom hooks
+│   ├── DESIGN_SYSTEM.md            # Sistema di design e UI
+│   ├── NETWORK_CONFIGURATION.md    # Configurazione rete Algorand
+│   └── README.md                   # Indice documentazione
+│
+├── public/                         # 🌐 File statici pubblici
+│   ├── manifest.json               # PWA manifest
+│   ├── favicon.ico                 # Favicon principale
+│   └── [icon set completo]         # Icon set multi-dispositivo
+│
+├── package.json                    # 📦 Dipendenze e script
+├── vite.config.ts                  # ⚙️ Configurazione Vite
+├── tailwind.config.js              # 🎨 Configurazione TailwindCSS
+├── tsconfig.json                   # 🔧 Configurazione TypeScript
+├── env.example                     # 📋 Template variabili ambiente
+└── README.md                       # 📖 Documentazione principale
+```
+
+## 🎯 Flussi Operativi
+
+### **🏗️ Creazione Certificazione**
+
+Il processo di certificazione utilizza un sistema di stepper intelligente con retry automatico:
+
+```mermaid
+graph TD
+    A[Form Input] --> B[Wallet Check]
+    B --> C[IPFS Upload]
+    C --> D[CID Conversion]
+    D --> E[Asset Creation]
+    E --> F[Asset Configuration]
+    F --> G[Success]
+    
+    B -.retry.-> B
+    C -.retry.-> C
+    D -.retry.-> D
+    E -.retry.-> E
+    F -.retry.-> F
+```
+
+#### **Step-by-Step Process:**
+
+1. **📋 Form Input**: L'utente compila il form di certificazione
+2. **🔐 Wallet Check**: Verifica connessione Pera Wallet
+3. **📤 IPFS Upload**: Upload file e metadata su IPFS con Pinata
+4. **🔄 CID Conversion**: Conversione CID IPFS in reserve address Algorand
+5. **🏗️ Asset Creation**: Creazione SBT con firma Pera Wallet
+6. **⚙️ Asset Configuration**: Aggiornamento reserve address con firma Pera Wallet
+7. **✅ Success**: Visualizzazione certificazione creata con link esplorativi
+
+### **🔄 Versioning e Modifiche**
+
+Sistema avanzato di versioning per aggiornamenti post-creazione:
+
+1. **🎯 Asset Selection**: Selezione asset esistente dal portfolio
+2. **✏️ Modification**: Modifica metadata o sostituzione allegati
+3. **📤 Smart IPFS Upload**: Upload solo di nuovi contenuti (riutilizzo cache)
+4. **🔄 Reserve Update**: Aggiornamento reserve address con nuova versione
+5. **📊 History Tracking**: Tracciamento automatico cronologia versioni
+6. **👁️ Visualization**: Display timeline versioning con link storici
+
+### **💼 Gestione Wallet e Portfolio**
+
+- **🔗 Connection**: Connessione sicura via Pera Wallet Connect
+- **👁️ Address Validation**: Validazione automatica indirizzi Algorand
+- **💰 Balance Query**: Query real-time saldi e asset posseduti
+- **📊 Transaction History**: Recupero storico transazioni complete
+- **🎨 Asset Portfolio**: Visualizzazione portfolio NFT con metadati
+
+## 🔧 Setup e Installazione
+
+### **📋 Prerequisiti**
+
+- **Node.js** 18+ (consigliato 20+)
+- **npm** 8+ oppure **yarn** 1.22+
+- **Pera Wallet** installato (mobile o desktop)
+- **Account Algorand** (TestNet o MainNet)
+- **Pinata Account** per IPFS gateway
+
+### **⚙️ Configurazione**
+
+1. **📥 Clone del repository**
 ```bash
-# Pinata IPFS Gateway Configuration (OBBLIGATORIO)
-VITE_PINATA_GATEWAY=coffee-quiet-limpet-747.mypinata.cloud
+git clone <repository-url>
+cd caput-mundi-fe
+```
 
-# Pinata API Configuration for IPFS (OBBLIGATORIO)
+2. **📦 Installazione dipendenze**
+```bash
+npm install
+```
+
+3. **🔐 Configurazione ambiente**
+```bash
+cp env.example .env.local
+
+# Modifica .env.local con i tuoi valori:
+VITE_PINATA_GATEWAY=your-gateway.mypinata.cloud
 VITE_PINATA_API_KEY=your_pinata_api_key
 VITE_PINATA_API_SECRET=your_pinata_api_secret
 VITE_PINATA_JWT=your_pinata_jwt_token
 
-# Private Key Mnemonics (OBBLIGATORIO per minting)
-VITE_PRIVATE_KEY_MNEMONIC=your_minter_mnemonic_phrase
-VITE_MANAGER_MNEMONIC=your_manager_mnemonic_phrase
-
-# Algorand Network Configuration (OBBLIGATORIO)
-VITE_ALGORAND_NETWORK=testnet
-
-# Algorand API Endpoints (TUTTI OBBLIGATORI)
-VITE_ALGOD_TOKEN=
-VITE_ALGOD_SERVER=https://testnet-api.algonode.cloud
-VITE_ALGOD_PORT=443
-VITE_INDEXER_TOKEN=
-VITE_INDEXER_SERVER=https://testnet-idx.algonode.cloud
-VITE_INDEXER_PORT=443
+# Configurazione rete (testnet o mainnet)
+VITE_ALGORAND_NETWORK=testnet  # o mainnet per produzione
 ```
 
-### 3. Come ottenere le credenziali
+4. **🚀 Avvio applicazione**
+```bash
+npm run dev
+# Applicazione disponibile su http://localhost:5173
+```
 
-**Pinata (IPFS):**
-1. Registrati su [Pinata](https://pinata.cloud)
-2. Ottieni API Key, Secret e JWT dal dashboard
-3. Configura un gateway dedicato
+### **🌐 Configurazione Rete**
 
-**Algorand:**
-- Le configurazioni pubbliche sono già impostate per TestNet
-- Per MainNet, aggiorna i server con gli endpoint appropriati
-
-## 🚀 Installazione e Avvio
+L'applicazione supporta switch automatico tra TestNet e MainNet:
 
 ```bash
-# Clona il repository
-git clone https://gitlab.ccoe.activadigital.it/activa-digital/Artence/extras/poc-artcertify.git
-cd poc-artcertify
+# TestNet (sviluppo e testing)
+VITE_ALGORAND_NETWORK=testnet
+# Endpoints automatici:
+# - ALGOD: https://testnet-api.algonode.cloud:443
+# - INDEXER: https://testnet-idx.algonode.cloud:443
+# - Explorer: https://testnet.explorer.perawallet.app
 
-# Installa le dipendenze
-npm install
-
-# Configura le variabili d'ambiente
-cp env.example .env
-# Modifica .env con le tue credenziali
-
-# Avvia il server di sviluppo
-npm run dev
-
-# Build per produzione
-npm run build
-
-# Anteprima build di produzione
-npm run preview
-
-# Linting del codice
-npm run lint
+# MainNet (produzione)
+VITE_ALGORAND_NETWORK=mainnet  
+# Endpoints automatici:
+# - ALGOD: https://mainnet-api.algonode.cloud:443
+# - INDEXER: https://mainnet-idx.algonode.cloud:443
+# - Explorer: https://explorer.perawallet.app
 ```
 
-## 🏗️ Architettura del Progetto
+## 🛠️ Sviluppo
 
-```
-src/
-├── components/
-│   ├── ui/                          # Design System (59 componenti)
-│   │   ├── Alert.tsx               # 4 tipi di notifiche (success, error, warning, info)
-│   │   ├── AssetDetailsSkeleton.tsx # Skeleton per pagina asset
-│   │   ├── Badge.tsx               # Badge e etichette colorate
-│   │   ├── Button.tsx              # 4 varianti + loading + icone
-│   │   ├── Card.tsx                # 3 varianti + header + azioni
-│   │   ├── DataGrid.tsx            # Griglia dati responsive
-│   │   ├── DateInput.tsx           # Input data con validazione
-│   │   ├── EmptyState.tsx          # Stati vuoti riutilizzabili
-│   │   ├── ErrorMessage.tsx        # Messaggi di errore standardizzati
-│   │   ├── FileUpload.tsx          # Drag & drop file con preview
-│   │   ├── FormHeader.tsx          # Header form con back button
-│   │   ├── FormLayout.tsx          # Layout responsive per form
-│   │   ├── InfoCard.tsx            # Card informative
-│   │   ├── InfoField.tsx           # Campo informativo riutilizzabile
-│   │   ├── Input.tsx               # Form input con validazione
-│   │   ├── IPFSFileCard.tsx        # Card per file IPFS con azioni
-│   │   ├── LoadingSpinner.tsx      # Spinner di caricamento
-│   │   ├── MetadataDisplay.tsx     # Display metadata NFT
-│   │   ├── Modal.tsx               # Modali responsive con backdrop
-│   │   ├── OrganizationData.tsx    # Dati organizzazione editabili
-│   │   ├── PageHeader.tsx          # Header pagina standardizzato
-│   │   ├── SearchAndFilter.tsx     # Barra ricerca e filtri
-│   │   ├── SectionCard.tsx         # Card sezione con collapsible
-│   │   ├── Select.tsx              # Dropdown personalizzato
-│   │   ├── Skeleton.tsx            # 7 varianti skeleton loading
-│   │   ├── StatusBadge.tsx         # Badge di stato colorati
-│   │   ├── Stepper.tsx             # Stepper per flussi multi-step
-│   │   ├── TabsContainer.tsx       # Container tab responsive
-│   │   ├── Textarea.tsx            # Area di testo ridimensionabile
-│   │   ├── Tooltip.tsx             # Tooltip informativi
-│   │   ├── TruncatedText.tsx       # Testo troncato con expand
-│   │   ├── VersionCard.tsx         # Card per versioni asset
-│   │   └── index.ts                # Export centralizzato
-│   │
-│   ├── layout/
-│   │   └── ResponsiveLayout.tsx    # Layout principale con sidebar collassabile
-│   │
-│   ├── pages/                       # 7 Pagine Principali
-│   │   ├── DashboardPage.tsx       # Dashboard con overview certificazioni
-│   │   ├── WalletPage.tsx          # Gestione wallet con tab
-│   │   ├── AssetDetailsPage.tsx    # Dettagli asset con versioning
-│   │   ├── CertificationsPage.tsx  # Lista e gestione certificazioni
-│   │   ├── OrganizationProfilePage.tsx # Profilo organizzazione
-│   │   ├── RolesPage.tsx           # Gestione ruoli e permessi
-│   │   ├── LoginPage.tsx           # Autenticazione wallet
-│   │   └── SPIDCallbackPage.tsx    # Callback SPID (futuro)
-│   │
-│   ├── asset/                       # Componenti Specifici Asset
-│   │   ├── AssetHeader.tsx         # Header con info principali
-│   │   ├── AssetInfoCard.tsx       # Card informazioni asset
-│   │   ├── AssetDescription.tsx    # Descrizione e metadata
-│   │   ├── AttachmentsSection.tsx  # Gestione allegati IPFS
-│   │   └── TechnicalMetadata.tsx   # Metadata tecnici blockchain
-│   │
-│   ├── forms/                       # Form Specializzati
-│   │   ├── ArtifactForm.tsx        # Form creazione artefatti
-│   │   ├── DocumentForm.tsx        # Form creazione documenti
-│   │   └── BaseCertificationForm.tsx # Form base certificazioni
-│   │
-│   ├── modals/
-│   │   ├── CertificationModal.tsx  # Modal processo certificazione
-│   │   └── ModifyAttachmentsModal.tsx # Modal modifica allegati
-│   │
-│   ├── CertificateCard.tsx         # Card certificato singolo
-│   └── VersioningSection.tsx       # Sezione versioning asset
-│
-├── hooks/                           # 4 Custom Hooks
-│   ├── useAsyncState.ts            # Gestione stati asincroni
-│   ├── useCertificationFlow.ts     # Flusso certificazione completo
-│   ├── useDebounce.ts              # Debounce per ricerche
-│   └── useLocalStorage.ts          # Persistenza localStorage
-│
-├── services/                        # 7 Servizi Core
-│   ├── algorand.ts                 # API Algorand + asset info
-│   ├── nftMintingService.ts        # Minting SBT ARC-19+ARC-3
-│   ├── ipfsService.ts              # Integrazione Pinata IPFS
-│   ├── nftService.ts               # Gestione NFT
-│   ├── walletService.ts            # Servizi wallet
-│   ├── cidDecoder.ts               # Decodifica CID ARC-19
-│   └── spidService.ts              # Integrazione SPID (futuro)
-│
-├── contexts/
-│   └── AuthContext.tsx             # Gestione autenticazione globale
-│
-├── types/                          # Definizioni TypeScript
-│   ├── asset.ts                    # Tipi asset e NFT
-│   └── cid.ts                      # Tipi CID IPFS
-│
-├── config/
-│   └── environment.ts              # Configurazione ambiente validata
-│
-├── lib/
-│   └── utils.ts                    # Utility functions
-│
-└── assets/
-    ├── logo.png                    # Logo principale
-    └── favicon/                    # Favicon completo
-        ├── favicon.ico             # Favicon standard
-        ├── favicon-16x16.png       # Favicon 16x16
-        ├── favicon-32x32.png       # Favicon 32x32
-        ├── apple-touch-icon.png    # Icona iOS
-        ├── android-chrome-192x192.png # Icona Android 192x192
-        └── android-chrome-512x512.png # Icona Android 512x512
+### **📜 Script Disponibili**
+
+```bash
+npm run dev          # Avvio sviluppo con hot reload
+npm run build        # Build produzione ottimizzato
+npm run preview      # Preview build produzione
+npm run lint         # Linting con ESLint
+npm run type-check   # Controllo tipi TypeScript
 ```
 
-## 🎨 Design System
+### **🎨 Sistema di Design**
 
-### **Stack Tecnologico**
+Il progetto utilizza un design system completo basato su TailwindCSS:
 
 ```typescript
-Frontend Framework:
-├── React 19 + TypeScript     # Framework moderno
-├── Vite 6.3.5               # Build tool veloce
-├── React Router 7.6.2       # Routing SPA
-└── TailwindCSS 3.4.17      # Utility-first CSS
-
-Blockchain Integration:
-├── AlgoKit Utils 9.1.0      # Algorand utilities
-└── Algorand SDK 3.3.1       # Core blockchain
-
-IPFS & Storage:
-├── Multiformats 13.3.7      # CID manipulation
-├── Uint8arrays 5.1.0        # Binary data handling
-└── Pinata API               # IPFS pinning service
-
-UI & UX:
-├── Headless UI 2.2.4        # Accessible components
-├── Heroicons 2.2.0          # Icon library
-├── Lucide React 0.518.0     # Additional icons
-└── CLSX + Tailwind Merge    # Class name utilities
-```
-
-### **Componenti Base - Esempi d'Uso**
-
-```tsx
-// Button - 4 varianti + stati
+// Esempi componenti base
 <Button 
-  variant="primary" 
-  size="md" 
-  icon={<PlusIcon />} 
-  loading={isCreating}
-  onClick={handleCreate}
+  variant="primary | secondary | outline | ghost"
+  size="sm | md | lg | xl"
+  isLoading={boolean}
+  disabled={boolean}
 >
-  Crea Certificazione
+  Testo Button
 </Button>
 
-// Card - Layout standardizzato
 <Card 
-  variant="elevated" 
-  title="Saldo Wallet" 
-  icon={<WalletIcon />}
-  actions={<Button variant="ghost">Aggiorna</Button>}
+  variant="default | outlined | elevated"
+  size="sm | md | lg"
+  clickable={boolean}
 >
-  <p className="text-2xl font-bold">{balance} ALGO</p>
+  Contenuto Card
 </Card>
 
-// Form Input - Validazione integrata
-<Input
-  label="Nome Asset"
-  value={assetName}
-  onChange={setAssetName}
-  error={errors.assetName}
-  required
-  helpText="Nome identificativo per l'asset"
-/>
-
-// Alert - 4 tipi di notifiche
-<Alert 
-  type="success" 
-  title="Certificazione Creata"
-  message="Asset creato con successo sulla blockchain"
-  dismissible
-/>
+<Modal 
+  isOpen={boolean}
+  onClose={() => void}
+  size="sm | md | lg | xl | full"
+  closeOnBackdrop={boolean}
+>
+  Contenuto Modal
+</Modal>
 ```
 
-### **Architettura Componenti UI**
+### **🔄 Testing e Debug**
 
-```
-Design System (59 componenti)
-├── Base Components (13)        # Button, Input, Card, Modal, etc.
-├── Layout Components (4)       # PageHeader, Sidebar, TabsContainer
-├── Data Components (8)         # DataGrid, InfoField, MetadataDisplay
-├── Form Components (7)         # FileUpload, FormLayout, DateInput
-├── State Components (6)        # Loading, Empty, Error, Skeleton
-├── Specialized (12)            # IPFSFileCard, VersionCard, etc.
-└── Navigation (9)              # Stepper, Badge, StatusBadge
-```
+#### **✅ Test Funzionalità Chiave**
 
-## 🔧 Servizi e Integrazioni
+1. **Test Connessione Pera Wallet**
+```bash
+# Avvia app in dev mode
+npm run dev
 
-### **AlgorandService** - Integrazione Blockchain
-```typescript
-// Ottenere informazioni asset con metadata IPFS
-const assetInfo = await algorandService.getAssetInfo(assetId);
-// Include: params, creation transaction, config history, versioning
-
-// Storico reserve addresses per versioning
-const reserveHistory = await algorandService.getAssetReserveHistory(assetId);
-
-// Links a Algorand Explorer
-const explorerUrl = algorandService.getAssetExplorerUrl(assetId);
+# Nel browser:
+# 1. Vai su http://localhost:5173/login
+# 2. Clicca "Connetti con Pera Wallet"
+# 3. Scansiona QR code o connetti desktop
+# 4. Verifica reindirizzamento a dashboard
 ```
 
-### **NFTMintingService** - Minting SBT Compliant
-```typescript
-// Minting certificazione SBT completa
-const result = await nftMintingService.mintCertificationSBT({
-  mnemonic: walletMnemonic,
-  certificationData: metadata,
-  files: uploadedFiles,
-  assetName: "Art Certificate #123",
-  unitName: "ARTCERT",
-  formData: formValues
-});
-// Risultato: assetId, txId, metadataUrl, ipfsHashes
-
-// Aggiornamento metadata con versioning
-const updateResult = await nftMintingService.updateCertificationMetadata({
-  assetId: existingAssetId,
-  mnemonic: managerMnemonic,
-  newCertificationData: updatedMetadata,
-  newFiles: newAttachments,
-  formData: updatedFormData
-});
+2. **Test Creazione Certificazione**
+```bash
+# 1. Assicurati di essere connesso con Pera Wallet
+# 2. Vai su Dashboard > "Crea Certificazione"
+# 3. Compila form artefatto o documento
+# 4. Carica file di test
+# 5. Avvia processo certificazione
+# 6. Firma transazioni con Pera Wallet
+# 7. Verifica asset creato nell'explorer
 ```
 
-### **IPFSService** - Storage Decentralizzato
-```typescript
-// Upload certificazione completa
-const ipfsResult = await ipfsService.uploadCertificationAssets(
-  files,
-  certificationData,
-  formData
-);
-// Risultato: metadataHash, fileHashes, metadataUrl, individualFileUrls
-
-// Upload singolo file
-const fileResult = await ipfsService.uploadFile(file, {
-  name: "certificate_attachment.pdf",
-  keyvalues: { type: "attachment", asset_id: "123" }
-});
+3. **Test Portfolio e Asset Details**
+```bash
+# 1. Vai su "Wallet" tab
+# 2. Verifica visualizzazione portfolio
+# 3. Clicca su asset certificato
+# 4. Verifica decodifica metadata
+# 5. Testa link IPFS e explorer
 ```
 
-### **CidDecoder** - Compliance ARC-19
-```typescript
-// Conversione CID a indirizzo Algorand
-const reserveAddress = CidDecoder.fromCidToAddress(metadataHash);
+#### **🚨 Troubleshooting Comune**
 
-// Decodifica reserve address a CID
-const cidInfo = CidDecoder.decodeReserveAddressToCid(reserveAddress);
-
-// Estrazione versioning da storico reserve
-const versioningInfo = await CidDecoder.extractVersioningFromReserves(
-  reserveHistory, 
-  configHistory
-);
-```
-
-## 🎯 Flussi Operativi Principali
-
-### **Creazione Certificazione**
-1. **Form Input**: L'utente compila il form certificazione
-2. **Validation**: Validazione dati lato client
-3. **IPFS Upload**: Upload file e metadata su IPFS
-4. **CID Conversion**: Conversione CID in reserve address
-5. **Asset Creation**: Creazione SBT con template URL ARC-19
-6. **Confirmation**: Attesa conferma blockchain
-7. **Display**: Visualizzazione certificazione creata
-
-### **Versioning Asset**
-1. **Asset Selection**: Selezione asset esistente
-2. **Modification**: Modifica metadata o allegati
-3. **IPFS Upload**: Upload nuova versione su IPFS
-4. **Reserve Update**: Aggiornamento reserve address
-5. **History Tracking**: Tracciamento versioni precedenti
-6. **Visualization**: Display cronologia versioning
-
-### **Wallet Integration**
-2. **Address Validation**: Validazione indirizzo Algorand
-3. **Balance Query**: Query saldo e asset
-4. **Transaction History**: Recupero storico transazioni
-5. **Asset Portfolio**: Visualizzazione portfolio NFT
-
-## 📚 Documentazione Estesa
-
-Il progetto include documentazione dettagliata in `/docs/`:
-
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Architettura completa dell'applicazione
-- **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** - Integrazione blockchain Algorand
-- **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** - Integrazione IPFS e Pinata
-- **[NFT_MINTING_SERVICE.md](docs/NFT_MINTING_SERVICE.md)** - Servizio minting NFT
-- **[CID_DECODER.md](docs/CID_DECODER.md)** - Decodifica CID e compliance ARC-19
-- **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** - Custom hooks React
-- **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** - Sistema di design completo
+| Problema | Soluzione |
+|----------|-----------|
+| **Build Error** | `rm -rf node_modules dist && npm install && npm run build` |
+| **Pera Wallet non connette** | Verifica rete (TestNet/MainNet) e versione wallet |
+| **IPFS Upload fallisce** | Controlla credenziali Pinata in `.env.local` |
+| **Transazione fallisce** | Verifica saldo account e parametri transazione |
+| **Explorer link non funziona** | Controlla configurazione rete in environment |
 
 ## 🔒 Sicurezza e Compliance
 
-### **Blockchain Security**
-- ✅ **Soulbound Tokens**: NFT non trasferibili
-- ✅ **Immutable Metadata**: Hash IPFS immutabili
-- ✅ **Multi-signature Support**: Gestione multi-sig
-- ✅ **Network Validation**: Validazione transazioni
+### **🛡️ Sicurezza Blockchain**
+- ✅ **Soulbound Tokens**: NFT non trasferibili per certificazioni
+- ✅ **Immutable Metadata**: Hash IPFS immutabili su blockchain
+- ✅ **Zero Private Keys**: Nessuna chiave privata nell'applicazione
+- ✅ **Pera Wallet Security**: Firma transazioni controllata dall'utente
+- ✅ **Network Validation**: Validazione automatica parametri rete
 
-### **Data Protection**
-- ✅ **IPFS Decentralization**: Storage distribuito
-- ✅ **Client-side Encryption**: Crittografia lato client
-- ✅ **No Private Keys Storage**: Nessuna chiave privata salvata
-- ✅ **CORS Protection**: Protezione cross-origin
+### **🔐 Data Protection**
+- ✅ **IPFS Decentralization**: Storage distribuito resistente alla censura
+- ✅ **Client-side Processing**: Elaborazione dati lato client
+- ✅ **Session Management**: Gestione sicura sessioni wallet
+- ✅ **CORS Protection**: Protezione richieste cross-origin
 
-### **Standards Compliance**
-- ✅ **ARC-3**: NFT Metadata Standard
-- ✅ **ARC-19**: Template URL Standard
-- ✅ **IPFS CID v1**: Content Identifier v1
-- ✅ **JSON Schema**: Validazione metadata
+### **📋 Standards Compliance**
+- ✅ **ARC-3**: NFT Metadata Standard per descrizioni asset
+- ✅ **ARC-19**: Template URL Standard per IPFS integration
+- ✅ **IPFS CID v1**: Content Identifier versione 1
+- ✅ **JSON Schema**: Validazione rigorosa metadata
+
+## 📚 Documentazione Estesa
+
+La documentazione completa è disponibile nella cartella `/docs/`:
+
+| File | Descrizione |
+|------|-------------|
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Architettura software e pattern utilizzati |
+| **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** | Integrazione blockchain Algorand dettagliata |
+| **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** | Integrazione IPFS e servizi Pinata |
+| **[PERA_CONNECT_INTEGRATION.md](docs/PERA_CONNECT_INTEGRATION.md)** | Integrazione Pera Wallet Connect |
+| **[CID_DECODER.md](docs/CID_DECODER.md)** | Decodifica CID e compliance ARC-19 |
+| **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** | Documentazione custom hooks React |
+| **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** | Sistema di design e componenti UI |
+| **[NETWORK_CONFIGURATION.md](docs/NETWORK_CONFIGURATION.md)** | Configurazione rete e ambiente |
 
 ## 🚀 Deployment
 
-### **Build di Produzione**
+### **🏗️ Build di Produzione**
+
 ```bash
-# Build ottimizzato
+# Build ottimizzato per produzione
 npm run build
 
-# Verifica bundle
-npm run preview
-
-# Deploy su servizio statico
-# Output in /dist/ pronto per deployment
+# Output generato in /dist/
+# File pronti per deployment su servizi statici:
+# - Netlify, Vercel, GitHub Pages
+# - AWS S3 + CloudFront
+# - Azure Static Web Apps
 ```
 
-### **Variabili d'Ambiente Produzione**
+### **⚙️ Configurazione Produzione**
+
 ```bash
-# Aggiorna per MainNet
+# .env.production
 VITE_ALGORAND_NETWORK=mainnet
-VITE_ALGOD_SERVER=https://mainnet-api.algonode.cloud
-VITE_INDEXER_SERVER=https://mainnet-idx.algonode.cloud
+VITE_PINATA_GATEWAY=your-production-gateway.mypinata.cloud
+VITE_PINATA_API_KEY=your_production_api_key
+VITE_PINATA_API_SECRET=your_production_secret
+VITE_PINATA_JWT=your_production_jwt
 
-# Gateway IPFS personalizzato
-VITE_PINATA_GATEWAY=your-custom-gateway.mypinata.cloud
+# Verifica build
+npm run preview
 ```
+
+### **🔍 Performance Optimization**
+
+- ✅ **Code Splitting**: Lazy loading automatico delle route
+- ✅ **Tree Shaking**: Rimozione codice non utilizzato
+- ✅ **Bundle Analysis**: Ottimizzazione dimensioni bundle
+- ✅ **Asset Optimization**: Compressione immagini e font
+- ✅ **Caching Strategy**: Cache intelligente per asset statici
 
 ## 🤝 Contribuire
 
-1. **Fork** del repository
-2. **Crea** un branch feature (`git checkout -b feature/nuova-funzionalita`)
-3. **Commit** delle modifiche (`git commit -m 'Aggiunge nuova funzionalità'`)
-4. **Push** del branch (`git push origin feature/nuova-funzionalita`)
-5. **Apri** una Pull Request
+1. **🍴 Fork** del repository
+2. **🌿 Crea** un branch feature (`git checkout -b feature/nuova-funzionalita`)
+3. **💾 Commit** delle modifiche (`git commit -m 'feat: aggiunge nuova funzionalità'`)
+4. **🚀 Push** del branch (`git push origin feature/nuova-funzionalita`)
+5. **📝 Apri** una Pull Request con descrizione dettagliata
 
-## 📄 Licenza
+### **📏 Convenzioni di Sviluppo**
 
-Questo progetto è sviluppato da **Activa Digital**. Tutti i diritti riservati.
+- **🔤 Naming**: camelCase per variabili, PascalCase per componenti
+- **📁 Structure**: Feature-based organization per componenti grandi
+- **🎨 Styling**: TailwindCSS utility classes, evitare CSS custom
+- **🔧 TypeScript**: Tipizzazione forte, evitare `any`
+- **📖 Documentation**: Commenti JSDoc per funzioni pubbliche
 
-## 📞 Supporto
+## 🏢 Informazioni Progetto
 
-Per supporto tecnico o domande:
-- **Repository**: https://gitlab.ccoe.activadigital.it/activa-digital/Artence/extras/poc-artcertify
-- **Documentazione**: [docs/](docs/)
+### **📄 Licenza**
+Sviluppato da **Activa Digital**. Tutti i diritti riservati.
+
+### **👥 Team**
+- **Frontend Development**: React + TypeScript
+- **Blockchain Integration**: Algorand + Pera Wallet
+- **UI/UX Design**: TailwindCSS + Headless UI
+- **DevOps**: Vite + GitHub Actions
+
+### **📞 Supporto**
+
+Per supporto tecnico, domande o contributi:
+
+- **📧 Email**: [info@activadigital.it](mailto:info@activadigital.it)
+- **🌐 Website**: [www.activadigital.it](https://www.activadigital.it)
+- **📚 Documentazione**: [docs/](docs/)
+- **🐛 Issues**: Aprire issue su repository per bug report
 
 ---
 
-**🎨 CaputMundi ArtCertify** - *Certificazione Digitale del Patrimonio Culturale*
+**🚀 Pronto per iniziare? Segui la [guida di setup](#setup-e-installazione) e inizia a certificare!**
