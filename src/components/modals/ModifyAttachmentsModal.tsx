@@ -6,7 +6,7 @@ import Textarea from '../ui/Textarea';
 import { Alert } from '../ui';
 import type { AssetInfo } from '../../services/algorand';
 import { CertificationModal } from './CertificationModal';
-import { useCertificationFlow } from '../../hooks/useCertificationFlow';
+import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 
 interface Attachment {
   id: string;
@@ -31,7 +31,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
   currentAttachments = [],
   onAssetUpdated
 }) => {
-  // Versioning flow hook
+  // Versioning flow hook with Pera Wallet
   const {
     isModalOpen: isVersioningModalOpen,
     isProcessing: isVersioningProcessing,
@@ -40,8 +40,10 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     startVersioningFlow,
     retryStep: retryVersioningStep,
     closeModal: closeVersioningModal,
-    cancelFlow: cancelVersioningFlow
-  } = useCertificationFlow();
+
+    isWalletConnected,
+    walletAddress
+  } = usePeraCertificationFlow();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -199,10 +201,9 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         throw new Error('File certificazione è obbligatorio');
       }
 
-      // Get mnemonic from environment (user must sign the transaction)
-      const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
-      if (!mnemonic) {
-        throw new Error('Mnemonic non configurata nel file .env. L\'utente deve firmare la transazione.');
+      // Verifica connessione Pera Wallet
+      if (!isWalletConnected || !walletAddress) {
+        throw new Error('Pera Wallet non connesso. Effettua il login prima di procedere.');
       }
 
       // Collect all files to upload to IPFS
@@ -244,7 +245,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
       const result = await startVersioningFlow({
         assetId: asset.index,
-        mnemonic,
         newCertificationData,
         newFiles: filesToUpload,
         formData: {
@@ -599,7 +599,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       title={`Creazione Versione ${versionInfo.nextVersion}`}
       steps={versioningSteps}
       onRetryStep={retryVersioningStep}
-      onCancel={cancelVersioningFlow}
       isProcessing={isVersioningProcessing}
       result={versioningResult}
       onSuccess={handleVersioningSuccess}

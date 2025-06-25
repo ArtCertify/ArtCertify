@@ -99,11 +99,16 @@ const AssetDetailsPage: React.FC = () => {
   const getCertificationType = () => {
     if (!asset) return 'Documento';
     
-    // 1. Try certification_data.asset_type 
+    // 1. Try certification_data.asset_type (metodo principale)
     if (asset.nftMetadata?.certification_data?.asset_type) {
       const assetType = asset.nftMetadata.certification_data.asset_type.toLowerCase();
       if (assetType === 'document') return 'Documento';
-      if (assetType === 'artefatto' || assetType === 'artifact' || assetType.includes('artefatto')) return 'Artefatto';
+      // Tutti i tipi di artefatto vengono mappati ad "Artefatto"
+      if (assetType.includes('artefatto') || assetType === 'artifact' || 
+          assetType === 'video' || assetType === 'modello-3d' || 
+          assetType === 'artefatto-digitale' || assetType === 'altro') {
+        return 'Artefatto';
+      }
     }
 
     // 2. Try attributes "Asset Type" trait
@@ -114,18 +119,31 @@ const AssetDetailsPage: React.FC = () => {
       if (assetTypeAttr) {
         const value = String(assetTypeAttr.value).toLowerCase();
         if (value === 'document' || value === 'documento') return 'Documento';
-        if (value === 'artefatto' || value === 'artifact' || value.includes('artefatto')) return 'Artefatto';
+        if (value.includes('artefatto') || value === 'artifact' || 
+            value === 'video' || value === 'modello-3d' || 
+            value === 'artefatto-digitale' || value === 'altro') {
+          return 'Artefatto';
+        }
       }
     }
 
     // 3. Fallback to name (for backward compatibility)
     if (asset.params.name) {
       const name = asset.params.name.toLowerCase();
-      if (name.includes('document')) return 'Documento';
-      if (name.includes('artefatto')) return 'Artefatto';
+      if (name.includes('document') || name.includes('doc')) return 'Documento';
+      if (name.includes('artefatto') || name.includes('artifact') || 
+          name.includes('video') || name.includes('modello') || 
+          name.includes('sbt')) return 'Artefatto';
     }
 
-    // 4. Default fallback
+    // 4. Default intelligente basato su unit name
+    if (asset.params.unitName) {
+      const unitName = asset.params.unitName.toLowerCase();
+      if (unitName.includes('doc')) return 'Documento';
+      if (unitName.includes('art') || unitName.includes('sbt') || unitName.includes('cert')) return 'Artefatto';
+    }
+
+    // 5. Default fallback
     return 'Documento';
   };
 
@@ -438,7 +456,7 @@ const AssetDetailsPage: React.FC = () => {
                         </div>
                         <div className="p-3 space-y-2">
                           <button
-                            onClick={() => openInNewTab(algorandService.getAssetExplorerUrl(asset.index.toString()))}
+                            onClick={() => openInNewTab(algorandService.getAssetExplorerUrl(asset.index))}
                             className="w-full text-left p-2 bg-blue-900/20 hover:bg-blue-900/30 rounded border border-blue-800/30 hover:border-blue-700 transition-colors group"
                           >
                             <div className="flex items-center justify-between">

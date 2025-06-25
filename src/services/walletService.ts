@@ -145,30 +145,43 @@ class WalletService {
   }
 
   /**
-   * Get recent transactions for an account
+   * Get all transactions for an account
    */
-  private async getRecentTransactions(address: string, limit = 10): Promise<WalletTransaction[]> {
+  private async getRecentTransactions(address: string, limit = 1000): Promise<WalletTransaction[]> {
     try {
       const indexer = algorandService.getIndexer();
+      
+      // Get ALL transaction types in a single query - more efficient
       const response = await indexer
         .searchForTransactions()
         .address(address)
         .limit(limit)
+        // Remove .txType() to get ALL transaction types
         .do();
 
-      if (!response.transactions) {
+      if (!response.transactions || response.transactions.length === 0) {
+        console.warn('No transactions found for address:', address);
         return [];
       }
 
-      return response.transactions.map((txn: any): WalletTransaction => {
-        const payment = txn.paymentTransaction;
-        const assetTransfer = txn.assetTransferTransaction;
+      // Sort by round time or confirmed round (most recent first)
+      const allTransactions = response.transactions.sort((a: any, b: any) => {
+        const timeA = a['round-time'] || a.roundTime || a['confirmed-round'] || a.confirmedRound || 0;
+        const timeB = b['round-time'] || b.roundTime || b['confirmed-round'] || b.confirmedRound || 0;
+        return timeB - timeA;
+      });
+
+      return allTransactions.map((txn: any): WalletTransaction => {
+        const payment = txn['payment-transaction'] || txn.paymentTransaction;
+        const assetTransfer = txn['asset-transfer-transaction'] || txn.assetTransferTransaction;
+        const assetConfig = txn['asset-config-transaction'] || txn.assetConfigTransaction;
+        const appCall = txn['application-transaction'] || txn.applicationTransaction;
         
         // Determine transaction type and amount
         let type = 'unknown';
         let amount = 0;
         let receiver = '';
-        let sender = txn.sender;
+        let sender = txn.sender || '';
 
         if (payment) {
           type = 'payment';
@@ -178,26 +191,33 @@ class WalletService {
           type = 'asset-transfer';
           amount = assetTransfer.amount || 0;
           receiver = assetTransfer.receiver || '';
-        } else if (txn.applicationTransaction) {
+        } else if (appCall) {
           type = 'app-call';
-        } else if (txn.assetConfigTransaction) {
+          receiver = appCall['application-id']?.toString() || '';
+        } else if (assetConfig) {
           type = 'asset-config';
+          receiver = assetConfig['asset-id']?.toString() || '';
         }
 
+        // Convert BigInt to number safely
+        const safeAmount = typeof amount === 'bigint' ? Number(amount) : (amount || 0);
+        const safeFee = typeof txn.fee === 'bigint' ? Number(txn.fee) : (txn.fee || 0);
+
         return {
-          id: txn.id,
+          id: txn.id || '',
           type,
-          amount: this.microAlgoToAlgo(amount),
+          amount: this.microAlgoToAlgo(safeAmount),
           sender,
           receiver,
-          timestamp: txn.roundTime || 0,
-          round: txn.confirmedRound || 0,
-          fee: this.microAlgoToAlgo(txn.fee || 0),
+          timestamp: txn['round-time'] || txn.roundTime || 0,
+          round: txn['confirmed-round'] || txn.confirmedRound || 0,
+          fee: this.microAlgoToAlgo(safeFee),
           note: txn.note ? this.decodeNote(txn.note) : undefined
         };
       });
     } catch (error) {
       console.error('Error fetching recent transactions:', error);
+      // Return empty array instead of throwing to prevent breaking the UI
       return [];
     }
   }

@@ -1,6 +1,7 @@
 import * as algosdk from 'algosdk';
 import { config } from '../config/environment';
 import { CidDecoder } from './cidDecoder';
+import { getAssetExplorerUrl, getAddressExplorerUrl, getTransactionExplorerUrl } from '../config/environment';
 
 export interface AssetParams {
   creator: string;
@@ -276,7 +277,7 @@ class AlgorandService {
         .filter((reserve: string | undefined) => reserve !== undefined);
 
       // Disabled to reduce console noise during development
-      // console.log('Reserve addresses in chronological order:', reserves);
+
       
       return reserves;
     } catch (error) {
@@ -301,24 +302,24 @@ class AlgorandService {
   }
 
   /**
-   * Generate explorer URL for asset
+   * Get the explorer URL for an asset
    */
-  getAssetExplorerUrl(assetId: string): string {
-    return `https://testnet.explorer.perawallet.app/asset/${assetId}/`;
+  getAssetExplorerUrl(assetId: number): string {
+    return getAssetExplorerUrl(assetId);
   }
 
   /**
-   * Generate explorer URL for address
+   * Get the explorer URL for an address
    */
   getAddressExplorerUrl(address: string): string {
-    return `https://testnet.explorer.perawallet.app/address/${address}/`;
+    return getAddressExplorerUrl(address);
   }
 
   /**
-   * Generate explorer URL for transaction
+   * Get the explorer URL for a transaction
    */
   getTransactionExplorerUrl(txId: string): string {
-    return `https://testnet.explorer.perawallet.app/tx/${txId}/`;
+    return getTransactionExplorerUrl(txId);
   }
 }
 

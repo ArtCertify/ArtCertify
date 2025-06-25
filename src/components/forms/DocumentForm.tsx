@@ -3,7 +3,7 @@ import { BaseCertificationForm, type BaseFormData, type BaseFormField, type Type
 import { FormLayout } from '../ui';
 import { OrganizationData } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
-import { useCertificationFlow } from '../../hooks/useCertificationFlow';
+import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 
 interface DocumentCertificationFormProps {
   onBack: () => void;
@@ -17,7 +17,7 @@ interface DocumentFormData extends BaseFormData {
 }
 
 export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack }) => {
-  // Certification flow hook
+  // Certification flow hook with Pera Wallet
   const {
     isModalOpen,
     isProcessing,
@@ -26,8 +26,9 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
     startCertificationFlow,
     retryStep,
     closeModal,
-    cancelFlow
-  } = useCertificationFlow();
+    isWalletConnected,
+    walletAddress
+  } = usePeraCertificationFlow();
 
   // Organization data state
   const [organizationData, setOrganizationData] = useState({
@@ -100,6 +101,7 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
     if (!formData.authorName.trim()) errors.push('Nome Autore è obbligatorio');
     if (!formData.date.trim()) errors.push('Data è obbligatoria');
     if (!formData.assetName?.trim()) errors.push('Nome Asset è obbligatorio');
+    if ((formData.assetName?.length || 0) > 32) errors.push('Nome Asset deve essere massimo 32 caratteri');
     if (!formData.unitName?.trim()) errors.push('Unit Name è obbligatorio');
     if ((formData.unitName?.length || 0) > 8) errors.push('Unit Name deve essere massimo 8 caratteri');
     if (formData.files.length === 0) errors.push('Almeno un file è obbligatorio');
@@ -107,8 +109,10 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
       errors.push('Specifica il tipo personalizzato');
     }
 
-    const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
-    if (!mnemonic) errors.push('Mnemonic non configurata nel file .env');
+    // Verifica connessione Pera Wallet invece della mnemonic
+    if (!isWalletConnected || !walletAddress) {
+      errors.push('Pera Wallet non connesso. Effettua il login prima di procedere.');
+    }
 
     return { isValid: errors.length === 0, errors };
   };
@@ -126,26 +130,23 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
 
     try {
       const certificationData = prepareCertificationData();
-      const mnemonic = import.meta.env.VITE_PRIVATE_KEY_MNEMONIC;
       
-      const result = await startCertificationFlow({
-        mnemonic,
+      await startCertificationFlow({
         certificationData,
         files: formData.files,
         assetName: formData.assetName!,
         unitName: formData.unitName!,
-                  formData: {
-            ...formData,
-            artifactType: 'document',
-            title: formData.documentName,
-            author: formData.authorName,
-            creationDate: formData.date
-          }
+        formData: {
+          ...formData,
+          artifactType: 'document',
+          title: formData.documentName,
+          author: formData.authorName,
+          creationDate: formData.date
+        }
       });
 
-      if (result) {
-        setSubmitSuccess(true);
-      }
+      // Il successo viene gestito tramite il modal
+      setSubmitSuccess(true);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la certificazione');
     }
@@ -196,7 +197,9 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
     onChange: (value) => handleInputChange('assetName', value),
     label: 'Nome Asset *',
     placeholder: 'es. DOC_Contratto_001',
-    required: true
+    required: true,
+    maxLength: 32,
+    helperText: 'Max 32 caratteri (limite Algorand)'
   };
 
   const nftUnitField: BaseFormField = {
@@ -272,7 +275,6 @@ export const DocumentForm: React.FC<DocumentCertificationFormProps> = ({ onBack 
         title="Certificazione Documento"
         steps={steps}
         onRetryStep={retryStep}
-        onCancel={cancelFlow}
         isProcessing={isProcessing}
         result={mintResult}
         onSuccess={handleCertificationSuccess}

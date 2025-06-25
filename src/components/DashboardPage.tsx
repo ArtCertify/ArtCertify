@@ -91,11 +91,16 @@ export const DashboardPage: React.FC = () => {
       filtered = filtered.filter(cert => {
         // Get certificate type from NFT metadata (same logic as CertificateCard)
         const getCertificateType = () => {
-          // 1. Try certification_data.asset_type 
+          // 1. Try certification_data.asset_type (metodo principale)
           if (cert.nftMetadata?.certification_data?.asset_type) {
             const assetType = cert.nftMetadata.certification_data.asset_type.toLowerCase();
             if (assetType === 'document') return 'document';
-            if (assetType === 'artefatto' || assetType === 'artifact') return 'artefatto';
+            // Tutti i tipi di artefatto vengono mappati ad "artefatto"
+            if (assetType.includes('artefatto') || assetType === 'artifact' || 
+                assetType === 'video' || assetType === 'modello-3d' || 
+                assetType === 'artefatto-digitale' || assetType === 'altro') {
+              return 'artefatto';
+            }
           }
 
           // 2. Try attributes "Asset Type" trait
@@ -106,16 +111,29 @@ export const DashboardPage: React.FC = () => {
             if (assetTypeAttr) {
               const value = String(assetTypeAttr.value).toLowerCase();
               if (value === 'document' || value === 'documento') return 'document';
-              if (value === 'artefatto' || value === 'artifact') return 'artefatto';
+              if (value.includes('artefatto') || value === 'artifact' || 
+                  value === 'video' || value === 'modello-3d' || 
+                  value === 'artefatto-digitale' || value === 'altro') {
+                return 'artefatto';
+              }
             }
           }
 
           // 3. Fallback to name (for backward compatibility)
-        const name = cert.params.name?.toLowerCase() || '';
-          if (name.includes('document')) return 'document';
-          if (name.includes('artefatto')) return 'artefatto';
+          const name = cert.params.name?.toLowerCase() || '';
+          if (name.includes('document') || name.includes('doc')) return 'document';
+          if (name.includes('artefatto') || name.includes('artifact') || 
+              name.includes('video') || name.includes('modello') || 
+              name.includes('sbt')) return 'artefatto';
 
-          // 4. Default is document for unknown types
+          // 4. Default intelligente basato su unit name
+          if (cert.params.unitName) {
+            const unitName = cert.params.unitName.toLowerCase();
+            if (unitName.includes('doc')) return 'document';
+            if (unitName.includes('art') || unitName.includes('sbt') || unitName.includes('cert')) return 'artefatto';
+          }
+
+          // 5. Default is document for unknown types
           return 'document';
         };
 
@@ -188,13 +206,13 @@ export const DashboardPage: React.FC = () => {
           <p className="text-slate-400 text-sm">
             Visualizza e gestisci le tue certificazioni per documenti e artefatti
           </p>
-          <Link
-            to="/certificates"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Crea nuova Certificazione
-          </Link>
+            <Link
+              to="/certificates"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+            >
+              <PlusIcon className="h-5 w-5" />
+              Crea nuova Certificazione
+            </Link>
         </div>
 
         {/* Search and Filters */}
