@@ -8,7 +8,7 @@ import {
   BuildingOfficeIcon,
   ChartBarIcon,
   DocumentTextIcon,
-  UsersIcon,
+
   WalletIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -62,12 +62,12 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children, title = "
       icon: <DocumentTextIcon className="h-5 w-5" />, 
       tooltip: 'Crea e gestisci certificazioni per documenti e artefatti' 
     },
-    { 
-      name: 'Ruoli', 
-      href: '/roles', 
-      icon: <UsersIcon className="h-5 w-5" />, 
-      tooltip: 'Gestione ruoli e permessi utenti' 
-    },
+//    { 
+//      name: 'Ruoli', 
+//      href: '/roles', 
+//      icon: <UsersIcon className="h-5 w-5" />, 
+//      tooltip: 'Gestione ruoli e permessi utenti' 
+//    },
     { 
       name: 'Wallet', 
       href: '/wallet', 
@@ -86,9 +86,15 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children, title = "
     navigate('/profile');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setUserMenuOpen(false);
-    logout();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force navigation to login page even if logout failed
+      window.location.href = '/login';
+    }
   };
 
   return (

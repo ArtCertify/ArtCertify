@@ -62,11 +62,16 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
 
   // Get the certificate type from NFT metadata
   const getCertificateType = () => {
-    // 1. Prova da certification_data.asset_type 
+    // 1. Prova da certification_data.asset_type (metodo principale)
     if (asset.nftMetadata?.certification_data?.asset_type) {
       const assetType = asset.nftMetadata.certification_data.asset_type.toLowerCase();
       if (assetType === 'document') return 'Documento';
-      if (assetType === 'artefatto' || assetType === 'artifact') return 'Artefatto';
+      // Tutti i tipi di artefatto vengono mappati ad "Artefatto"
+      if (assetType.includes('artefatto') || assetType === 'artifact' || 
+          assetType === 'video' || assetType === 'modello-3d' || 
+          assetType === 'artefatto-digitale' || assetType === 'altro') {
+        return 'Artefatto';
+      }
     }
 
     // 2. Prova da attributes "Asset Type" trait
@@ -77,19 +82,32 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
       if (assetTypeAttr) {
         const value = String(assetTypeAttr.value).toLowerCase();
         if (value === 'document' || value === 'documento') return 'Documento';
-        if (value === 'artefatto' || value === 'artifact') return 'Artefatto';
+        if (value.includes('artefatto') || value === 'artifact' || 
+            value === 'video' || value === 'modello-3d' || 
+            value === 'artefatto-digitale' || value === 'altro') {
+          return 'Artefatto';
+        }
       }
     }
 
     // 3. Fallback al nome (per retrocompatibilità)
     if (asset.params.name) {
       const name = asset.params.name.toLowerCase();
-      if (name.includes('document')) return 'Documento';
-      if (name.includes('artefatto')) return 'Artefatto';
+      if (name.includes('document') || name.includes('doc')) return 'Documento';
+      if (name.includes('artefatto') || name.includes('artifact') || 
+          name.includes('video') || name.includes('modello') || 
+          name.includes('sbt')) return 'Artefatto';
     }
 
-    // 4. Default per NFT senza tipo specificato
-    return 'Unknown';
+    // 4. Default intelligente basato su unit name
+    if (asset.params.unitName) {
+      const unitName = asset.params.unitName.toLowerCase();
+      if (unitName.includes('doc')) return 'Documento';
+      if (unitName.includes('art') || unitName.includes('sbt') || unitName.includes('cert')) return 'Artefatto';
+    }
+
+    // 5. Default: preferisce Documento per retrocompatibilità
+    return 'Documento';
   };
 
   // Get status based on asset state

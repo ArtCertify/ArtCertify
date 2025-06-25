@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { X, AlertCircle, RefreshCw, Check } from 'lucide-react';
 import { Stepper, Step, type StepState } from '../ui/Stepper';
 import Button from '../ui/Button';
-import { config } from '../../config/environment';
+
 
 export interface CertificationStep {
   id: string;
   title: string;
   description?: string;
+  details?: string; // Informazioni in tempo reale per l'utente
   state: StepState;
   error?: string;
   result?: unknown;
@@ -37,7 +38,6 @@ export interface CertificationModalProps {
   title: string;
   steps: CertificationStep[];
   onRetryStep: (stepId: string) => void;
-  onCancel: () => void;
   isProcessing: boolean;
   result?: MintingResult;
   onSuccess?: (result: MintingResult) => void;
@@ -49,7 +49,6 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
   title,
   steps,
   onRetryStep,
-  onCancel,
   isProcessing,
   result,
   onSuccess
@@ -72,12 +71,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
   const hasErrors = steps.some(step => step.state === 'error');
   const isCompleted = steps.every(step => step.state === 'success') && !isProcessing;
   
-  // Determine explorer URL based on network
-  const getExplorerUrl = () => {
-    return config.algorandNetwork === 'MainNet' 
-      ? 'https://explorer.perawallet.app' 
-      : 'https://testnet.explorer.perawallet.app';
-  };
+
 
   const handleClose = () => {
     if (!isProcessing && (isCompleted || !hasErrors)) {
@@ -177,6 +171,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
                        key={step.id}
                        title={step.title}
                        description={step.description}
+                       details={step.details}
                        customState={step.state}
                        onClick={
                          step.state === 'error' 
@@ -219,141 +214,23 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
                   </div>
                 )}
 
-                                {/* Success Summary with Essential Links */}
+                                {/* Success Summary - Semplificato */}
                 {isCompleted && result && (
                   <div className="mb-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                    <div className="flex items-center mb-3">
+                    <div className="flex items-center">
                       <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
                         <Check className="w-4 h-4 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-green-400">Processo Completato!</h3>
+                      <h3 className="text-lg font-semibold text-green-400">Processo Completato con Successo!</h3>
                     </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      {/* Blockchain Links */}
-                      {result.assetId && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400">🔗</span>
-                          <a 
-                            href={`${getExplorerUrl()}/asset/${result.assetId}`}
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-blue-400 hover:text-blue-300 underline"
-                          >
-                            Visualizza Asset su Blockchain
-                          </a>
-                        </div>
-                      )}
-                      
-                      {result.txId && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400">📋</span>
-                          <a 
-                            href={`${getExplorerUrl()}/tx/${result.txId}`}
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-blue-400 hover:text-blue-300 underline"
-                          >
-                            Visualizza Transazione
-                          </a>
-                        </div>
-                      )}
-                      
-                      {/* IPFS Files */}
-                      {result.metadataCid && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400">📄</span>
-                          <a 
-                            href={`https://${config.pinataGateway}/ipfs/${result.metadataCid}`}
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-blue-400 hover:text-blue-300 underline"
-                          >
-                            Visualizza Metadata IPFS
-                          </a>
-                        </div>
-                      )}
-                      
-                      {/* File IPFS - Mostra uploadedFiles se disponibili (versioning), altrimenti ipfsHashes (certificazione) */}
-                      {result.uploadedFiles ? (
-                        <>
-                          {/* File da versioning con organizzazione per tipo */}
-                          {result.uploadedFiles.license && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-400">📄</span>
-                              <a 
-                                href={result.uploadedFiles.license.gatewayUrl}
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-400 hover:text-blue-300 underline"
-                              >
-                                {result.uploadedFiles.license.name}
-                              </a>
-                            </div>
-                          )}
-                          
-                          {result.uploadedFiles.image && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-400">🖼️</span>
-                              <a 
-                                href={result.uploadedFiles.image.gatewayUrl}
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-400 hover:text-blue-300 underline"
-                              >
-                                {result.uploadedFiles.image.name}
-                              </a>
-                            </div>
-                          )}
-                          
-                          {result.uploadedFiles.attachments?.map((att: {name: string, gatewayUrl: string}, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <span className="text-slate-400">📎</span>
-                              <a 
-                                href={att.gatewayUrl}
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-400 hover:text-blue-300 underline"
-                              >
-                                {att.name}
-                              </a>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          {/* File da certificazione standard */}
-                          {result.ipfsHashes?.files?.map((file: {name: string, hash: string}, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <span className="text-slate-400">📎</span>
-                              <a 
-                                href={`https://${config.pinataGateway}/ipfs/${file.hash}`}
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-400 hover:text-blue-300 underline"
-                              >
-                                {file.name}
-                              </a>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
+                    <p className="text-sm text-slate-300 mt-2">
+                      I link per visualizzare i file e le transazioni sono disponibili nei dettagli di ogni step completato.
+                    </p>
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3">
-                  {!isCompleted && !isProcessing && (
-                    <Button
-                      variant="secondary"
-                      onClick={onCancel}
-                      disabled={isProcessing}
-                    >
-                      Annulla
-                    </Button>
-                  )}
-                  
                   {isCompleted && result?.assetId && (
                     <>
                       <Button
@@ -385,20 +262,6 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
                       onClick={handleClose}
                     >
                       Chiudi
-                    </Button>
-                  )}
-
-                  {hasErrors && !isProcessing && (
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        const errorSteps = steps.filter(step => step.state === 'error');
-                        if (errorSteps.length > 0) {
-                          onRetryStep(errorSteps[0].id);
-                        }
-                      }}
-                    >
-                      Riprova Tutto
                     </Button>
                   )}
                 </div>

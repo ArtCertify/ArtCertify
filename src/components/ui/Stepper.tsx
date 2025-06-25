@@ -8,6 +8,7 @@ export type StepProps = {
   title: string;
   customState?: StepState;
   description?: string;
+  details?: string; // Informazioni in tempo reale
   number?: number;
   isActive?: boolean;
   isCompleted?: boolean;
@@ -68,6 +69,7 @@ export function Stepper({
 export function Step({
   title,
   description,
+  details,
   number,
   isActive,
   isCompleted,
@@ -107,26 +109,44 @@ export function Step({
       <StatusIcon number={number} state={state} />
 
       <div
-        className={cn('flex flex-1 flex-row items-center gap-2 font-light', {
+        className={cn('flex flex-1 flex-col gap-1 font-light', {
           'font-semibold': state === 'active',
         })}
       >
-        <span
-          className={cn('text-slate-300', {
-            'whitespace-nowrap': direction === 'vertical',
-            'text-center': direction === 'horizontal',
-            'text-white': state === 'active',
-            'text-green-400': state === 'success',
-            'text-red-400': state === 'error',
-          })}
-        >
-          {title}
-        </span>
-
-        {description && (
-          <span className="text-xs text-slate-500 ml-2">
-            {description}
+        <div className="flex flex-row items-center gap-2">
+          <span
+            className={cn('text-slate-300', {
+              'whitespace-nowrap': direction === 'vertical',
+              'text-center': direction === 'horizontal',
+              'text-white': state === 'active',
+              'text-green-400': state === 'success',
+              'text-red-400': state === 'error',
+            })}
+          >
+            {title}
           </span>
+
+          {description && (
+            <span className="text-xs text-slate-500 ml-2">
+              {description}
+            </span>
+          )}
+        </div>
+
+        {/* Details in tempo reale */}
+        {details && (
+          <div 
+            className={cn(
+              'text-xs transition-colors duration-200',
+              {
+                'text-slate-400': state === 'pending',
+                'text-blue-300': state === 'active',
+                'text-green-300': state === 'success',
+                'text-red-300': state === 'error',
+              }
+            )}
+            dangerouslySetInnerHTML={{ __html: details }}
+          />
         )}
       </div>
     </div>

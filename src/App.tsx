@@ -4,12 +4,11 @@ import AssetDetailsPage from './components/AssetDetailsPage';
 import { DashboardPage } from './components/DashboardPage';
 import { CertificationsPage } from './components/CertificationsPage';
 import { LoginPage } from './components/LoginPage';
-import { SPIDCallbackPage } from './components/SPIDCallbackPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
 import { WalletPage } from './components/WalletPage';
 import { RolesPage } from './components/RolesPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { validateConfig, logConfig } from './config/environment';
+import { validateConfig } from './config/environment';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -32,10 +31,6 @@ const AppRoutes: React.FC = () => {
             <Navigate to="/" replace /> : 
             <LoginPage onLogin={login} />
           } 
-        />
-        <Route 
-          path="/auth/spid/callback" 
-          element={<SPIDCallbackPage />} 
         />
         <Route 
           path="/" 
@@ -85,7 +80,15 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           } 
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Redirect any unknown routes to home or login based on auth */}
+        <Route 
+          path="*" 
+          element={
+            isAuthenticated ? 
+            <Navigate to="/" replace /> : 
+            <Navigate to="/login" replace />
+          } 
+        />
       </Routes>
     </div>
   );
@@ -93,16 +96,15 @@ const AppRoutes: React.FC = () => {
 
 function App() {
   useEffect(() => {
-    // Validate and log configuration on app startup
+    // Validate configuration on app startup
     validateConfig();
-    logConfig();
   }, []);
 
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+              <Router>
+          <AppRoutes />
+        </Router>
     </AuthProvider>
   );
 }

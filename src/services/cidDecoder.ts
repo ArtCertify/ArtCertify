@@ -148,7 +148,7 @@ export class CidDecoder {
         digest = this.extractDigestFromCidV0(cidStr);
       } else if (cidStr.startsWith('b')) {
         // CID v1 (base32 encoding)
-        console.log('🔗 Processing CID v1 (base32)');
+        
         digest = this.extractDigestFromCidV1(cidStr);
       } else {
         throw new Error('CID deve iniziare con "Qm" (v0) o "b" (v1)');
