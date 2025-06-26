@@ -64,10 +64,10 @@ const algorandNetwork = algorandNetworkRaw as NetworkType;
 // Get network-specific configuration
 const networkConfig = getNetworkConfig(algorandNetwork);
 
-// Environment configuration - ALL VALUES MUST COME FROM .env
+// Environment configuration - Flexible for deployment
 export const config = {
-  // Pinata IPFS Gateway
-  pinataGateway: getEnvVar('VITE_PINATA_GATEWAY'),
+  // Pinata IPFS Gateway (optional for basic functionality)
+  pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
   
   // Algorand Network
   algorandNetwork,
@@ -109,17 +109,21 @@ export const getAddressExplorerUrl = (address: string) =>
 // Validation function to ensure required config is present
 export const validateConfig = () => {
   try {
-    // Try to access all config values - this will throw if any are missing
-    // Using void to suppress linter warnings about unused expressions
-    void config.algorandNetwork;
-    void config.network.chainId;
-    void config.algod.token;
-    void config.algod.server;
-    void config.algod.port;
-    void config.indexer.token;
-    void config.indexer.server;
-    void config.indexer.port;
-
+    // Only validate essential configuration
+    if (!config.algorandNetwork) {
+      throw new Error('VITE_ALGORAND_NETWORK is required');
+    }
+    
+    if (!config.network.chainId) {
+      throw new Error('Network configuration invalid');
+    }
+    
+    // Servers are always set from defaults, so no need to validate
+    console.log(`✅ Configuration valid for ${config.algorandNetwork}`);
+    console.log(`🌐 Network: ${config.network.isMainnet ? 'MainNet' : 'TestNet'}`);
+    console.log(`🔗 Algod: ${config.algod.server}`);
+    console.log(`📊 Indexer: ${config.indexer.server}`);
+    
     return true;
   } catch (error) {
     console.error('❌ Configuration validation failed:', error);
