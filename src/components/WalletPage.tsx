@@ -13,6 +13,7 @@ import {
 import { walletService, type WalletInfo, type WalletTransaction } from '../services/walletService';
 import { algorandService } from '../services/algorand';
 import { useAuth } from '../contexts/AuthContext';
+import { config } from '../config/environment';
 import {
   WalletIcon,
   ArrowUpIcon,
@@ -22,8 +23,12 @@ import {
   Squares2X2Icon,
   ArrowPathIcon,
   DocumentDuplicateIcon,
-  LinkIcon
+  LinkIcon,
+  ExclamationTriangleIcon,
+  PlusCircleIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
+import Card from './ui/Card';
 
 interface WalletPageState {
   walletInfo: WalletInfo | null;
@@ -93,9 +98,121 @@ export const WalletPage: React.FC = () => {
     return `${address.slice(0, 6)}...${address.slice(-6)}`;
   };
 
+  // Componente per account vuoti
+  const EmptyAccountCard = () => {
+    if (!state.walletInfo?.isEmptyAccount) return null;
+
+    return (
+      <Card className="border-amber-500/30 bg-amber-500/5 mb-6">
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                <ExclamationTriangleIcon className="w-6 h-6 text-amber-400" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Account Nuovo Rilevato
+              </h3>
+              <p className="text-slate-300 mb-4">
+                Questo wallet non ha ancora interagito con la blockchain Algorand. 
+                Per utilizzare ArtCertify e creare certificazioni, è necessario avere almeno 0.1 ALGO per le commissioni di transazione.
+              </p>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-amber-400">
+                  <BanknotesIcon className="w-4 h-4" />
+                  <span className="text-sm font-medium">Saldo minimo richiesto: 0.1 ALGO</span>
+                </div>
+                
+                                 <div className="flex flex-wrap gap-2">
+                   {config.network.isTestnet && (
+                     <Button
+                       size="sm"
+                       variant="secondary"
+                       onClick={() => window.open('https://dispenser.testnet.aws.algodev.network/', '_blank')}
+                       className="bg-blue-600 hover:bg-blue-700"
+                     >
+                       <PlusCircleIcon className="w-4 h-4 mr-2" />
+                       Ottieni ALGO Testnet
+                     </Button>
+                   )}
+                   
+                   {config.network.isMainnet && (
+                     <Button
+                       size="sm"
+                       variant="secondary"
+                       onClick={() => window.open('https://www.moonpay.com/buy/algo', '_blank')}
+                     >
+                       <BanknotesIcon className="w-4 h-4 mr-2" />
+                       Acquista ALGO
+                     </Button>
+                   )}
+                   
+                   <Button
+                     size="sm"
+                     variant="tertiary"
+                     onClick={() => fetchWalletData(false)}
+                     disabled={state.refreshing}
+                   >
+                     {state.refreshing ? <LoadingSpinner size="sm" /> : 'Ricarica'}
+                   </Button>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   // Quick stats component
   const QuickStats = () => {
     if (!state.walletInfo) return null;
+
+    // Se è un account vuoto, mostra statistiche semplificate
+    if (state.walletInfo.isEmptyAccount) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-3">
+              <Squares2X2Icon className="h-5 w-5 text-slate-400" />
+              <div>
+                <p className="text-slate-400 text-sm">Certificazioni</p>
+                <p className="text-slate-500 font-semibold">0</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-3">
+              <WalletIcon className="h-5 w-5 text-slate-400" />
+              <div>
+                <p className="text-slate-400 text-sm">Saldo</p>
+                <p className="text-slate-500 font-semibold">0 ALGO</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={copyAddress}
+                className="flex items-center gap-3 hover:bg-slate-700 rounded p-1 transition-colors w-full"
+                title="Copia indirizzo"
+              >
+                <DocumentDuplicateIcon className="h-5 w-5 text-slate-400" />
+                <div className="text-left">
+                  <p className="text-slate-400 text-sm">Account</p>
+                  <p className="text-white font-mono text-sm">{formatAddress(userAddress || '')}</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -143,6 +260,39 @@ export const WalletPage: React.FC = () => {
   // Balance card component
   const BalanceCard = () => {
     if (!state.walletInfo) return null;
+
+    // Per account vuoti, mostra una card semplificata
+    if (state.walletInfo.isEmptyAccount) {
+      return (
+        <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl p-6 border border-slate-600 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-slate-600/50 rounded-lg">
+                <WalletIcon className="h-6 w-6 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm">Saldo Disponibile</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchWalletData(false)}
+                disabled={state.refreshing}
+                className="p-2 hover:bg-slate-600 rounded-lg transition-colors text-slate-400 hover:text-white disabled:opacity-50"
+                title="Aggiorna"
+              >
+                <ArrowPathIcon className={`h-5 w-5 ${state.refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold text-slate-400">0.000</span>
+            <span className="text-slate-500 text-lg font-medium">ALGO</span>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl p-6 border border-primary-700 mb-6">
@@ -330,60 +480,61 @@ export const WalletPage: React.FC = () => {
           }
         />
 
-                 <BalanceCard />
-         <QuickStats />
+        <EmptyAccountCard />
+        <BalanceCard />
+        <QuickStats />
 
-         {/* Tabs Container */}
-         <TabsContainer
-           tabs={[
-             {
-               id: 'transactions',
-               label: 'Transazioni Recenti',
-               content: (
-                 <div>
-                   {state.walletInfo.recentTransactions.length === 0 ? (
-                     <EmptyState
-                       title="Nessuna transazione"
-                       description="Le tue transazioni appariranno qui"
-                       variant="compact"
-                     />
-                   ) : (
-                     <div className="space-y-3">
-                       {state.walletInfo.recentTransactions.slice(0, 5).map((transaction) => (
-                         <TransactionItem key={transaction.id} transaction={transaction} />
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               )
-             },
-             {
-               id: 'assets',
-               label: 'Certificazioni',
-               content: (
-                 <div>
-                   {state.walletInfo.assets.length === 0 ? (
-                     <EmptyState
-                       title="Nessuna certificazione"
-                       description="Le tue certificazioni appariranno qui"
-                       variant="compact"
-                     />
-                   ) : (
-                     <div className="space-y-3">
-                       {state.walletInfo.assets.map((asset) => (
-                         <AssetItem key={asset.assetId} asset={asset} />
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               )
-             }
-           ]}
-           activeTab={state.activeTab}
-           onTabChange={(tabId) => setState(prev => ({ ...prev, activeTab: tabId as 'transactions' | 'assets' }))}
-           variant="pills"
-           responsive={true}
-         />
+        {/* Tabs Container */}
+        <TabsContainer
+          tabs={[
+            {
+              id: 'transactions',
+              label: 'Transazioni Recenti',
+              content: (
+                <div>
+                  {state.walletInfo.recentTransactions.length === 0 ? (
+                    <EmptyState
+                      title="Nessuna transazione"
+                      description="Le tue transazioni appariranno qui"
+                      variant="compact"
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {state.walletInfo.recentTransactions.slice(0, 5).map((transaction) => (
+                        <TransactionItem key={transaction.id} transaction={transaction} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            },
+            {
+              id: 'assets',
+              label: 'Certificazioni',
+              content: (
+                <div>
+                  {state.walletInfo.assets.length === 0 ? (
+                    <EmptyState
+                      title="Nessuna certificazione"
+                      description="Le tue certificazioni appariranno qui"
+                      variant="compact"
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {state.walletInfo.assets.map((asset) => (
+                        <AssetItem key={asset.assetId} asset={asset} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+          ]}
+          activeTab={state.activeTab}
+          onTabChange={(tabId) => setState(prev => ({ ...prev, activeTab: tabId as 'transactions' | 'assets' }))}
+          variant="pills"
+          responsive={true}
+        />
       </div>
     </ResponsiveLayout>
   );

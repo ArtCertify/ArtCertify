@@ -8,24 +8,34 @@ interface LogoutButtonProps {
 }
 
 /**
- * Debug component for testing logout functionality
+ * Logout button component with improved debugging and user feedback
  */
 export const LogoutButton: React.FC<LogoutButtonProps> = ({ 
   className = '',
   showText = true 
 }) => {
-  const { logout } = useAuth();
+  const { logout, userAddress } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     
+    // Confirm logout action
+    const confirmLogout = window.confirm(
+      `Sei sicuro di voler disconnettere il wallet ${userAddress?.slice(0, 8)}...?`
+    );
+    
+    if (!confirmLogout) return;
+    
     setIsLoggingOut(true);
     
     try {
+      console.log('🔴 LogoutButton: User confirmed logout');
       await logout();
     } catch (error) {
+      console.error('🔴 LogoutButton: Logout failed:', error);
       // Force navigation even if logout fails
+      alert('Errore durante il logout. Reindirizzamento alla pagina di login...');
       window.location.href = '/login';
     } finally {
       setIsLoggingOut(false);
@@ -44,11 +54,12 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
         transition-colors duration-200
         ${className}
       `}
+      title={`Disconnetti wallet ${userAddress?.slice(0, 8)}...`}
     >
       <ArrowRightOnRectangleIcon className="w-4 h-4" />
       {showText && (
         <span>
-          {isLoggingOut ? 'Logout...' : 'Logout'}
+          {isLoggingOut ? 'Disconnessione...' : 'Logout'}
         </span>
       )}
     </button>

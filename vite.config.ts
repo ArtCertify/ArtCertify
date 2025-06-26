@@ -26,5 +26,16 @@ export default defineConfig({
       'process',
       'vm-browserify'
     ]
+  },
+  // Configurazione per SPA routing  
+  server: {
+    // Fallback a index.html per tutte le rotte non trovate (sviluppo)
+    // Vite gestisce automaticamente le SPA
+  },
+  build: {
+    // Rollup options per il build di produzione
+    rollupOptions: {
+      // Nessuna configurazione speciale necessaria per il routing
+    }
   }
 })
