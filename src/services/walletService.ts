@@ -40,6 +40,7 @@ export interface WalletInfo {
   status: string;
   assets: WalletAsset[];
   recentTransactions: WalletTransaction[];
+  isEmptyAccount: boolean;
   participationInfo?: {
     isOnline: boolean;
     voteParticipationKey?: string;
@@ -52,48 +53,109 @@ class WalletService {
 
   /**
    * Get comprehensive wallet information
+   * Gestisce account vuoti/nuovi come caso normale
    */
   async getWalletInfo(address: string): Promise<WalletInfo> {
     try {
-      const [accountInfo, assets, transactions] = await Promise.all([
-        this.getAccountInfo(address),
+      // Tenta di ottenere informazioni account
+      const accountResult = await this.getAccountInfoSafe(address);
+      
+      // Se l'account non esiste, restituisci dati vuoti
+      if (accountResult.isEmpty) {
+        console.log(`📭 Account vuoto/nuovo rilevato: ${address}`);
+        return this.createEmptyWalletInfo(address);
+      }
+
+      const [assets, transactions] = await Promise.all([
         this.getAccountAssets(address),
         this.getRecentTransactions(address),
         this.getCurrentExchangeRate() // Initialize exchange rate
       ]);
 
-      const balance = this.formatBalance(Number(accountInfo.amount || 0));
+      const balance = this.formatBalance(Number(accountResult.account.amount || 0));
 
       return {
         address,
         balance,
-        minBalance: accountInfo.minBalance || 0,
-        totalAssetsOptedIn: accountInfo.totalAssetsOptedIn || 0,
-        totalAppsOptedIn: accountInfo.totalAppsOptedIn || 0,
-        totalCreatedAssets: accountInfo.totalCreatedAssets || 0,
-        totalCreatedApps: accountInfo.totalCreatedApps || 0,
-        status: accountInfo.status || 'online',
+        minBalance: accountResult.account.minBalance || 0,
+        totalAssetsOptedIn: accountResult.account.totalAssetsOptedIn || 0,
+        totalAppsOptedIn: accountResult.account.totalAppsOptedIn || 0,
+        totalCreatedAssets: accountResult.account.totalCreatedAssets || 0,
+        totalCreatedApps: accountResult.account.totalCreatedApps || 0,
+        status: accountResult.account.status || 'online',
         assets,
-        recentTransactions: transactions
+        recentTransactions: transactions,
+        isEmptyAccount: false
       };
     } catch (error) {
-      console.error('Error fetching wallet info:', error);
+      console.error('❌ Error fetching wallet info:', error);
       throw new Error(`Failed to fetch wallet information for address ${address}`);
     }
   }
 
   /**
+   * Ottieni informazioni account in modo sicuro (gestisce 404)
+   */
+  private async getAccountInfoSafe(address: string): Promise<{ 
+    account: any; 
+    isEmpty: boolean 
+  }> {
+    try {
+      const indexer = algorandService.getIndexer();
+      const accountInfo = await indexer.lookupAccountByID(address).do();
+      
+      if (!accountInfo.account) {
+        return { account: null, isEmpty: true };
+      }
+
+      return { account: accountInfo.account, isEmpty: false };
+    } catch (error: any) {
+      // Gestisci 404 come account vuoto (caso normale)
+      if (error?.status === 404 || 
+          error?.message?.includes('no accounts found') ||
+          error?.message?.includes('404')) {
+        console.log(`📭 Account ${address} non trovato nell'indexer (nuovo/vuoto)`);
+        return { account: null, isEmpty: true };
+      }
+      
+      // Altri errori sono problemi reali
+      throw error;
+    }
+  }
+
+  /**
+   * Crea dati wallet vuoti per account nuovi
+   */
+  private createEmptyWalletInfo(address: string): WalletInfo {
+    return {
+      address,
+      balance: {
+        algo: 0,
+        microAlgo: 0,
+        eurValue: 0
+      },
+      minBalance: 0,
+      totalAssetsOptedIn: 0,
+      totalAppsOptedIn: 0,
+      totalCreatedAssets: 0,
+      totalCreatedApps: 0,
+      status: 'offline',
+      assets: [],
+      recentTransactions: [],
+      isEmptyAccount: true
+    };
+  }
+
+  /**
    * Get account information from Algorand
+   * @deprecated Use getAccountInfoSafe instead
    */
   private async getAccountInfo(address: string) {
-    const indexer = algorandService.getIndexer();
-    const accountInfo = await indexer.lookupAccountByID(address).do();
-    
-    if (!accountInfo.account) {
+    const result = await this.getAccountInfoSafe(address);
+    if (result.isEmpty) {
       throw new Error('Account not found');
     }
-
-    return accountInfo.account;
+    return result.account;
   }
 
   /**
@@ -104,6 +166,7 @@ class WalletService {
       const ownedAssets = await nftService.getOwnedAssets(address);
       
       if (ownedAssets.assets.length === 0) {
+        console.log(`📭 Nessun asset trovato per: ${address}`);
         return [];
       }
 
@@ -123,7 +186,7 @@ class WalletService {
                 : assetInfo.params.total
             } as WalletAsset;
           } catch (error) {
-            console.warn(`Failed to fetch details for asset ${asset.assetId}:`, error);
+            console.warn(`⚠️ Failed to fetch details for asset ${asset.assetId}:`, error);
             return {
               assetId: asset.assetId,
               amount: asset.amount,
@@ -139,7 +202,7 @@ class WalletService {
         )
         .map(result => result.value);
     } catch (error) {
-      console.error('Error fetching account assets:', error);
+      console.warn(`⚠️ Error fetching account assets for ${address}:`, error);
       return [];
     }
   }
@@ -160,7 +223,7 @@ class WalletService {
         .do();
 
       if (!response.transactions || response.transactions.length === 0) {
-        console.warn('No transactions found for address:', address);
+        console.log(`📭 No transactions found for address: ${address}`);
         return [];
       }
 
@@ -199,25 +262,26 @@ class WalletService {
           receiver = assetConfig['asset-id']?.toString() || '';
         }
 
-        // Convert BigInt to number safely
-        const safeAmount = typeof amount === 'bigint' ? Number(amount) : (amount || 0);
-        const safeFee = typeof txn.fee === 'bigint' ? Number(txn.fee) : (txn.fee || 0);
-
         return {
           id: txn.id || '',
           type,
-          amount: this.microAlgoToAlgo(safeAmount),
+          amount: this.microAlgoToAlgo(amount),
           sender,
           receiver,
           timestamp: txn['round-time'] || txn.roundTime || 0,
           round: txn['confirmed-round'] || txn.confirmedRound || 0,
-          fee: this.microAlgoToAlgo(safeFee),
+          fee: this.microAlgoToAlgo(txn.fee || 0),
           note: txn.note ? this.decodeNote(txn.note) : undefined
         };
       });
-    } catch (error) {
-      console.error('Error fetching recent transactions:', error);
-      // Return empty array instead of throwing to prevent breaking the UI
+    } catch (error: any) {
+      // 404 per le transazioni è normale per account nuovi
+      if (error?.status === 404 || error?.message?.includes('404')) {
+        console.log(`📭 No transactions found for address: ${address} (nuovo account)`);
+        return [];
+      }
+      
+      console.warn(`⚠️ Error fetching transactions for ${address}:`, error);
       return [];
     }
   }
@@ -240,8 +304,6 @@ class WalletService {
   private microAlgoToAlgo(microAlgo: number): number {
     return microAlgo / 1_000_000;
   }
-
-
 
   /**
    * Decode transaction note from base64

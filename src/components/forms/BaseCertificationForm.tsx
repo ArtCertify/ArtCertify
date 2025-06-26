@@ -96,6 +96,8 @@ export const BaseCertificationForm: React.FC<BaseCertificationFormProps> = ({
   submitSuccess,
   successContent
 }) => {
+
+
   if (submitSuccess && successContent) {
     return (
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
