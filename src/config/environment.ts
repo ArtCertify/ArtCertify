@@ -82,13 +82,13 @@ export const config = {
   
   // Algorand API endpoints - ALWAYS use network-specific defaults (automatic switching)
   algod: {
-    token: getEnvVar('VITE_ALGOD_TOKEN', true), // Allow empty for public services
+    token: '', // Force empty for public services (no token needed)
     server: networkConfig.algodDefault.server, // Always use network-based default
     port: networkConfig.algodDefault.port // Always use network-based default
   },
   
   indexer: {
-    token: getEnvVar('VITE_INDEXER_TOKEN', true), // Allow empty for public services  
+    token: '', // Force empty for public services (no token needed)
     server: networkConfig.indexerDefault.server, // Always use network-based default
     port: networkConfig.indexerDefault.port // Always use network-based default
   }
@@ -123,7 +123,7 @@ export const validateConfig = () => {
     console.log(`🌐 Network: ${config.network.isMainnet ? 'MainNet' : 'TestNet'}`);
     console.log(`🔗 Algod: ${config.algod.server}`);
     console.log(`📊 Indexer: ${config.indexer.server}`);
-    
+
     return true;
   } catch (error) {
     console.error('❌ Configuration validation failed:', error);

@@ -51,18 +51,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('❌ Error during logout:', error);
       // Force clear state even if there's an error
-      setUserAddress(null);
-      setIsAuthenticated(false);
-      localStorage.removeItem('algorand_address');
+    setUserAddress(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('algorand_address');
       localStorage.removeItem('pera_wallet_connected');
       localStorage.removeItem('pera_wallet_account');
     } finally {
-      // Reset logout flag
-      logoutInProgress.current = false;
-      
+    // Reset logout flag
+    logoutInProgress.current = false;
+
       // Navigate to login page after a small delay to ensure state is cleared
       setTimeout(() => {
-        window.location.href = '/login';
+    window.location.href = '/login';
       }, 100);
     }
   };
@@ -91,8 +91,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .then((accounts) => {
           if (accounts.length > 0 && accounts[0] === savedAddress) {
             console.log('✅ Session restored successfully');
-            setUserAddress(savedAddress);
-            setIsAuthenticated(true);
+      setUserAddress(savedAddress);
+      setIsAuthenticated(true);
           } else {
             console.log('❌ Session restoration failed - clearing data');
             // Clear inconsistent data

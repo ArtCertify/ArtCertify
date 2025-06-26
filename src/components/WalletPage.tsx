@@ -481,60 +481,60 @@ export const WalletPage: React.FC = () => {
         />
 
         <EmptyAccountCard />
-        <BalanceCard />
-        <QuickStats />
+                 <BalanceCard />
+         <QuickStats />
 
-        {/* Tabs Container */}
-        <TabsContainer
-          tabs={[
-            {
-              id: 'transactions',
-              label: 'Transazioni Recenti',
-              content: (
-                <div>
-                  {state.walletInfo.recentTransactions.length === 0 ? (
-                    <EmptyState
-                      title="Nessuna transazione"
-                      description="Le tue transazioni appariranno qui"
-                      variant="compact"
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {state.walletInfo.recentTransactions.slice(0, 5).map((transaction) => (
-                        <TransactionItem key={transaction.id} transaction={transaction} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            },
-            {
-              id: 'assets',
-              label: 'Certificazioni',
-              content: (
-                <div>
-                  {state.walletInfo.assets.length === 0 ? (
-                    <EmptyState
-                      title="Nessuna certificazione"
-                      description="Le tue certificazioni appariranno qui"
-                      variant="compact"
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {state.walletInfo.assets.map((asset) => (
-                        <AssetItem key={asset.assetId} asset={asset} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            }
-          ]}
-          activeTab={state.activeTab}
-          onTabChange={(tabId) => setState(prev => ({ ...prev, activeTab: tabId as 'transactions' | 'assets' }))}
-          variant="pills"
-          responsive={true}
-        />
+         {/* Tabs Container */}
+         <TabsContainer
+           tabs={[
+             {
+               id: 'transactions',
+               label: 'Transazioni Recenti',
+               content: (
+                 <div>
+                   {state.walletInfo.recentTransactions.length === 0 ? (
+                     <EmptyState
+                       title="Nessuna transazione"
+                       description="Le tue transazioni appariranno qui"
+                       variant="compact"
+                     />
+                   ) : (
+                     <div className="space-y-3">
+                       {state.walletInfo.recentTransactions.slice(0, 5).map((transaction) => (
+                         <TransactionItem key={transaction.id} transaction={transaction} />
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               )
+             },
+             {
+               id: 'assets',
+               label: 'Certificazioni',
+               content: (
+                 <div>
+                   {state.walletInfo.assets.length === 0 ? (
+                     <EmptyState
+                       title="Nessuna certificazione"
+                       description="Le tue certificazioni appariranno qui"
+                       variant="compact"
+                     />
+                   ) : (
+                     <div className="space-y-3">
+                       {state.walletInfo.assets.map((asset) => (
+                         <AssetItem key={asset.assetId} asset={asset} />
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               )
+             }
+           ]}
+           activeTab={state.activeTab}
+           onTabChange={(tabId) => setState(prev => ({ ...prev, activeTab: tabId as 'transactions' | 'assets' }))}
+           variant="pills"
+           responsive={true}
+         />
       </div>
     </ResponsiveLayout>
   );
