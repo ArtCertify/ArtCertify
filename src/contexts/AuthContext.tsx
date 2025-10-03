@@ -60,9 +60,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Reset logout flag
     logoutInProgress.current = false;
 
-      // Navigate to login page after a small delay to ensure state is cleared
+      // Navigate to login page using React Router
       setTimeout(() => {
-    window.location.href = '/login';
+        // Force a page reload to ensure clean state
+        window.location.href = '/';
       }, 100);
     }
   };
