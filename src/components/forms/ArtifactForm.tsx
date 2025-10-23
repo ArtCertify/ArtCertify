@@ -5,11 +5,11 @@ import { OrganizationData } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 
-interface CertificationFormProps {
+interface ArtifactFormProps {
   onBack: () => void;
 }
 
-type ArtifactType = 'artefatto-digitale' | 'video' | 'modello-3d' | 'documento' | 'altro';
+type ArtifactType = 'artefatto-digitale' | 'video' | 'modello-3d' | 'altro';
 
 interface ArtifactFormData extends BaseFormData {
   artifactType: ArtifactType;
@@ -43,7 +43,7 @@ interface ArtifactFormData extends BaseFormData {
   dimensions: string;
 }
 
-export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
+export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
   // Certification flow hook
   const {
     isModalOpen,
@@ -67,7 +67,7 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
 
   // Form data state
   const [formData, setFormData] = useState<ArtifactFormData>({
-    artifactType: 'documento',
+    artifactType: 'artefatto-digitale',
     uniqueId: '',
     name: '', // Will be mapped to title
     title: '',
@@ -252,11 +252,9 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
     value: formData.title,
     onChange: (value) => handleInputChange('title', value),
     label: formData.artifactType === 'video' ? 'Titolo *' : 
-           formData.artifactType === 'modello-3d' ? 'Titolo (TIT) *' : 
-           formData.artifactType === 'documento' ? 'Nome Documento *' : 'Titolo *',
+           formData.artifactType === 'modello-3d' ? 'Titolo (TIT) *' : 'Titolo *',
     placeholder: formData.artifactType === 'video' ? 'Inserisci titolo del video' :
                  formData.artifactType === 'modello-3d' ? 'Inserisci titolo' :
-                 formData.artifactType === 'documento' ? 'Inserisci nome del documento' :
                  'Inserisci titolo',
     required: true
   };
@@ -264,17 +262,15 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
   const authorField: BaseFormField = {
     value: formData.author,
     onChange: (value) => handleInputChange('author', value),
-    label: formData.artifactType === 'artefatto-digitale' ? 'Autore / Creatore (AUT) *' : 
-           formData.artifactType === 'documento' ? 'Autore / Firmatario *' : 'Autore / Creatore *',
-    placeholder: formData.artifactType === 'documento' ? 'Inserisci autore o firmatario' : 'Inserisci autore',
+    label: formData.artifactType === 'artefatto-digitale' ? 'Autore / Creatore (AUT) *' : 'Autore / Creatore *',
+    placeholder: 'Inserisci autore',
     required: true
   };
 
   const dateField: BaseFormField = {
     value: formData.creationDate,
     onChange: (value) => handleInputChange('creationDate', value),
-    label: formData.artifactType === 'documento' ? 'Data del documento *' : 
-           `Data di creazione ${formData.artifactType === 'artefatto-digitale' ? '(DATA)' : ''} *`,
+    label: `Data di creazione ${formData.artifactType === 'artefatto-digitale' ? '(DATA)' : ''} *`,
     required: true
   };
 
@@ -285,7 +281,6 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
       { value: 'artefatto-digitale', label: 'Artefatto digitale' },
       { value: 'video', label: 'Video' },
       { value: 'modello-3d', label: 'Modello 3D' },
-      { value: 'documento', label: 'Documento' },
       { value: 'altro', label: 'Altro' }
     ],
     value: formData.artifactType,
@@ -418,7 +413,7 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
   return (
     <>
     <FormLayout 
-        title="Nuova Certificazione"
+        title="Certificazione Artefatto"
       sidebar={
         <OrganizationData 
           data={organizationData}
@@ -432,8 +427,8 @@ export const ArtifactForm: React.FC<CertificationFormProps> = ({ onBack }) => {
                   onFileUpload={handleFileUpload}
           onSubmit={handleSubmit}
           onBack={onBack}
-          formTitle="Certificazione"
-          submitButtonText="Certifica"
+          formTitle="Certificazione Artefatto"
+          submitButtonText="Certifica Artefatto"
           submitButtonLoadingText="Certificando..."
           nameField={nameField}
           authorField={authorField}
