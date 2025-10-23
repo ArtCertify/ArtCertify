@@ -115,7 +115,7 @@ export const BaseCertificationForm: React.FC<BaseCertificationFormProps> = ({
         {/* 1. ID Unico */}
         <Input
           label="ID Unico *"
-          placeholder="es. DOC-2024-001, ART-2024-001"
+          placeholder="es. CERT-2024-001"
           value={formData.uniqueId}
           onChange={(e) => onInputChange('uniqueId', e.target.value)}
           required

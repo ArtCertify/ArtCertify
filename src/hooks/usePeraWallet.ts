@@ -37,7 +37,6 @@ export const usePeraWallet = (): UsePeraWalletReturn => {
    */
   const updateState = useCallback(() => {
     const state = peraWalletService.getWalletState();
-    console.log('🔄 usePeraWallet updating state:', state);
     setIsConnected(state.isConnected);
     setAccountAddress(state.connectedAccount);
     setPlatform(state.platform);
@@ -50,17 +49,13 @@ export const usePeraWallet = (): UsePeraWalletReturn => {
     try {
       setIsConnecting(true);
       setError(null);
-      console.log('📱 usePeraWallet: Starting connection...');
-      
       const accounts = await peraWalletService.connect();
       
       if (accounts.length > 0) {
-        console.log('✅ usePeraWallet: Connection successful');
         updateState();
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to Pera Wallet';
-      console.error('❌ usePeraWallet: Connection failed:', errorMessage);
       setError(errorMessage);
     } finally {
       setIsConnecting(false);
@@ -73,14 +68,10 @@ export const usePeraWallet = (): UsePeraWalletReturn => {
   const disconnect = useCallback(async () => {
     try {
       setError(null);
-      console.log('🔓 usePeraWallet: Starting disconnect...');
-      
       await peraWalletService.disconnect();
       updateState();
-      console.log('✅ usePeraWallet: Disconnect successful');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to disconnect';
-      console.error('❌ usePeraWallet: Disconnect failed:', errorMessage);
       setError(errorMessage);
     }
   }, [updateState]);
@@ -92,19 +83,13 @@ export const usePeraWallet = (): UsePeraWalletReturn => {
     try {
       setIsConnecting(true);
       setError(null);
-      console.log('🔄 usePeraWallet: Attempting reconnection...');
-      
       const accounts = await peraWalletService.reconnectSession();
       
       if (accounts.length > 0) {
-        console.log('✅ usePeraWallet: Reconnection successful');
         updateState();
-      } else {
-        console.log('⚠️ usePeraWallet: Reconnection returned no accounts');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reconnect session';
-      console.error('❌ usePeraWallet: Reconnection failed:', errorMessage);
       setError(errorMessage);
     } finally {
       setIsConnecting(false);
@@ -147,21 +132,16 @@ export const usePeraWallet = (): UsePeraWalletReturn => {
    * Set up event listeners - NO auto-reconnect
    */
   useEffect(() => {
-    console.log('🚀 usePeraWallet: Initializing...');
-    
     // Event handlers
-    const handleConnect = (account: string) => {
-      console.log('📱 usePeraWallet: Received connect event:', account);
+    const handleConnect = () => {
       updateState();
     };
 
     const handleDisconnect = () => {
-      console.log('🔓 usePeraWallet: Received disconnect event');
       updateState();
     };
 
-    const handleReconnect = (account: string) => {
-      console.log('🔄 usePeraWallet: Received reconnect event:', account);
+    const handleReconnect = () => {
       updateState();
     };
 
