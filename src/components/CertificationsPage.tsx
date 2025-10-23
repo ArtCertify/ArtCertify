@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArtifactForm } from './forms/ArtifactForm';
+import { CertificationForm } from './forms/CertificationForm';
 
 export const CertificationsPage: React.FC = () => {
   const handleBack = () => {
@@ -7,5 +7,5 @@ export const CertificationsPage: React.FC = () => {
     window.history.back();
   };
 
-  return <ArtifactForm onBack={handleBack} />;
+  return <CertificationForm onBack={handleBack} />;
 };

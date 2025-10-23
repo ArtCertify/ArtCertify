@@ -82,7 +82,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
     }
   };
 
-  const canClose = !isProcessing && (isCompleted || hasErrors);
+  const canClose = false; // Disabilita sempre il pulsante X
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
