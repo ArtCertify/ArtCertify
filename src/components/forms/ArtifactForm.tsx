@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { BaseCertificationForm, type BaseFormData, type BaseFormField, type TypeOptionGroup } from './BaseCertificationForm';
 import { FormLayout } from '../ui';
-import { OrganizationData } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 
@@ -58,7 +57,7 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
   } = usePeraCertificationFlow();
 
   // Organization data state
-  const [organizationData, setOrganizationData] = useState({
+  const [organizationData] = useState({
     name: 'Museo Arte',
     code: 'MA001',
     type: 'Museo',
@@ -122,9 +121,6 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
     });
   };
 
-  const handleOrganizationUpdate = (newData: typeof organizationData) => {
-    setOrganizationData(newData);
-  };
 
   const handleFileUpload = (files: File[]) => {
     setFormData(prev => ({ ...prev, files }));
@@ -412,15 +408,7 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
 
   return (
     <>
-    <FormLayout 
-        title="Certificazione Artefatto"
-      sidebar={
-        <OrganizationData 
-          data={organizationData}
-          onUpdate={handleOrganizationUpdate}
-        />
-      }
-    >
+    <FormLayout>
         <BaseCertificationForm
           formData={formData}
           onInputChange={handleInputChange}
@@ -449,9 +437,9 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
 
       {/* Certification Modal with Stepper */}
       <CertificationModal
+        title="Certificazione Artefatto"
         isOpen={isModalOpen}
         onClose={closeModal}
-        title="Certificazione Artefatto"
         steps={steps}
         onRetryStep={retryStep}
         isProcessing={isProcessing}

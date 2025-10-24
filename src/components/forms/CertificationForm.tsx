@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormLayout } from '../ui';
-import { OrganizationData } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
-import { Input, Button, Alert, FileUpload } from '../ui';
+import { useProjectsCache } from '../../hooks/useProjectsCache';
+import { useAuth } from '../../contexts/AuthContext';
+import { Input, Button, Alert, FileUpload, ReusableDropdown } from '../ui';
 import { 
   TrashIcon, 
   ArrowPathIcon, 
   DocumentIcon, 
   FolderIcon,
   VideoCameraIcon,
-  SpeakerWaveIcon
+  SpeakerWaveIcon,
+  ChevronDownIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
+
 
 interface CertificationFormProps {
   onBack: () => void;
@@ -47,6 +51,10 @@ const TYPE_OPTIONS = [
 ];
 
 export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) => {
+  // Auth and cache hooks
+  const { userAddress } = useAuth();
+  const { getCachedProjects } = useProjectsCache();
+  
   // Certification flow hook
   const {
     isModalOpen,
@@ -61,12 +69,21 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   } = usePeraCertificationFlow();
 
   // Organization data state
-  const [organizationData, setOrganizationData] = useState({
+  const [organizationData] = useState({
     name: 'Museo Arte',
     code: 'MA001',
     type: 'Museo',
     city: 'Roma'
   });
+
+  // Projects cache state
+  const [availableProjects, setAvailableProjects] = useState<string[]>([]);
+  
+  // Project dropdown state
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [filteredProjects, setFilteredProjects] = useState<string[]>([]);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   // Form data state
   const [formData, setFormData] = useState<CertificationFormData>({
@@ -81,7 +98,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     fullAssetName: '',
     description: '',
     fileOrigin: '',
-    type: 'documento',
+    type: '',
     customType: ''
   });
 
@@ -90,6 +107,42 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [previewType, setPreviewType] = useState<'image' | 'video' | 'audio' | 'document' | 'other'>('other');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   // const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Load projects from cache
+  useEffect(() => {
+    if (userAddress) {
+      const cachedProjects = getCachedProjects(userAddress);
+      setAvailableProjects(cachedProjects);
+      setFilteredProjects(cachedProjects);
+    }
+  }, [userAddress, getCachedProjects]);
+
+  // Filter projects based on search term (case-insensitive)
+  useEffect(() => {
+    if (projectSearchTerm.trim() === '') {
+      setFilteredProjects(availableProjects);
+    } else {
+      const filtered = availableProjects.filter(project =>
+        project.toLowerCase().includes(projectSearchTerm.toLowerCase())
+      );
+      setFilteredProjects(filtered);
+    }
+  }, [projectSearchTerm, availableProjects]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+        setProjectSearchTerm(formData.projectName);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [formData.projectName]);
 
   // Auto-generate unit name and full asset name
   useEffect(() => {
@@ -181,6 +234,44 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     return 'other';
   };
 
+  // Handle project dropdown functions
+  const handleProjectInputChange = (value: string) => {
+    setProjectSearchTerm(value);
+    setFormData(prev => ({
+      ...prev,
+      projectName: value
+    }));
+    setSubmitError(null);
+  };
+
+  const handleProjectSelect = (projectName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      projectName: projectName
+    }));
+    setProjectSearchTerm(projectName);
+    setIsProjectDropdownOpen(false);
+    setSubmitError(null);
+  };
+
+  const handleCreateNewProject = () => {
+    if (projectSearchTerm.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        projectName: projectSearchTerm.trim()
+      }));
+      setIsProjectDropdownOpen(false);
+      setSubmitError(null);
+    }
+  };
+
+  const toggleProjectDropdown = () => {
+    setIsProjectDropdownOpen(!isProjectDropdownOpen);
+    if (!isProjectDropdownOpen) {
+      setProjectSearchTerm(formData.projectName);
+    }
+  };
+
   // Handle input changes
   const handleInputChange = (field: keyof CertificationFormData, value: string) => {
     setFormData(prev => ({
@@ -191,9 +282,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   };
 
   // Handle organization data update
-  const handleOrganizationUpdate = (data: typeof organizationData) => {
-    setOrganizationData(data);
-  };
 
   // Validate form
   const validateForm = (): { isValid: boolean; errors: string[] } => {
@@ -358,28 +446,32 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
   return (
     <>
-      <FormLayout 
-        title="Nuova Certificazione"
-        sidebar={
-          <OrganizationData 
-            data={organizationData}
-            onUpdate={handleOrganizationUpdate}
-          />
-        }
-      >
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <h2 className="text-xl font-semibold text-white mb-6">Certificazione</h2>
+      <FormLayout>
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white mb-1">Nuova Certificazione</h1>
+            <p className="text-slate-400 text-sm">Certifica un file e crea un asset digitale sulla blockchain Algorand</p>
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* File Upload Section */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                <FolderIcon className="w-5 h-5" />
-                File da Certificare
-              </h3>
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <FolderIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">File da Certificare</h3>
+                  <p className="text-slate-400 text-xs">Carica il file che vuoi certificare</p>
+                </div>
+              </div>
               
-              {/* Enhanced File Upload with Preview */}
-              <div className="relative">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* File Upload Box */}
+                <div className="space-y-4">
+                  {/* Enhanced File Upload with Preview */}
+                  <div className="relative">
                 {!filePreview ? (
                   <FileUpload
                     files={[]}
@@ -394,7 +486,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <div className="relative group">
                     {/* File Preview in Upload Area */}
                     <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 bg-slate-800 hover:border-blue-500 transition-colors">
-                      <div className="flex items-center justify-center min-h-[120px]">
+                      <div className="flex items-center justify-center min-h-[180px]">
                         {previewType === 'image' && (
                           <img
                             src={filePreview}
@@ -450,11 +542,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                         )}
                       </div>
                       
-                      {/* File Info */}
-                      <div className="mt-4 text-center">
-                        <div className="text-white font-medium">{formData.fileName}</div>
-                        <div className="text-slate-400 text-sm">{formatFileSize(formData.fileSize)}</div>
-                      </div>
                     </div>
                     
                     {/* Hover Overlay with Actions */}
@@ -512,176 +599,267 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                     />
                   </div>
                 )}
-              </div>
-
-              {/* File Metadata (Read-only) */}
-              {formData.fileName && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-slate-700 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Nome File</label>
-                    <input
-                      type="text"
-                      value={formData.fileName}
-                      readOnly
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Dimensione</label>
-                    <input
-                      type="text"
-                      value={formatFileSize(formData.fileSize)}
-                      readOnly
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Tipo</label>
-                    <input
-                      type="text"
-                      value={formData.fileType || 'Non rilevato'}
-                      readOnly
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Estensione</label>
-                    <input
-                      type="text"
-                      value={formData.fileExtension || 'Non rilevata'}
-                      readOnly
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Data Creazione</label>
-                    <input
-                      type="text"
-                      value={formData.fileCreationDate || 'Non rilevata'}
-                      readOnly
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white text-sm"
-                    />
                   </div>
                 </div>
-              )}
+                
+                {/* File Information */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-white mb-3">Informazioni File</h4>
+                  <div className="bg-slate-700/50 rounded-lg border border-slate-600 p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Nome File:</span>
+                      <span className="text-sm text-white font-medium">
+                        {formData.fileName || 'Nessun file selezionato'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Dimensione:</span>
+                      <span className="text-sm text-white font-medium">
+                        {formData.fileSize ? formatFileSize(formData.fileSize) : 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Tipo:</span>
+                      <span className="text-sm text-white font-medium">
+                        {formData.fileType || 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Estensione:</span>
+                      <span className="text-sm text-white font-medium">
+                        {formData.fileExtension || 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Data Creazione:</span>
+                      <span className="text-sm text-white font-medium">
+                        {formData.fileCreationDate || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* Project and Asset Information */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                <DocumentIcon className="w-5 h-5" />
-                Informazioni Progetto e Asset
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Nome Progetto *"
-                  placeholder="es. PROJ01"
-                  value={formData.projectName}
-                  onChange={(e) => handleInputChange('projectName', e.target.value)}
-                  required
-                  maxLength={10}
-                  helperText="Massimo 10 caratteri"
-                />
-                
-                <Input
-                  label="Nome Asset *"
-                  placeholder="es. ASSET001"
-                  value={formData.assetName}
-                  onChange={(e) => handleInputChange('assetName', e.target.value)}
-                  required
-                  maxLength={19}
-                  helperText="Massimo 19 caratteri"
-                />
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <DocumentIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Informazioni Progetto e Asset</h3>
+                  <p className="text-slate-400 text-xs">Definisci i dettagli del progetto e dell'asset</p>
+                </div>
               </div>
               
-              {/* Auto-generated fields (Read-only) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    Unit Name (Auto-generato)
-                  </label>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="relative" ref={projectDropdownRef}>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Nome Progetto *
+                    </label>
+                    
+                    {/* Custom dropdown input */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={projectSearchTerm}
+                        onChange={(e) => handleProjectInputChange(e.target.value)}
+                        onFocus={() => setIsProjectDropdownOpen(true)}
+                        onClick={() => setIsProjectDropdownOpen(true)}
+                        placeholder="Cerca o scrivi un progetto..."
+                        required
+                        maxLength={10}
+                        className="w-full px-4 py-3 pr-10 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={toggleProjectDropdown}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        <ChevronDownIcon className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    
+                    {/* Dropdown menu */}
+                    {isProjectDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {/* Show filtered projects */}
+                        {filteredProjects.map((project) => (
+                          <button
+                            key={project}
+                            type="button"
+                            onClick={() => handleProjectSelect(project)}
+                            className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-colors flex items-center gap-2"
+                          >
+                            <FolderIcon className="w-4 h-4 text-slate-400" />
+                            {project}
+                          </button>
+                        ))}
+                        
+                        {/* Always show create new project button if there's a search term */}
+                        {projectSearchTerm.trim() && (
+                          <div className={`${filteredProjects.length > 0 ? 'border-t border-slate-600' : ''}`}>
+                            <button
+                              type="button"
+                              onClick={handleCreateNewProject}
+                              className="w-full px-4 py-3 text-left text-blue-400 hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <PlusIcon className="w-4 h-4" />
+                              Crea "{projectSearchTerm}"
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Show message when no projects and no search term */}
+                        {filteredProjects.length === 0 && !projectSearchTerm.trim() && (
+                          <div className="px-4 py-3 text-slate-400 text-center">
+                            {availableProjects.length === 0 
+                              ? 'Nessun progetto in cache' 
+                              : 'Inizia a scrivere per cercare o creare un progetto'
+                            }
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-slate-500 mt-1">
+                      {availableProjects.length > 0 
+                        ? `${availableProjects.length} progetti disponibili` 
+                        : 'Nessun progetto in cache'
+                      }
+                    </p>
+                  </div>
+                  
                   <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Nome Asset *
+                    </label>
                     <input
                       type="text"
-                      value={formData.unitName || 'Generato automaticamente'}
-                      readOnly
-                      className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-slate-300 text-sm font-mono cursor-not-allowed"
+                      placeholder="es. ASSET001"
+                      value={formData.assetName}
+                      onChange={(e) => handleInputChange('assetName', e.target.value)}
+                      required
+                      maxLength={19}
+                      className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Massimo 19 caratteri
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Generato da: Nome Progetto + Nome Asset</p>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    Nome Asset (Auto-generato)
-                  </label>
+                {/* Auto-generated fields (Read-only) - Same row */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <input
-                      type="text"
-                      value={formData.fullAssetName || 'Generato automaticamente'}
-                      readOnly
-                      className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-slate-300 text-sm cursor-not-allowed"
-                    />
+                    <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      Unit Name (Auto-generato)
+                    </label>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.unitName || 'Generato automaticamente'}
+                        readOnly
+                        className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-slate-300 text-sm font-mono cursor-not-allowed"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Generato da: Nome Progetto + Nome Asset</p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Formato: "Progetto / Asset" (max 32 caratteri)</p>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      Nome Asset (Auto-generato)
+                    </label>
+                    <div>
+                      <input
+                        type="text"
+                        value={formData.fullAssetName || 'Generato automaticamente'}
+                        readOnly
+                        className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-600 rounded-lg text-slate-300 text-sm cursor-not-allowed"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Formato: "Progetto / Asset" (max 32 caratteri)</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Type Selection */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                <DocumentIcon className="w-5 h-5" />
-                Tipo di Certificazione
-              </h3>
-              
-              <div>
-                <label className="block text-sm font-medium text-white mb-3">Tipo *</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => handleInputChange('type', e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <DocumentIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Tipo di Certificazione</h3>
+                  <p className="text-slate-400 text-xs">Specifica il tipo e la descrizione della certificazione</p>
+                </div>
               </div>
               
-              {formData.type === 'altro' && (
-                <Input
-                  label="Specifica Tipo Personalizzato *"
-                  placeholder="Inserisci il tipo personalizzato"
-                  value={formData.customType}
-                  onChange={(e) => handleInputChange('customType', e.target.value)}
-                  required
-                />
-              )}
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-3">
-                Descrizione * <span className="text-slate-400">({formData.description.length}/300 caratteri)</span>
-              </label>
-              <textarea
-                placeholder="Inserisci descrizione dettagliata tecnica e contestuale."
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                required
-                maxLength={300}
-                rows={4}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">Tipo *</label>
+                    <ReusableDropdown
+                      value={formData.type}
+                      onChange={(value) => handleInputChange('type', value)}
+                      options={TYPE_OPTIONS}
+                      placeholder="Seleziona tipo"
+                      required
+                    />
+                  </div>
+                  
+                  {formData.type === 'altro' && (
+                    <Input
+                      label="Specifica Tipo Personalizzato *"
+                      placeholder="Inserisci il tipo personalizzato"
+                      value={formData.customType}
+                      onChange={(e) => handleInputChange('customType', e.target.value)}
+                      required
+                    />
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Descrizione * <span className="text-slate-400">({formData.description.length}/300 caratteri)</span>
+                    </label>
+                    <textarea
+                      placeholder="Inserisci descrizione dettagliata tecnica e contestuale."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      required
+                      maxLength={300}
+                      rows={4}
+                      className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* File Origin (Optional) */}
-            <div>
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                  <DocumentIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Origine del File</h3>
+                  <p className="text-slate-400 text-xs">Informazioni aggiuntive sulla fonte (opzionale)</p>
+                </div>
+              </div>
+              
               <Input
                 label="Origine del File"
                 placeholder="Informazioni sulla fonte del file (opzionale)"
@@ -700,17 +878,19 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-center gap-4 pt-4">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={onBack}
+                className="px-6 py-2"
               >
                 Annulla
               </Button>
               <Button
                 type="submit"
                 disabled={isProcessing}
+                className="px-6 py-2 shadow-lg hover:shadow-xl"
               >
                 {isProcessing ? 'Certificando...' : 'Certifica'}
               </Button>

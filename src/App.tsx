@@ -5,7 +5,6 @@ import { DashboardPage } from './components/DashboardPage';
 import { CertificationsPage } from './components/CertificationsPage';
 import { LoginPage } from './components/LoginPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
-import { WalletPage } from './components/WalletPage';
 import { RolesPage } from './components/RolesPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { validateConfig } from './config/environment';
@@ -69,14 +68,6 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <RolesPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/wallet" 
-          element={
-            <ProtectedRoute>
-              <WalletPage />
             </ProtectedRoute>
           } 
         />

@@ -123,7 +123,7 @@ export const OrganizationProfilePage: React.FC = () => {
 
   if (error) {
     return (
-      <ResponsiveLayout title="Profilo Organizzazione">
+      <ResponsiveLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <ErrorMessage 
             message={error}
@@ -135,7 +135,7 @@ export const OrganizationProfilePage: React.FC = () => {
   }
 
   return (
-    <ResponsiveLayout title="Profilo Organizzazione">
+    <ResponsiveLayout>
       <div className="space-y-6">
         {/* Description and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

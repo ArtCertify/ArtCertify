@@ -6,6 +6,7 @@ import { CertificateCard } from './CertificateCard';
 import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';
 import { nftService } from '../services/nftService';
 import { useAuth } from '../contexts/AuthContext';
+import { useProjectsCache } from '../hooks/useProjectsCache';
 import type { AssetInfo } from '../services/algorand';
 
 // Project Card Component
@@ -73,6 +74,7 @@ interface CertificationsPageState {
 
 export const DashboardPage: React.FC = () => {
   const { userAddress, isAuthenticated } = useAuth();
+  const { getCachedProjects, setCachedProjects, clearProjectsCache } = useProjectsCache();
   const [state, setState] = useState<CertificationsPageState>({
     certificates: [],
     loading: true,
@@ -96,6 +98,18 @@ export const DashboardPage: React.FC = () => {
         // Fetch NFTs owned by the user address
         const ownedNFTs = await nftService.getOwnedNFTs(userAddress);
         
+        // Extract and cache project names
+        const projectNames = new Set<string>();
+        ownedNFTs.forEach(cert => {
+          const projectName = extractProjectName(cert.params.name || '');
+          if (projectName !== 'Senza Progetto') {
+            projectNames.add(projectName);
+          }
+        });
+        
+        // Update cache with new project names
+        setCachedProjects(userAddress, Array.from(projectNames).sort());
+        
         setState(prev => ({
           ...prev,
           certificates: ownedNFTs,
@@ -112,7 +126,14 @@ export const DashboardPage: React.FC = () => {
     };
 
     fetchCertificates();
-  }, [userAddress, isAuthenticated]);
+  }, [userAddress, isAuthenticated, setCachedProjects]);
+
+  // Clear cache when user disconnects
+  useEffect(() => {
+    if (!isAuthenticated || !userAddress) {
+      clearProjectsCache();
+    }
+  }, [isAuthenticated, userAddress, clearProjectsCache]);
 
   const handleSearch = (searchTerm: string) => {
     setState(prev => ({ ...prev, searchTerm }));
@@ -158,7 +179,16 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Get unique projects from certificates (excluding "Senza Progetto")
+  // Uses cache when available, otherwise extracts from current certificates
   const getUniqueProjects = (): string[] => {
+    if (userAddress) {
+      const cachedProjects = getCachedProjects(userAddress);
+      if (cachedProjects.length > 0) {
+        return cachedProjects;
+      }
+    }
+    
+    // Fallback to extracting from current certificates
     const projects = new Set<string>();
     state.certificates.forEach(cert => {
       const projectName = extractProjectName(cert.params.name || '');
@@ -299,7 +329,7 @@ export const DashboardPage: React.FC = () => {
 
   if (state.error) {
     return (
-      <ResponsiveLayout title="Dashboard">
+      <ResponsiveLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <ErrorMessage 
             message={state.error}
@@ -310,15 +340,9 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  return (
-    <ResponsiveLayout title="Dashboard">
-      <div className="space-y-6 relative">
-        {/* Description */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <p className="text-slate-400 text-sm">
-            Visualizza e gestisci le tue certificazioni per documenti e artefatti
-          </p>
-        </div>
+    return (
+      <ResponsiveLayout>
+        <div className="space-y-6 relative pb-24">
 
         {/* Tabs */}
         <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
@@ -392,22 +416,22 @@ export const DashboardPage: React.FC = () => {
 
         {/* Content Grid */}
         {state.loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, index) => (
               <CertificateCard key={index} asset={{} as AssetInfo} loading={true} />
             ))}
           </div>
         ) : state.viewMode === 'certificates' ? (
-          filteredAndSortedCertificates.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredAndSortedCertificates.map((certificate) => (
-                <CertificateCard
-                  key={certificate.index}
-                  asset={certificate}
-                />
-              ))}
-            </div>
-          ) : (
+            filteredAndSortedCertificates.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredAndSortedCertificates.map((certificate) => (
+                  <CertificateCard
+                    key={certificate.index}
+                    asset={certificate}
+                  />
+                ))}
+              </div>
+            ) : (
             <EmptyState
               title={emptyState.title}
               description={emptyState.description}
@@ -434,7 +458,7 @@ export const DashboardPage: React.FC = () => {
           ) : (
             // Projects View
             getFilteredAndSortedProjects().length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {getFilteredAndSortedProjects().map((project) => (
                   <ProjectCard
                     key={project.name}
@@ -461,10 +485,10 @@ export const DashboardPage: React.FC = () => {
         )}
 
         {/* Floating Create Button - Overlay */}
-        <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-50" style={{ left: 'calc(50% + 120px)' }}>
+        <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-50">
           <Link
             to="/certificates"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
           >
             <PlusIcon className="h-5 w-5" />
             Crea nuova Certificazione

@@ -227,7 +227,7 @@ export const usePeraCertificationFlow = () => {
           }
           updateStepState(stepId, 'active', undefined, undefined, 'Creazione transazione asset...');
           
-          const arc19TemplateUrl = "template-ipfs://{ipfscid:0:dag-pb:reserve:sha2-256}";
+          const arc19TemplateUrl = "template-ipfs://{ipfscid:1:dag-pb:reserve:sha2-256}";
           const suggestedParams = await getSuggestedParams();
           const algodClient = algorandService.getAlgod();
 

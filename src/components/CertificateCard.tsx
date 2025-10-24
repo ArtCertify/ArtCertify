@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CidDecoder } from '../services/cidDecoder';
+import { IPFSUrlService } from '../services/ipfsUrlService';
 import { algorandService } from '../services/algorand';
 import type { AssetInfo } from '../services/algorand';
+import { CheckBadgeIcon } from '@heroicons/react/24/outline';
 
 interface CertificateCardProps {
   asset: AssetInfo;
@@ -16,7 +17,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
   // Decode reserve address to get IPFS metadata URL
   React.useEffect(() => {
     if (asset.params?.reserve) {
-      const result = CidDecoder.decodeReserveAddressToCid(asset.params.reserve);
+      const result = IPFSUrlService.getReserveAddressUrl(asset.params.reserve);
       if (result.success && result.gatewayUrl) {
         setMetadataUrl(result.gatewayUrl);
       }
@@ -54,6 +55,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
 
   const handleOpenMetadata = () => {
     if (metadataUrl) {
+      // Apri direttamente l'URL gateway
       window.open(metadataUrl, '_blank', 'noopener,noreferrer');
     }
   };
@@ -120,27 +122,31 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
   return (
     <Link to={`/asset/${asset.index}`} className="block">
       <div className="group relative bg-slate-800 rounded-xl border border-slate-700 p-4 hover:border-blue-500/50 hover:bg-slate-800/80 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]">
-      {/* Header with Title and Icon */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          {(() => {
-            const title = asset.params?.name || `Asset ${asset.index}`;
-            const { projectName, certificationName } = parseTitle(title);
+          {/* Header with Title and Icon */}
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              {(() => {
+                const title = asset.params?.name || `Asset ${asset.index}`;
+                const { projectName, certificationName } = parseTitle(title);
+                
+                return (
+                  <>
+                    <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-100 transition-colors">
+                      {certificationName}
+                    </h3>
+                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
+                      {projectName}
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
             
-            return (
-              <>
-                <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-100 transition-colors">
-                  {certificationName}
-                </h3>
-                <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
-                  {projectName}
-                </p>
-              </>
-            );
-          })()}
-        </div>
-        
-      </div>
+            {/* Certification Icon - Matching ProjectCard style */}
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <CheckBadgeIcon className="h-4 w-4 text-white" />
+            </div>
+          </div>
 
       {/* Key Metrics - Compact */}
       <div className="space-y-1">
