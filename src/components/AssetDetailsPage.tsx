@@ -53,7 +53,6 @@ const AssetDetailsPage: React.FC = () => {
     if (asset?.params?.reserve) {
       const result = IPFSUrlService.getReserveAddressUrl(asset.params.reserve);
       if (result.success && result.cid) {
-        console.log('🔍 Using JSON CID:', result.cid);
         setJsonCid(result.cid);
       }
     }
@@ -330,28 +329,30 @@ const AssetDetailsPage: React.FC = () => {
             <div className="md:flex-1 lg:col-span-2 p-3 sm:p-4 lg:p-6">
               <div className="flex flex-col gap-4 mb-4 lg:mb-6">
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckBadgeIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="space-y-0.5">
-                        <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">
-                          {ipfsMetadata?.properties?.form_data?.assetName || 'Nome Certificazione'}
-                        </h2>
-                        <p className="text-slate-300 text-sm">
-                          {ipfsMetadata?.properties?.form_data?.projectName || 'Nome Progetto'}
-                        </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <CheckBadgeIcon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="space-y-0.5">
+                          <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                            {ipfsMetadata?.properties?.form_data?.assetName || 'Nome Certificazione'}
+                          </h2>
+                          <p className="text-slate-300 text-sm">
+                            {ipfsMetadata?.properties?.form_data?.projectName || 'Nome Progetto'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="bg-blue-900/30 text-blue-400 text-xs font-medium px-2 py-1 rounded-md border border-blue-800">
-                      {getCertificationType()}
-                    </span>
-                    <span className="bg-slate-600 text-slate-300 text-xs font-medium px-2 py-1 rounded-md">
-                      {ipfsMetadata?.properties?.form_data?.unitName || asset.params.unitName || 'NFT'}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="bg-blue-900/30 text-blue-400 text-xs font-medium px-2 py-1 rounded-md border border-blue-800">
+                        {getCertificationType()}
+                      </span>
+                      <span className="bg-slate-600 text-slate-300 text-xs font-medium px-2 py-1 rounded-md">
+                        {ipfsMetadata?.properties?.form_data?.unitName || asset.params.unitName || 'NFT'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               
@@ -785,6 +786,7 @@ const AssetDetailsPage: React.FC = () => {
             isOpen={isModifyModalOpen}
             onClose={() => setIsModifyModalOpen(false)}
             asset={asset}
+            ipfsMetadata={ipfsMetadata || undefined}
             onAssetUpdated={() => {
               if (targetAssetId) {
                 execute(() => algorandService.getAssetInfo(targetAssetId));

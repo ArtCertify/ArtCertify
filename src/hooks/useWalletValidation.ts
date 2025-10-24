@@ -41,7 +41,6 @@ export const useWalletValidation = (requiredBalance: number = 0.1) => {
     setValidation(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      console.log(`🔍 Validating wallet ${userAddress} for certification...`);
       const walletInfo = await walletService.getWalletInfo(userAddress);
       
       const hasMinimumFunds = walletInfo.balance.algo >= requiredBalance;
@@ -56,10 +55,6 @@ export const useWalletValidation = (requiredBalance: number = 0.1) => {
         isEmptyAccount: walletInfo.isEmptyAccount,
         canPerformCertification
       });
-
-      console.log(`💰 Wallet validation result:`, {
-        balance: walletInfo.balance.algo,
-        required: requiredBalance,
         isEmpty: walletInfo.isEmptyAccount,
         canCertify: canPerformCertification
       });

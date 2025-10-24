@@ -51,14 +51,8 @@ export const useIPFSMetadata = (cid: string | undefined) => {
       setError(null);
 
       try {
-        console.log('🔍 Loading IPFS metadata from CID:', cid);
-        
         // Genera l'URL gateway usando il nostro gateway configurato
         const gatewayUrl = IPFSUrlService.getGatewayUrl(cid);
-        console.log('🔍 Generated gateway URL:', gatewayUrl);
-        
-        // Carica il JSON dal gateway
-        console.log('🌐 Attempting fetch from:', gatewayUrl);
         
         const response = await fetch(gatewayUrl, {
           method: 'GET',
@@ -68,9 +62,6 @@ export const useIPFSMetadata = (cid: string | undefined) => {
           // Forza il bypass della cache
           cache: 'no-cache'
         });
-        
-        console.log('🌐 Response status:', response.status);
-        console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -82,12 +73,8 @@ export const useIPFSMetadata = (cid: string | undefined) => {
         }
 
         const jsonData = await response.json();
-        console.log('✅ Successfully loaded JSON from gateway:', gatewayUrl);
-        console.log('📄 JSON Content:', JSON.stringify(jsonData, null, 2));
-
         setMetadata(jsonData);
       } catch (err) {
-        console.error('❌ Errore nel caricamento dei metadati IPFS:', err);
         setError(err instanceof Error ? err.message : 'Errore sconosciuto');
       } finally {
         setLoading(false);

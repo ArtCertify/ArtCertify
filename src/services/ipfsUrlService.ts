@@ -77,8 +77,6 @@ export class IPFSUrlService {
    */
   static getReserveAddressUrl(reserveAddress: string): IPFSUrlResult {
     try {
-      console.log('🔍 Decoding reserve address:', reserveAddress);
-      
       if (!reserveAddress) {
         console.error('❌ Reserve address is empty');
         return {
@@ -88,11 +86,9 @@ export class IPFSUrlService {
       }
 
       const result = CidDecoder.decodeReserveAddressToCid(reserveAddress);
-      console.log('🔍 CID decode result:', result);
       
       if (result.success && result.cid) {
         const gatewayUrl = this.getGatewayUrl(result.cid);
-        console.log('🔍 Generated gateway URL:', gatewayUrl);
         
         return {
           success: true,
