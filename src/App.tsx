@@ -5,9 +5,9 @@ import { DashboardPage } from './components/DashboardPage';
 import { CertificationsPage } from './components/CertificationsPage';
 import { LoginPage } from './components/LoginPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
-import { WalletPage } from './components/WalletPage';
 import { RolesPage } from './components/RolesPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import { validateConfig } from './config/environment';
 
 // Protected Route Component
@@ -72,14 +72,6 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/wallet" 
-          element={
-            <ProtectedRoute>
-              <WalletPage />
-            </ProtectedRoute>
-          } 
-        />
         {/* Redirect any unknown routes to home or login based on auth */}
         <Route 
           path="*" 
@@ -102,9 +94,11 @@ function App() {
 
   return (
     <AuthProvider>
-              <Router>
+      <OrganizationProvider>
+        <Router>
           <AppRoutes />
         </Router>
+      </OrganizationProvider>
     </AuthProvider>
   );
 }

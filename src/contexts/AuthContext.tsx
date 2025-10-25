@@ -29,16 +29,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logoutInProgress.current = true;
 
     try {
-      console.log('🔓 Starting logout process...');
-      
       // Disconnect from Pera Wallet if connected
       if (peraWalletService.isConnected()) {
-        console.log('📱 Disconnecting from Pera Wallet...');
         await peraWalletService.disconnect();
       }
       
       // Clear authentication state
-      console.log('🧹 Clearing authentication state...');
       setUserAddress(null);
       setIsAuthenticated(false);
       
@@ -46,10 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('algorand_address');
       localStorage.removeItem('pera_wallet_connected');
       localStorage.removeItem('pera_wallet_account');
-      
-      console.log('✅ Logout completed');
     } catch (error) {
-      console.error('❌ Error during logout:', error);
       // Force clear state even if there's an error
     setUserAddress(null);
     setIsAuthenticated(false);
@@ -74,36 +67,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log('🚀 Initializing AuthContext...');
-
     // Check for existing wallet connection from localStorage
     const savedAddress = localStorage.getItem('algorand_address');
     const peraConnected = localStorage.getItem('pera_wallet_connected') === 'true';
-    
-    console.log('💾 Saved address:', savedAddress);
-    console.log('📱 Pera connected:', peraConnected);
 
     // Only restore session if both localStorage and Pera indicate connection
     if (savedAddress && peraConnected && peraWalletService.hasStoredConnection()) {
-      console.log('🔄 Attempting to restore session...');
-      
       // Try to reconnect to Pera Wallet
       peraWalletService.reconnectSession()
         .then((accounts) => {
           if (accounts.length > 0 && accounts[0] === savedAddress) {
-            console.log('✅ Session restored successfully');
       setUserAddress(savedAddress);
       setIsAuthenticated(true);
           } else {
-            console.log('❌ Session restoration failed - clearing data');
             // Clear inconsistent data
             localStorage.removeItem('algorand_address');
             localStorage.removeItem('pera_wallet_connected');
             localStorage.removeItem('pera_wallet_account');
           }
         })
-        .catch((error) => {
-          console.log('❌ Reconnection failed:', error);
+        .catch(() => {
           // Clear data if reconnection fails
           localStorage.removeItem('algorand_address');
           localStorage.removeItem('pera_wallet_connected');
@@ -113,7 +96,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           initializationComplete.current = true;
         });
     } else {
-      console.log('🆕 No valid session found');
       // Clear any inconsistent data
       if (savedAddress && !peraConnected) {
         localStorage.removeItem('algorand_address');
@@ -127,11 +109,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for Pera Wallet disconnect events
     const handlePeraDisconnect = () => {
-      console.log('📱 Pera Wallet disconnected');
       // Don't call logout here to avoid circular dependency
       // Just clear the authentication state if not already logging out
       if (!logoutInProgress.current) {
-        console.log('🧹 Clearing state due to Pera disconnect');
         setUserAddress(null);
         setIsAuthenticated(false);
         localStorage.removeItem('algorand_address');
@@ -153,7 +133,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (address: string) => {
-    console.log('🔑 Login with address:', address);
     setUserAddress(address);
     setIsAuthenticated(true);
     localStorage.setItem('algorand_address', address);

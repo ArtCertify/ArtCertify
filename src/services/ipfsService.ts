@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse } from 'axios';
 import { config } from '../config/environment';
+import { IPFSUrlService } from './ipfsUrlService';
 
 export interface IPFSUploadResponse {
   IpfsHash: string;
@@ -79,6 +80,7 @@ class IPFSService {
 
         formData.append('pinataOptions', JSON.stringify({
           cidVersion: 1,
+          wrapWithDirectory: false,
           customPinPolicy: {
             regions: [
               {
@@ -119,9 +121,20 @@ class IPFSService {
    */
   async uploadJSON(jsonData: IPFSMetadata | Record<string, unknown>, metadata?: IPFSFileMetadata): Promise<IPFSUploadResponse> {
     try {
+      // Clean and validate JSON data to remove any control characters
+      const cleanJsonData = this.cleanJsonData(jsonData);
+      
+      // Validate that the cleaned data is still valid JSON
+      try {
+        JSON.stringify(cleanJsonData);
+      } catch (error) {
+        throw new Error('Invalid JSON data after cleaning');
+      }
+      
       const options: any = {
         pinataOptions: {
           cidVersion: 1,
+          wrapWithDirectory: false,
           customPinPolicy: {
             regions: [
               {
@@ -134,7 +147,10 @@ class IPFSService {
               }
             ]
           }
-        }
+        },
+        // Force raw codec for ARC-0019 compatibility
+        cidVersion: 1,
+        codec: 'raw'
       };
 
       if (metadata) {
@@ -144,16 +160,21 @@ class IPFSService {
         };
       }
 
+      // Per l'API Pinata, le opzioni devono essere nel body, non nei params
+      const requestBody = {
+        pinataContent: cleanJsonData,
+        ...options
+      };
+
       const response: AxiosResponse<IPFSUploadResponse> = await axios.post(
         `${this.baseURL}/pinning/pinJSONToIPFS`,
-        jsonData,
+        requestBody,
         {
           headers: {
             'Content-Type': 'application/json',
             'pinata_api_key': this.apiKey,
             'pinata_secret_api_key': this.apiSecret,
           },
-          params: options,
           timeout: 60000, // 1 minute timeout for JSON
         }
       );
@@ -163,6 +184,33 @@ class IPFSService {
       console.error('Error uploading JSON to IPFS:', error);
       throw new Error(`Failed to upload JSON to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Clean JSON data to remove control characters and ensure proper formatting
+   */
+  private cleanJsonData(data: any): any {
+    if (typeof data === 'string') {
+      // Remove control characters except newlines and tabs
+      return data.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(item => this.cleanJsonData(item));
+    }
+    
+    if (data && typeof data === 'object') {
+      const cleaned: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        // Clean the key
+        const cleanKey = key.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        // Clean the value
+        cleaned[cleanKey] = this.cleanJsonData(value);
+      }
+      return cleaned;
+    }
+    
+    return data;
   }
 
   /**
@@ -206,41 +254,15 @@ class IPFSService {
         individualFileUrls.push({
           name: file.name,
           ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
-          gatewayUrl: this.getCustomGatewayUrl(uploadResult.IpfsHash)
+          gatewayUrl: IPFSUrlService.getGatewayUrl(uploadResult.IpfsHash)
         });
       }
 
-      // Create comprehensive metadata with all form data and file references
+      // Create simplified metadata with only form data
       const metadata: IPFSMetadata = {
-        name: certificationData?.title || String(formData.assetName || 'Certified Asset'),
-        description: String(formData.description),
+        name: String(formData.fullAssetName || formData.assetName || 'Certified Asset'),
+        description: String(formData.description || ''),
         image: fileHashes.length > 0 ? `ipfs://${fileHashes[0].hash}` : '',
-        attributes: [
-          {
-            trait_type: 'Asset Type',
-            value: certificationData?.asset_type || 'Unknown'
-          },
-          {
-            trait_type: 'Author',
-            value: certificationData?.author || 'Unknown'
-          },
-          {
-            trait_type: 'Creation Date',
-            value: certificationData?.creation_date || 'Unknown'
-          },
-          {
-            trait_type: 'Organization',
-            value: certificationData?.organization?.name || 'Unknown'
-          },
-          {
-            trait_type: 'Asset Name',
-            value: formData.assetName || 'Unknown'
-          },
-          {
-            trait_type: 'Unit Name',
-            value: formData.unitName || 'Unknown'
-          }
-        ],
         properties: {
           // All form data structured
           form_data: {
@@ -255,17 +277,7 @@ class IPFSService {
             total_files: fileHashes.length,
             gateway: config.pinataGateway
           }
-        },
-        certification_data: certificationData ? {
-          asset_type: certificationData.asset_type,
-          unique_id: certificationData.unique_id,
-          title: certificationData.title,
-          author: certificationData.author,
-          creation_date: certificationData.creation_date,
-          organization: certificationData.organization,
-          technical_specs: certificationData.technical_specs,
-          files: fileHashes
-        } : undefined
+        }
       };
 
       // Upload comprehensive metadata JSON

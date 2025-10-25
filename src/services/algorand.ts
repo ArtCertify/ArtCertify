@@ -321,6 +321,25 @@ class AlgorandService {
   getTransactionExplorerUrl(txId: string): string {
     return getTransactionExplorerUrl(txId);
   }
+
+  /**
+   * Get block timestamp from round number using Indexer API
+   */
+  async getBlockTimestamp(round: number): Promise<number | null> {
+    try {
+      const indexer = new algosdk.Indexer('', config.indexer.server, '');
+      const blockInfo = await indexer.lookupBlock(round).do();
+      
+      if (blockInfo && blockInfo.timestamp) {
+        return blockInfo.timestamp;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching block timestamp:', error);
+      return null;
+    }
+  }
 }
 
 export const algorandService = new AlgorandService(); 

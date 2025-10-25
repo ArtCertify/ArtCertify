@@ -1,6 +1,6 @@
-# 📚 Documentazione CaputMundi ArtCertify
+# 📚 Documentazione ArtCertify
 
-Benvenuto nella documentazione completa di **CaputMundi ArtCertify**. Questa cartella contiene guide dettagliate per tutte le integrazioni e funzionalità dell'applicazione di certificazione digitale blockchain.
+Benvenuto nella documentazione completa di **ArtCertify**. Questa cartella contiene guide dettagliate per tutte le integrazioni e funzionalità dell'applicazione di certificazione digitale blockchain.
 
 ## 🚀 **STATO ATTUALE: PRODUCTION READY**
 
@@ -117,7 +117,7 @@ Documentazione custom hooks per logica business riutilizzabile.
 ```bash
 # Clona repository
 git clone <repository-url>
-cd caput-mundi-fe
+cd artcertify
 
 # Installa dipendenze
 npm install
@@ -295,4 +295,4 @@ Per supporto tecnico o domande sulla documentazione:
 - **🌐 Website**: [www.activadigital.it](https://www.activadigital.it)
 - **🐛 Issues**: Repository issues per bug report e feature request
 
-**🚀 Happy Coding con CaputMundi ArtCertify!** 
+**🚀 Happy Coding con ArtCertify!** 

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DocumentTextIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { Badge } from './ui';
+import { IPFSUrlService } from '../services/ipfsUrlService';
+import { algorandService } from '../services/algorand';
 import type { AssetInfo } from '../services/algorand';
+import { CheckBadgeIcon } from '@heroicons/react/24/outline';
 
 interface CertificateCardProps {
   asset: AssetInfo;
@@ -10,6 +11,55 @@ interface CertificateCardProps {
 }
 
 export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading = false }) => {
+  const [metadataUrl, setMetadataUrl] = useState<string | null>(null);
+  const [creationDate, setCreationDate] = useState<number | null>(null);
+
+  // Decode reserve address to get IPFS metadata URL
+  React.useEffect(() => {
+    if (asset.params?.reserve) {
+      const result = IPFSUrlService.getReserveAddressUrl(asset.params.reserve);
+      if (result.success && result.gatewayUrl) {
+        setMetadataUrl(result.gatewayUrl);
+      }
+    }
+  }, [asset.params?.reserve]);
+
+  // Get creation date from block timestamp
+  React.useEffect(() => {
+    const fetchCreationDate = async () => {
+      if (asset['created-at-round']) {
+        try {
+          const timestamp = await algorandService.getBlockTimestamp(Number(asset['created-at-round']));
+          if (timestamp) {
+            setCreationDate(timestamp);
+          } else {
+            // Fallback to approximate calculation
+            const algorandGenesis = 1622505600; // June 1, 2021 00:00:00 UTC
+            const avgBlockTime = 4.5;
+            const roundNumber = Number(asset['created-at-round']);
+            setCreationDate(algorandGenesis + (roundNumber * avgBlockTime));
+          }
+        } catch (error) {
+          console.error('Error fetching creation date:', error);
+          // Fallback to approximate calculation
+          const algorandGenesis = 1622505600;
+          const avgBlockTime = 4.5;
+          const roundNumber = Number(asset['created-at-round']);
+          setCreationDate(algorandGenesis + (roundNumber * avgBlockTime));
+        }
+      }
+    };
+
+    fetchCreationDate();
+  }, [asset['created-at-round']]);
+
+  const handleOpenMetadata = () => {
+    if (metadataUrl) {
+      // Apri direttamente l'URL gateway
+      window.open(metadataUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 animate-pulse">
@@ -47,115 +97,92 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
     });
   };
 
-  // Get creation date from creation transaction or asset creation round
-  const creationTransaction = asset.creationTransaction as any;
-  let creationDate = creationTransaction?.roundTime || 
-                    creationTransaction?.['round-time'] || 
-                    creationTransaction?.confirmedRound || 
-                    creationTransaction?.['confirmed-round'];
-  
-  if (!creationDate && asset['created-at-round']) {
-    const algorandGenesis = 1560211200;
-    const avgBlockTime = 4.5;
-    creationDate = algorandGenesis + (Number(asset['created-at-round']) * avgBlockTime);
-  }
-
-  // Get the certificate type from NFT metadata
-  const getCertificateType = () => {
-    // 1. Prova da certification_data.asset_type (metodo principale)
-    if (asset.nftMetadata?.certification_data?.asset_type) {
-      const assetType = asset.nftMetadata.certification_data.asset_type.toLowerCase();
-      if (assetType === 'document') return 'Documento';
-      // Tutti i tipi di artefatto vengono mappati ad "Artefatto"
-      if (assetType.includes('artefatto') || assetType === 'artifact' || 
-          assetType === 'video' || assetType === 'modello-3d' || 
-          assetType === 'artefatto-digitale' || assetType === 'altro') {
-        return 'Artefatto';
-      }
+  // Extract project name and certification name from title format "Project / File"
+  const parseTitle = (title: string): { projectName: string; certificationName: string } => {
+    if (!title) return { projectName: 'Sconosciuto', certificationName: 'Sconosciuto' };
+    
+    const parts = title.split(' / ');
+    if (parts.length === 2) {
+      return {
+        projectName: parts[0].trim(),
+        certificationName: parts[1].trim()
+      };
     }
-
-    // 2. Prova da attributes "Asset Type" trait
-    if (asset.nftMetadata?.attributes) {
-      const assetTypeAttr = asset.nftMetadata.attributes.find(
-        attr => attr.trait_type === 'Asset Type' || attr.trait_type === 'Tipo Certificazione'
-      );
-      if (assetTypeAttr) {
-        const value = String(assetTypeAttr.value).toLowerCase();
-        if (value === 'document' || value === 'documento') return 'Documento';
-        if (value.includes('artefatto') || value === 'artifact' || 
-            value === 'video' || value === 'modello-3d' || 
-            value === 'artefatto-digitale' || value === 'altro') {
-          return 'Artefatto';
-        }
-      }
-    }
-
-    // 3. Fallback al nome (per retrocompatibilità)
-    if (asset.params.name) {
-      const name = asset.params.name.toLowerCase();
-      if (name.includes('document') || name.includes('doc')) return 'Documento';
-      if (name.includes('artefatto') || name.includes('artifact') || 
-          name.includes('video') || name.includes('modello') || 
-          name.includes('sbt')) return 'Artefatto';
-    }
-
-    // 4. Default intelligente basato su unit name
-    if (asset.params.unitName) {
-      const unitName = asset.params.unitName.toLowerCase();
-      if (unitName.includes('doc')) return 'Documento';
-      if (unitName.includes('art') || unitName.includes('sbt') || unitName.includes('cert')) return 'Artefatto';
-    }
-
-    // 5. Default: preferisce Documento per retrocompatibilità
-    return 'Documento';
+    
+    // Fallback if format doesn't match
+    return {
+      projectName: 'Progetto',
+      certificationName: title
+    };
   };
 
-  // Get status based on asset state
-  const getStatus = () => {
-    if (asset['deleted-at-round']) return { text: 'Eliminato', color: 'error' as const };
-    if (asset.params.defaultFrozen) return { text: 'Congelato', color: 'warning' as const };
-    return { text: 'Attivo', color: 'success' as const };
-  };
 
-  const status = getStatus();
-  const certificateType = getCertificateType();
+
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition-colors">
-      {/* Top Row: Badge + Icon */}
-      <div className="flex justify-between items-start mb-3">
-        <Badge variant={status.color} className="text-xs">
-          {certificateType}
-        </Badge>
-          <div className="w-8 h-8 bg-blue-900/30 rounded flex items-center justify-center">
-            <DocumentTextIcon className="h-4 w-4 text-blue-400" />
+    <Link to={`/asset/${asset.index}`} className="block">
+      <div className="group relative bg-slate-800 rounded-xl border border-slate-700 p-4 hover:border-blue-500/50 hover:bg-slate-800/80 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]">
+          {/* Header with Title and Icon */}
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              {(() => {
+                const title = asset.params?.name || `Asset ${asset.index}`;
+                const { projectName, certificationName } = parseTitle(title);
+                
+                return (
+                  <>
+                    <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-100 transition-colors">
+                      {certificationName}
+                    </h3>
+                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
+                      {projectName}
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* Certification Icon - Matching ProjectCard style */}
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <CheckBadgeIcon className="h-4 w-4 text-white" />
+            </div>
           </div>
+
+      {/* Key Metrics - Compact */}
+      <div className="space-y-1">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] text-slate-500 group-hover:text-slate-400 transition-colors">ASSET ID</span>
+          <span className="text-xs font-medium text-white group-hover:text-blue-100 transition-colors">
+            #{asset.index}
+          </span>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] text-slate-500 group-hover:text-slate-400 transition-colors">CREATED</span>
+          <span className="text-xs font-medium text-white group-hover:text-blue-100 transition-colors">
+            {creationDate ? formatDate(creationDate) : 'Caricamento...'}
+          </span>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] text-slate-500 group-hover:text-slate-400 transition-colors">METADATI</span>
+          {metadataUrl ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenMetadata();
+              }}
+              className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors underline"
+            >
+              IPFS link
+            </button>
+          ) : (
+            <span className="text-xs text-slate-500">N/A</span>
+          )}
+        </div>
       </div>
 
-      {/* Content: Title and Date */}
-      <div className="mb-4">
-        <h3 className="text-sm font-medium text-white mb-1 leading-tight">
-              {asset.params.name || `Asset ${asset.index}`}
-            </h3>
-            <p className="text-xs text-slate-500">
-              {formatDate(creationDate)}
-            </p>
-        </div>
-        
-      {/* Bottom Row: ID + Action */}
-      <div className="flex justify-between items-center">
-        <div className="text-xs text-slate-500">
-          ID: {asset.index}
-        </div>
-        
-        <Link
-          to={`/asset/${asset.index}`}
-          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors"
-        >
-          <EyeIcon className="h-3 w-3" />
-          Visualizza
-        </Link>
       </div>
-    </div>
+    </Link>
   );
 }; 

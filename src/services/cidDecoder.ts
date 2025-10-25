@@ -71,7 +71,9 @@ export class CidDecoder {
          // - multihash: sha2-256 (0x12) + length (0x20) + digest (32 bytes)
          
          const cid = this.fromAddressToCid(addressObj.publicKey);
-        const gatewayUrl = `https://${import.meta.env.VITE_PINATA_GATEWAY}/ipfs/${cid}`;
+        
+        const pinataGateway = import.meta.env.VITE_PINATA_GATEWAY;
+        const gatewayUrl = `https://${pinataGateway}/ipfs/${cid}`;
         
         return {
           success: true,
