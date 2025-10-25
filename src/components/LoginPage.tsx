@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <div className="w-12 h-12 flex items-center justify-center">
               <img src="/logo.png" alt="ArtCertify Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-2xl font-bold text-white">CaputMundi ArtCertify</span>
+            <span className="text-2xl font-bold text-white">ArtCertify</span>
           </div>
           <p className="text-slate-300 text-sm">
             Certificazione blockchain per documenti e artefatti culturali

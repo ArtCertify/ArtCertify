@@ -287,7 +287,7 @@ export const ArtifactForm: React.FC<ArtifactFormProps> = ({ onBack }) => {
     value: formData.assetName || '',
     onChange: (value) => handleInputChange('assetName', value),
     label: 'Nome Asset *',
-    placeholder: 'es. SBT_CaputMundi_001',
+    placeholder: 'es. SBT_ArtCertify_001',
     required: true,
     maxLength: 32,
     helperText: 'Max 32 caratteri (limite Algorand)'

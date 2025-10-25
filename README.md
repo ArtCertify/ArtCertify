@@ -1,6 +1,6 @@
-# 🏛️ CaputMundi ArtCertify - Piattaforma di Certificazione Blockchain
+# 🏛️ ArtCertify - Piattaforma di Certificazione Blockchain
 
-**CaputMundi ArtCertify** è una piattaforma avanzata di certificazione digitale basata su blockchain Algorand che permette la creazione, gestione e versioning di certificazioni immutabili utilizzando Soulbound Token (SBT) con standard ARC-3 e ARC-19.
+**ArtCertify** è una piattaforma avanzata di certificazione digitale basata su blockchain Algorand che permette la creazione, gestione e versioning di certificazioni immutabili utilizzando Soulbound Token (SBT) con standard ARC-3 e ARC-19.
 
 ![React](https://img.shields.io/badge/React-19.1.0-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue?logo=typescript)
@@ -66,7 +66,7 @@ UI & UX Libraries:
 ### **Struttura del Progetto**
 
 ```
-caput-mundi-fe/
+artcertify/
 ├── src/
 │   ├── components/                   # 🎨 Componenti React
 │   │   ├── ui/                      # Sistema di design base
@@ -232,7 +232,7 @@ Sistema avanzato di versioning per aggiornamenti post-creazione:
 1. **📥 Clone del repository**
 ```bash
 git clone <repository-url>
-cd caput-mundi-fe
+cd artcertify
 ```
 
 2. **📦 Installazione dipendenze**
