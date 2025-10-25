@@ -219,11 +219,11 @@ export const DashboardPage: React.FC = () => {
       certificates,
       count: certificates.length,
       latestDate: Math.max(...certificates.map(cert => {
-        const creationTransaction = cert.creationTransaction as any;
-        return creationTransaction?.roundTime || 
-               creationTransaction?.['round-time'] || 
-               creationTransaction?.confirmedRound || 
-               creationTransaction?.['confirmed-round'] || 0;
+        const creationTransaction = cert.creationTransaction as Record<string, unknown>;
+        return (creationTransaction?.roundTime as number) || 
+               (creationTransaction?.['round-time'] as number) || 
+               (creationTransaction?.confirmedRound as number) || 
+               (creationTransaction?.['confirmed-round'] as number) || 0;
       }))
     }));
   };
@@ -326,6 +326,7 @@ export const DashboardPage: React.FC = () => {
   };
 
   const emptyState = getEmptyStateMessage();
+  const hasNoCertificates = !state.loading && state.certificates.length === 0;
 
   if (state.error) {
     return (
@@ -340,79 +341,109 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
+  // Se non ci sono certificazioni, mostra il benvenuto
+  if (hasNoCertificates) {
     return (
       <ResponsiveLayout>
-        <div className="space-y-6 relative pb-24">
-
-        {/* Tabs */}
-        <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
-          <button
-            onClick={() => handleTabChange('projects')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              state.viewMode === 'projects'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-            }`}
-          >
-            Progetti
-          </button>
-          <button
-            onClick={() => handleTabChange('certificates')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              state.viewMode === 'certificates'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-            }`}
-          >
-            Certificazioni
-          </button>
+        <div className="space-y-8 relative pb-24">
+          {/* Benvenuto caloroso */}
+          <div className="text-center py-16">
+            <h1 className="text-3xl font-bold text-white mb-4">
+              Benvenuto in ArtCertify! 🎉
+            </h1>
+            <p className="text-lg text-slate-300 mb-12 max-w-2xl mx-auto">
+              Inizia il tuo viaggio nella certificazione digitale. Crea la tua prima certificazione per artefatti, documenti o opere d'arte e scopri il potere della blockchain.
+            </p>
+            
+            {/* Bottone principale */}
+            <div className="flex justify-center">
+              <Link
+                to="/certificates"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
+              >
+                <PlusIcon className="h-5 w-5" />
+                Crea la tua prima certificazione
+              </Link>
+            </div>
+          </div>
         </div>
+      </ResponsiveLayout>
+    );
+  }
 
-        {/* Search and Filters */}
-        {state.viewMode === 'certificates' ? (
-          <SearchAndFilter
-            searchValue={state.searchTerm}
-            onSearchChange={handleSearch}
-            searchPlaceholder="Cerca per titolo, progetto..."
-            filterValue={state.filterProject}
-            onFilterChange={handleFilterChange}
-            filterOptions={[
-              { value: 'all', label: 'Tutti i Progetti' },
-              ...getUniqueProjects().map(project => ({
-                value: project,
-                label: project
-              }))
-            ]}
-            sortValue={state.sortBy}
-            onSortChange={handleSortChange}
-            sortOptions={[
-              { value: 'date-desc', label: 'Dal più recente' },
-              { value: 'date-asc', label: 'Dal meno recente' },
-              { value: 'name-asc', label: 'A-Z' },
-              { value: 'name-desc', label: 'Z-A' }
-            ]}
-            resultCount={!state.loading ? filteredAndSortedCertificates.length : undefined}
-            onClearFilters={() => setState(prev => ({ ...prev, searchTerm: '', filterProject: 'all' }))}
-            showClearFilters={state.searchTerm !== '' || state.filterProject !== 'all'}
-          />
-        ) : (
-          <SearchAndFilter
-            searchValue={state.searchTerm}
-            onSearchChange={handleSearch}
-            searchPlaceholder="Cerca per nome progetto..."
-            sortValue={state.sortBy}
-            onSortChange={handleSortChange}
-            sortOptions={[
-              { value: 'name-asc', label: 'A-Z' },
-              { value: 'name-desc', label: 'Z-A' },
-              { value: 'date-desc', label: 'Dal più recente' },
-              { value: 'date-asc', label: 'Dal meno recente' }
-            ]}
-            resultCount={!state.loading ? getFilteredAndSortedProjects().length : undefined}
-            onClearFilters={() => setState(prev => ({ ...prev, searchTerm: '' }))}
-            showClearFilters={state.searchTerm !== ''}
-          />
-        )}
+  return (
+    <ResponsiveLayout>
+      <div className="space-y-6 relative pb-24">
+
+      {/* Tabs - Solo se ci sono certificazioni */}
+      <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
+        <button
+          onClick={() => handleTabChange('projects')}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            state.viewMode === 'projects'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          Progetti
+        </button>
+        <button
+          onClick={() => handleTabChange('certificates')}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            state.viewMode === 'certificates'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          Certificazioni
+        </button>
+      </div>
+
+      {/* Search and Filters - Solo se ci sono certificazioni */}
+      {state.viewMode === 'certificates' ? (
+        <SearchAndFilter
+          searchValue={state.searchTerm}
+          onSearchChange={handleSearch}
+          searchPlaceholder="Cerca per titolo, progetto..."
+          filterValue={state.filterProject}
+          onFilterChange={handleFilterChange}
+          filterOptions={[
+            { value: 'all', label: 'Tutti i Progetti' },
+            ...getUniqueProjects().map(project => ({
+              value: project,
+              label: project
+            }))
+          ]}
+          sortValue={state.sortBy}
+          onSortChange={handleSortChange}
+          sortOptions={[
+            { value: 'date-desc', label: 'Dal più recente' },
+            { value: 'date-asc', label: 'Dal meno recente' },
+            { value: 'name-asc', label: 'A-Z' },
+            { value: 'name-desc', label: 'Z-A' }
+          ]}
+          resultCount={!state.loading ? filteredAndSortedCertificates.length : undefined}
+          onClearFilters={() => setState(prev => ({ ...prev, searchTerm: '', filterProject: 'all' }))}
+          showClearFilters={state.searchTerm !== '' || state.filterProject !== 'all'}
+        />
+      ) : (
+        <SearchAndFilter
+          searchValue={state.searchTerm}
+          onSearchChange={handleSearch}
+          searchPlaceholder="Cerca per nome progetto..."
+          sortValue={state.sortBy}
+          onSortChange={handleSortChange}
+          sortOptions={[
+            { value: 'name-asc', label: 'A-Z' },
+            { value: 'name-desc', label: 'Z-A' },
+            { value: 'date-desc', label: 'Dal più recente' },
+            { value: 'date-asc', label: 'Dal meno recente' }
+          ]}
+          resultCount={!state.loading ? getFilteredAndSortedProjects().length : undefined}
+          onClearFilters={() => setState(prev => ({ ...prev, searchTerm: '' }))}
+          showClearFilters={state.searchTerm !== ''}
+        />
+      )}
 
         {/* Content Grid */}
         {state.loading ? (

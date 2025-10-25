@@ -55,9 +55,6 @@ export const useWalletValidation = (requiredBalance: number = 0.1) => {
         isEmptyAccount: walletInfo.isEmptyAccount,
         canPerformCertification
       });
-        isEmpty: walletInfo.isEmptyAccount,
-        canCertify: canPerformCertification
-      });
 
     } catch (error) {
       console.error('❌ Wallet validation failed:', error);

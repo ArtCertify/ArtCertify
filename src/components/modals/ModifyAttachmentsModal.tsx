@@ -7,6 +7,7 @@ import { Alert } from '../ui';
 import type { AssetInfo } from '../../services/algorand';
 import { CertificationModal } from './CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
+import type { IPFSMetadata } from '../../hooks/useIPFSMetadata';
 
 interface Attachment {
   id: string;
@@ -21,23 +22,7 @@ interface ModifyAttachmentsModalProps {
   onClose: () => void;
   asset: AssetInfo;
   currentAttachments?: Attachment[];
-  ipfsMetadata?: {
-    properties?: {
-      form_data?: {
-        assetName?: string;
-        projectName?: string;
-        description?: string;
-        image?: string;
-        fileOrigin?: string;
-        type?: string;
-        customType?: string;
-      };
-      files_metadata?: Array<{
-        name: string;
-        gatewayUrl: string;
-      }>;
-    };
-  }; // Metadati IPFS per popolare i campi
+  ipfsMetadata?: IPFSMetadata | null; // Metadati IPFS per popolare i campi
   onAssetUpdated?: () => void; // Callback per aggiornare i dati dell'asset
 }
 
@@ -76,7 +61,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     customType: ipfsMetadata?.properties?.form_data?.customType || '',
     
     // File
-    image: ipfsMetadata?.properties?.form_data?.image || asset.nftMetadata?.image || '',
+    image: ipfsMetadata?.image || asset.nftMetadata?.image || '',
     imageFile: null as File | null,
   });
 
@@ -99,6 +84,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   // Opzioni per il tipo di certificazione
   const TYPE_OPTIONS = [
@@ -129,7 +115,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         fileOrigin: ipfsMetadata.properties?.form_data?.fileOrigin || prev.fileOrigin,
         type: ipfsMetadata.properties?.form_data?.type || prev.type,
         customType: ipfsMetadata.properties?.form_data?.customType || prev.customType,
-        image: ipfsMetadata.properties?.form_data?.image || prev.image,
+        image: ipfsMetadata.image || prev.image,
       }));
     }
   }, [ipfsMetadata]);
@@ -242,6 +228,15 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       if (!formData.description.trim()) {
         throw new Error('Descrizione è obbligatoria');
       }
+      if (formData.description.length > 300) {
+        throw new Error('Descrizione deve essere massimo 300 caratteri');
+      }
+      if (formData.fileOrigin.length > 100) {
+        throw new Error('Origine del file deve essere massimo 100 caratteri');
+      }
+      if (formData.type === 'altro' && formData.customType.length > 50) {
+        throw new Error('Tipo personalizzato deve essere massimo 50 caratteri');
+      }
 
       // Verifica connessione Pera Wallet
       if (!isWalletConnected || !walletAddress) {
@@ -287,8 +282,16 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         newCertificationData,
         newFiles: filesToUpload,
         formData: {
+          // Preserva tutti i campi originali dall'IPFS metadata
+          fileName: ipfsMetadata?.properties?.form_data?.fileName || '',
+          fileSize: ipfsMetadata?.properties?.form_data?.fileSize || 0,
+          fileType: ipfsMetadata?.properties?.form_data?.fileType || '',
+          fileExtension: ipfsMetadata?.properties?.form_data?.fileExtension || '',
+          fileCreationDate: ipfsMetadata?.properties?.form_data?.fileCreationDate || '',
           projectName: formData.projectName,
           assetName: formData.assetName,
+          unitName: ipfsMetadata?.properties?.form_data?.unitName || asset.params.unitName || '',
+          fullAssetName: ipfsMetadata?.properties?.form_data?.fullAssetName || `${formData.projectName} / ${formData.assetName}`,
           description: formData.description,
           fileOrigin: formData.fileOrigin,
           type: formData.type,
@@ -499,7 +502,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 {/* Origine File */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Origine del File
+                    Origine del File <span className="text-slate-400">({formData.fileOrigin.length}/100 caratteri)</span>
                   </label>
                   <Input
                     value={formData.fileOrigin}
@@ -520,15 +523,19 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Descrizione *
+                    Descrizione * <span className="text-slate-400">({formData.description.length}/300 caratteri)</span>
                   </label>
                   <Textarea
                     value={formData.description}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
                     placeholder="Descrizione dettagliata della certificazione"
                     rows={4}
+                    maxLength={300}
                     required
                   />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Massimo 300 caratteri
+                  </p>
                 </div>
                 
                 {/* Tipo Certificazione */}
@@ -555,14 +562,18 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 {formData.type === 'altro' && (
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
-                      Specifica Tipo Personalizzato *
+                      Specifica Tipo Personalizzato * <span className="text-slate-400">({formData.customType.length}/50 caratteri)</span>
                     </label>
                     <Input
                       value={formData.customType}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('customType', e.target.value)}
                       placeholder="Inserisci il tipo personalizzato"
+                      maxLength={50}
                       required={formData.type === 'altro'}
                     />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Massimo 50 caratteri
+                    </p>
                   </div>
                 )}
                 
@@ -613,7 +624,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 Allegati Aggiuntivi
               </label>
               <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
                   dragActive 
                     ? 'border-blue-500 bg-blue-900/20' 
                     : 'border-slate-600 hover:border-slate-500'
@@ -622,10 +633,19 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
+                onClick={() => attachmentInputRef.current?.click()}
               >
                 <CloudArrowUpIcon className="mx-auto h-6 w-6 text-slate-400 mb-2" />
-                <p className="text-sm text-slate-300">Trascina file qui</p>
+                <p className="text-sm text-slate-300">Trascina file qui o clicca per selezionare</p>
                 <p className="text-xs text-slate-400">Documenti di supporto</p>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="*/*"
+                  onChange={(e) => handleFiles(e.target.files || new FileList())}
+                />
               </div>
 
               {/* Attachments List */}

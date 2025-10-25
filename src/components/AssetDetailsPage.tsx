@@ -615,7 +615,7 @@ const AssetDetailsPage: React.FC = () => {
                                 <PhotoIcon className="w-3 h-3 text-white" />
                               </div>
                               <div>
-                                <h3 className="text-base font-semibold text-white">File Certificato</h3>
+                                <h3 className="text-base font-semibold text-white">File Certificato e Allegati aggiuntivi</h3>
                                 <p className="text-slate-400 text-xs">File originali caricati su IPFS</p>
                               </div>
                             </div>
@@ -645,7 +645,7 @@ const AssetDetailsPage: React.FC = () => {
                               <PhotoIcon className="w-3 h-3 text-white" />
                             </div>
                             <div>
-                              <h3 className="text-base font-semibold text-white">File Certificato</h3>
+                              <h3 className="text-base font-semibold text-white">File Certificato e Allegati aggiuntivi</h3>
                               <p className="text-slate-400 text-xs">Nessun file disponibile dai metadati IPFS</p>
                       </div>
                     </div>
