@@ -7,6 +7,7 @@ import { LoginPage } from './components/LoginPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
 import { RolesPage } from './components/RolesPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import { validateConfig } from './config/environment';
 
 // Protected Route Component
@@ -93,9 +94,11 @@ function App() {
 
   return (
     <AuthProvider>
-              <Router>
+      <OrganizationProvider>
+        <Router>
           <AppRoutes />
         </Router>
+      </OrganizationProvider>
     </AuthProvider>
   );
 }

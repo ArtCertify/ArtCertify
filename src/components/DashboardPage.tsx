@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, FolderIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 import ResponsiveLayout from './layout/ResponsiveLayout';
 import { CertificateCard } from './CertificateCard';
 import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';
 import { nftService } from '../services/nftService';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectsCache } from '../hooks/useProjectsCache';
+import OrganizationOnboarding from './OrganizationOnboarding';
 import type { AssetInfo } from '../services/algorand';
 
 // Project Card Component
@@ -84,6 +85,49 @@ export const DashboardPage: React.FC = () => {
     sortBy: 'date-desc',
     viewMode: 'projects'
   });
+  
+  // Organization onboarding state
+  const [showOrganizationOnboarding, setShowOrganizationOnboarding] = useState(false);
+  
+  // Function to refetch certificates after organization NFT creation
+  const refetchCertificates = async () => {
+    if (!isAuthenticated || !userAddress) {
+      setState(prev => ({ ...prev, loading: false, certificates: [] }));
+      return;
+    }
+
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      
+      // Fetch NFTs owned by the user address
+      const ownedNFTs = await nftService.getOwnedNFTs(userAddress);
+      
+      // Extract and cache project names
+      const projectNames = new Set<string>();
+      ownedNFTs.forEach(cert => {
+        const projectName = extractProjectName(cert.params.name || '');
+        if (projectName !== 'Senza Progetto') {
+          projectNames.add(projectName);
+        }
+      });
+      
+      // Update cached projects
+      setCachedProjects(userAddress, Array.from(projectNames));
+      
+      setState(prev => ({ 
+        ...prev, 
+        certificates: ownedNFTs, 
+        loading: false 
+      }));
+    } catch (error) {
+      console.error('Error fetching certificates:', error);
+      setState(prev => ({ 
+        ...prev, 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Errore nel caricamento delle certificazioni'
+      }));
+    }
+  };
 
   useEffect(() => {
     const fetchCertificates = async () => {
@@ -327,6 +371,30 @@ export const DashboardPage: React.FC = () => {
 
   const emptyState = getEmptyStateMessage();
   const hasNoCertificates = !state.loading && state.certificates.length === 0;
+  
+  // Check if user has an organization NFT
+  const hasOrganizationNFT = state.certificates.some(cert => 
+    cert.params?.name?.startsWith('ORG: ')
+  );
+  
+  
+  
+  // Check if filtered certificates list is empty (including when all certificates are filtered out)
+  const hasNoFilteredCertificates = !state.loading && filteredAndSortedCertificates.length === 0;
+  
+  // Debug: Log the state for troubleshooting
+  console.log('Dashboard Debug:', {
+    hasNoCertificates,
+    hasNoFilteredCertificates,
+    hasOrganizationNFT,
+    certificatesCount: state.certificates.length,
+    filteredCertificatesCount: filteredAndSortedCertificates.length,
+    certificates: state.certificates.map(cert => ({
+      paramsName: cert.params?.name,
+      nftMetadataName: cert.nftMetadata?.name,
+      isOrg: cert.params?.name?.startsWith('ORG: ')
+    }))
+  });
 
   if (state.error) {
     return (
@@ -341,21 +409,71 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  // Se non ci sono certificazioni, mostra il benvenuto
-  if (hasNoCertificates) {
+  // Se non ci sono certificazioni filtrate, controlla se ha un NFT organizzazione
+  if (hasNoFilteredCertificates) {
+    // Se non ha NFT organizzazione, mostra pulsante INIZIA o form
+    if (!hasOrganizationNFT) {
+      if (!showOrganizationOnboarding) {
+        return (
+          <ResponsiveLayout>
+            <div className="space-y-8 relative pb-24">
+              {/* Welcome message with INIZIA button */}
+              <div className="text-center py-16">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <BuildingOfficeIcon className="h-10 w-10 text-white" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-white mb-4">
+                      Benvenuto in ArtCertify
+                    </h1>
+                    <p className="text-lg text-slate-300 mb-8">
+                      Per iniziare a certificare i tuoi progetti, devi prima creare il profilo della tua organizzazione.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowOrganizationOnboarding(true)}
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    INIZIA
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ResponsiveLayout>
+        );
+      } else {
+        return (
+          <ResponsiveLayout>
+            <div className="space-y-8 relative pb-24">
+              <OrganizationOnboarding 
+                onBack={() => setShowOrganizationOnboarding(false)}
+                onSuccess={refetchCertificates}
+              />
+            </div>
+          </ResponsiveLayout>
+        );
+      }
+    }
+    
+    // Se ha NFT organizzazione ma non certificazioni, mostra benvenuto semplice (senza tab e filtri)
     return (
       <ResponsiveLayout>
         <div className="space-y-8 relative pb-24">
-          {/* Benvenuto caloroso */}
+          {/* Benvenuto per prima certificazione */}
           <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BuildingOfficeIcon className="h-10 w-10 text-white" />
+            </div>
             <h1 className="text-3xl font-bold text-white mb-4">
-              Benvenuto in ArtCertify! 🎉
+              Benvenuto! 🎉
             </h1>
-            <p className="text-lg text-slate-300 mb-12 max-w-2xl mx-auto">
-              Inizia il tuo viaggio nella certificazione digitale. Crea la tua prima certificazione per artefatti, documenti o opere d'arte e scopri il potere della blockchain.
+            <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+              Il tuo <Link to="/profile" className="text-blue-400 hover:text-blue-300 underline transition-colors">Profilo Organizzazione</Link> è stato creato con successo! Ora puoi iniziare a certificare artefatti, documenti e opere d'arte.
             </p>
             
-            {/* Bottone principale */}
+            {/* Bottone per creare prima certificazione */}
             <div className="flex justify-center">
               <Link
                 to="/certificates"
@@ -463,29 +581,29 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-            <EmptyState
-              title={emptyState.title}
-              description={emptyState.description}
-              action={
-                emptyState.showFilters ? (
-                  <button
-                    onClick={() => setState(prev => ({ ...prev, searchTerm: '', filterProject: 'all' }))}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors"
-                  >
-                    Cancella filtri
-                  </button>
-                ) : (
-                  <Link
-                    to="/certificates"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                    Crea la tua prima certificazione
-                  </Link>
-                )
-              }
-            />
-          )
+              <EmptyState
+                title={emptyState.title}
+                description={emptyState.description}
+                action={
+                  emptyState.showFilters ? (
+                    <button
+                      onClick={() => setState(prev => ({ ...prev, searchTerm: '', filterProject: 'all' }))}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Cancella filtri
+                    </button>
+                  ) : (
+                    <Link
+                      to="/certificates"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                      Crea la tua prima certificazione
+                    </Link>
+                  )
+                }
+              />
+            )
           ) : (
             // Projects View
             getFilteredAndSortedProjects().length > 0 ? (
@@ -515,16 +633,21 @@ export const DashboardPage: React.FC = () => {
           )
         )}
 
-        {/* Floating Create Button - Overlay */}
-        <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-50">
-          <Link
-            to="/certificates"
-            className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Crea nuova Certificazione
-          </Link>
-        </div>
+        {/* Create New Certification Button - Fixed at bottom when there are certificates */}
+        {!hasNoFilteredCertificates && (
+          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+            <Link
+              to="/certificates"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 min-w-[280px] justify-center"
+              style={{
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <PlusIcon className="h-5 w-5" />
+              Crea nuova certificazione
+            </Link>
+          </div>
+        )}
       </div>
     </ResponsiveLayout>
   );

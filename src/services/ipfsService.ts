@@ -147,7 +147,10 @@ class IPFSService {
               }
             ]
           }
-        }
+        },
+        // Force raw codec for ARC-0019 compatibility
+        cidVersion: 1,
+        codec: 'raw'
       };
 
       if (metadata) {

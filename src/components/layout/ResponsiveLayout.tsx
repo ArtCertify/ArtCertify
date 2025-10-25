@@ -7,6 +7,8 @@ import {
   UserIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { useOrganization } from '../../contexts/OrganizationContext';
+import { IPFSUrlService } from '../../services/ipfsUrlService';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -17,6 +19,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logout, userAddress } = useAuth();
+  const { organizationData } = useOrganization();
 
   // Helper function to truncate address
   const truncateAddress = (address: string | null, startChars: number, endChars: number): string => {
@@ -24,6 +27,15 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
       return address || 'Non connesso';
     }
     return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+  };
+
+  // Helper function to convert IPFS URL to gateway URL
+  const getImageUrl = (ipfsUrl: string): string => {
+    if (ipfsUrl.startsWith('ipfs://')) {
+      const hash = ipfsUrl.replace('ipfs://', '');
+      return IPFSUrlService.getGatewayUrl(hash);
+    }
+    return ipfsUrl;
   };
 
   // Close user menu when clicking outside
@@ -84,15 +96,41 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
                   className="flex items-center space-x-3 rounded-lg p-2 text-sm font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all duration-200"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                    <UserIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="text-sm font-medium text-white">
-                      {truncateAddress(userAddress, 4, 4)}
-                    </div>
-                    <div className="text-xs text-slate-400">Wallet</div>
-                  </div>
+                  {organizationData ? (
+                    <>
+                      <div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <img 
+                          src={getImageUrl(organizationData.image)} 
+                          alt={organizationData.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <UserIcon className="h-4 w-4 text-white hidden" />
+                      </div>
+                      <div className="hidden sm:block text-left">
+                        <div className="text-sm font-medium text-white">
+                          {organizationData.name}
+                        </div>
+                        <div className="text-xs text-slate-400">Organizzazione</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <UserIcon className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="hidden sm:block text-left">
+                        <div className="text-sm font-medium text-white">
+                          {truncateAddress(userAddress, 4, 4)}
+                        </div>
+                        <div className="text-xs text-slate-400">Wallet</div>
+                      </div>
+                    </>
+                  )}
                   <ChevronDownIcon className="h-4 w-4 text-slate-400" />
                 </button>
 

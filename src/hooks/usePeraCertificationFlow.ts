@@ -21,11 +21,18 @@ interface CertificationStep {
 }
 
 export interface PeraCertificationFlowParams {
-  certificationData: any;
+  certificationData?: any;
   files: File[];
   assetName: string;
-  unitName: string;
-  formData: any;
+  unitName?: string;
+  formData?: any;
+  // Organization specific fields
+  projectName?: string;
+  description?: string;
+  fileOrigin?: string;
+  type?: string;
+  customType?: string;
+  organizationData?: any;
 }
 
 export interface PeraVersioningFlowParams {
@@ -172,9 +179,7 @@ export const usePeraCertificationFlow = () => {
           updateStepState('wallet-check', 'success', undefined, undefined, `Wallet connesso: ${accountAddress?.slice(0, 8)}...`);
           return currentData;
 
-        case 'ipfs-upload':
-
-          
+        case 'ipfs-upload': {
           updateStepState(stepId, 'active', undefined, undefined, `Caricamento ${params.files?.length || 0} file su IPFS...`);
           
           const ipfsResult = await ipfsService.uploadCertificationAssets(
@@ -182,7 +187,6 @@ export const usePeraCertificationFlow = () => {
             params.certificationData,
             params.formData
           );
-          
           
           const updatedData = { ...currentData, ipfsResult };
           setIntermediateData(updatedData);
@@ -200,8 +204,9 @@ export const usePeraCertificationFlow = () => {
           
           updateStepState('ipfs-upload', 'success', undefined, undefined, ipfsLinks.join('<br>'));
           return updatedData;
+        }
 
-        case 'cid-conversion':
+        case 'cid-conversion': {
 
           
           updateStepState(stepId, 'active', undefined, undefined, 'Conversione CID in indirizzo Algorand...');
@@ -220,8 +225,9 @@ export const usePeraCertificationFlow = () => {
           setIntermediateData(updatedData2);
           updateStepState('cid-conversion', 'success', undefined, undefined, `Reserve address: ${reserveAddress.slice(0, 8)}...`);
           return updatedData2;
+        }
 
-        case 'asset-creation':
+        case 'asset-creation': {
           if (!currentData.reserveAddress || !currentData.ipfsResult) {
             throw new Error('Dati prerequisiti mancanti');
           }
@@ -240,7 +246,7 @@ export const usePeraCertificationFlow = () => {
             assetURL: arc19TemplateUrl,
             defaultFrozen: true,
             manager: accountAddress!,
-            reserve: accountAddress!,
+            reserve: currentData.reserveAddress!,
             freeze: undefined,
             clawback: undefined,
             suggestedParams,
@@ -283,8 +289,9 @@ export const usePeraCertificationFlow = () => {
           
           updateStepState('asset-creation', 'success', undefined, undefined, blockchainLinks.join('<br>'));
           return updatedData3;
+        }
 
-        case 'asset-config':
+        case 'asset-config': {
           if (!currentData.assetId || !currentData.reserveAddress) {
             throw new Error('Asset ID o reserve address mancanti');
           }
@@ -350,6 +357,10 @@ export const usePeraCertificationFlow = () => {
           setResult(finalResult);
           setIsProcessing(false);
           return currentData;
+        }
+
+        default:
+          throw new Error(`Step sconosciuto: ${stepId}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
