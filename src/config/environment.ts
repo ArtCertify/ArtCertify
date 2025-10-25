@@ -119,11 +119,6 @@ export const validateConfig = () => {
     }
     
     // Servers are always set from defaults, so no need to validate
-    console.log(`✅ Configuration valid for ${config.algorandNetwork}`);
-    console.log(`🌐 Network: ${config.network.isMainnet ? 'MainNet' : 'TestNet'}`);
-    console.log(`🔗 Algod: ${config.algod.server}`);
-    console.log(`📊 Indexer: ${config.indexer.server}`);
-
     return true;
   } catch (error) {
     console.error('❌ Configuration validation failed:', error);

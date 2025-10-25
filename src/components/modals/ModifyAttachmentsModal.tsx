@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { Dialog } from '@headlessui/react';
-import { XMarkIcon, CloudArrowUpIcon, TrashIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CloudArrowUpIcon, TrashIcon, DocumentDuplicateIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import { Alert } from '../ui';
 import type { AssetInfo } from '../../services/algorand';
 import { CertificationModal } from './CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
+import type { IPFSMetadata } from '../../hooks/useIPFSMetadata';
 
 interface Attachment {
   id: string;
@@ -21,6 +22,7 @@ interface ModifyAttachmentsModalProps {
   onClose: () => void;
   asset: AssetInfo;
   currentAttachments?: Attachment[];
+  ipfsMetadata?: IPFSMetadata | null; // Metadati IPFS per popolare i campi
   onAssetUpdated?: () => void; // Callback per aggiornare i dati dell'asset
 }
 
@@ -29,6 +31,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
   onClose,
   asset,
   currentAttachments = [],
+  ipfsMetadata,
   onAssetUpdated
 }) => {
   // Versioning flow hook with Pera Wallet
@@ -45,13 +48,21 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     walletAddress
   } = usePeraCertificationFlow();
 
-  // Form state
+  // Form state - prioritizza i metadati IPFS
   const [formData, setFormData] = useState({
-    name: asset.nftMetadata?.name || asset.params.name || '',
-    description: asset.nftMetadata?.description || asset.description || '',
-    image: asset.nftMetadata?.image || '',
+    // Campi non modificabili (da IPFS)
+    projectName: ipfsMetadata?.properties?.form_data?.projectName || '',
+    assetName: ipfsMetadata?.properties?.form_data?.assetName || asset.nftMetadata?.name || asset.params.name || '',
+    
+    // Campi modificabili
+    description: ipfsMetadata?.properties?.form_data?.description || asset.nftMetadata?.description || asset.description || '',
+    fileOrigin: ipfsMetadata?.properties?.form_data?.fileOrigin || '',
+    type: ipfsMetadata?.properties?.form_data?.type || '',
+    customType: ipfsMetadata?.properties?.form_data?.customType || '',
+    
+    // File
+    image: ipfsMetadata?.image || asset.nftMetadata?.image || '',
     imageFile: null as File | null,
-    licenseFile: null as File | null,
   });
 
   // Versioning info
@@ -73,17 +84,51 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const licenseInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Opzioni per il tipo di certificazione
+  const TYPE_OPTIONS = [
+    { value: 'documento', label: 'Documento' },
+    { value: 'immagine', label: 'Immagine' },
+    { value: 'video', label: 'Video' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'modello-3d', label: 'Modello 3D' },
+    { value: 'codice', label: 'Codice' },
+    { value: 'altro', label: 'Altro' }
+  ];
+
+  // Helper function per troncare gli indirizzi
+  const truncateAddress = (address: string, startLength = 6, endLength = 4) => {
+    if (!address) return '';
+    if (address.length <= startLength + endLength) return address;
+    return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
+  };
+
+  // Aggiorna formData quando cambiano i metadati IPFS
+  useEffect(() => {
+    if (ipfsMetadata?.properties?.form_data) {
+      setFormData(prev => ({
+        ...prev,
+        projectName: ipfsMetadata.properties?.form_data?.projectName || prev.projectName,
+        assetName: ipfsMetadata.properties?.form_data?.assetName || prev.assetName,
+        description: ipfsMetadata.properties?.form_data?.description || prev.description,
+        fileOrigin: ipfsMetadata.properties?.form_data?.fileOrigin || prev.fileOrigin,
+        type: ipfsMetadata.properties?.form_data?.type || prev.type,
+        customType: ipfsMetadata.properties?.form_data?.customType || prev.customType,
+        image: ipfsMetadata.image || prev.image,
+      }));
+    }
+  }, [ipfsMetadata]);
 
   // Calculate versioning info on mount
   useEffect(() => {
-    const versions = (asset.versioningInfo as any[]) || [];
+    const versions = (asset.versioningInfo as Array<{version?: number; cid?: string; gatewayUrl?: string}>) || [];
     const latestVersion = versions.length > 0 
       ? Math.max(...versions.map(v => v.version || 0))
       : 0;
     
     const previousVersionData = versions.find(v => v.version === latestVersion);
-    const currentCidInfo = asset.currentCidInfo as any;
+    const currentCidInfo = asset.currentCidInfo as {cid?: string; gatewayUrl?: string} | undefined;
     
     setVersionInfo({
       nextVersion: latestVersion + 1,
@@ -114,14 +159,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     }
   };
 
-  const handleLicenseFileChange = (files: FileList | null) => {
-    if (files && files.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        licenseFile: files[0]
-      }));
-    }
-  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -178,12 +215,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const truncateAddress = (address: string, startChars: number = 8, endChars: number = 8) => {
-    if (address.length <= startChars + endChars) {
-      return address;
-    }
-    return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
-  };
 
   const handleSave = async () => {
     setSubmitError(null);
@@ -191,14 +222,20 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     
     try {
       // Validation
-      if (!formData.name.trim()) {
+      if (!formData.assetName.trim()) {
         throw new Error('Nome certificazione è obbligatorio');
       }
       if (!formData.description.trim()) {
         throw new Error('Descrizione è obbligatoria');
       }
-      if (!formData.licenseFile) {
-        throw new Error('File certificazione è obbligatorio');
+      if (formData.description.length > 300) {
+        throw new Error('Descrizione deve essere massimo 300 caratteri');
+      }
+      if (formData.fileOrigin.length > 100) {
+        throw new Error('Origine del file deve essere massimo 100 caratteri');
+      }
+      if (formData.type === 'altro' && formData.customType.length > 50) {
+        throw new Error('Tipo personalizzato deve essere massimo 50 caratteri');
       }
 
       // Verifica connessione Pera Wallet
@@ -214,9 +251,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         filesToUpload.push(formData.imageFile);
       }
       
-      // Add license file
-      filesToUpload.push(formData.licenseFile);
-      
       // Add attachment files
       filesToUpload.push(...attachmentFiles);
 
@@ -224,7 +258,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       const newCertificationData = {
         asset_type: asset.nftMetadata?.certification_data?.asset_type || 'document',
         unique_id: asset.params.name || `ASSET_${asset.index}`,
-        title: formData.name,
+        title: formData.assetName,
         author: asset.nftMetadata?.certification_data?.author || 'Unknown',
         creation_date: asset.nftMetadata?.certification_data?.creation_date || new Date().toISOString(),
         organization: asset.nftMetadata?.certification_data?.organization || {
@@ -248,8 +282,20 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         newCertificationData,
         newFiles: filesToUpload,
         formData: {
-          name: formData.name,
+          // Preserva tutti i campi originali dall'IPFS metadata
+          fileName: ipfsMetadata?.properties?.form_data?.fileName || '',
+          fileSize: ipfsMetadata?.properties?.form_data?.fileSize || 0,
+          fileType: ipfsMetadata?.properties?.form_data?.fileType || '',
+          fileExtension: ipfsMetadata?.properties?.form_data?.fileExtension || '',
+          fileCreationDate: ipfsMetadata?.properties?.form_data?.fileCreationDate || '',
+          projectName: formData.projectName,
+          assetName: formData.assetName,
+          unitName: ipfsMetadata?.properties?.form_data?.unitName || asset.params.unitName || '',
+          fullAssetName: ipfsMetadata?.properties?.form_data?.fullAssetName || `${formData.projectName} / ${formData.assetName}`,
           description: formData.description,
+          fileOrigin: formData.fileOrigin,
+          type: formData.type,
+          customType: formData.customType,
           version: versionInfo.nextVersion
         }
       });
@@ -300,7 +346,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             {/* Asset Basic Info */}
             <div className="bg-slate-700/50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-white mb-3">Informazioni Asset</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-slate-400">ID Certificazione:</span>
                   <span className="ml-2 text-white font-mono">CERT-{asset.index}</span>
@@ -314,6 +360,18 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                     {truncateAddress(asset.params.creator)}
                   </span>
                 </div>
+                {ipfsMetadata?.properties?.form_data?.projectName && (
+                  <div>
+                    <span className="text-slate-400">Progetto:</span>
+                    <span className="ml-2 text-white">{ipfsMetadata.properties.form_data.projectName}</span>
+                  </div>
+                )}
+                {ipfsMetadata?.properties?.form_data?.type && (
+                  <div>
+                    <span className="text-slate-400">Tipo:</span>
+                    <span className="ml-2 text-white">{ipfsMetadata.properties.form_data.type}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -353,154 +411,266 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
               </div>
             </div>
 
+            {/* File Esistenti da IPFS */}
+            {ipfsMetadata?.properties?.files_metadata && ipfsMetadata.properties.files_metadata.length > 0 && (
+              <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-green-400 mb-3 flex items-center gap-2">
+                  <CloudArrowUpIcon className="h-4 w-4" />
+                  File Attuali su IPFS
+                </h3>
+                <div className="space-y-2">
+                  {ipfsMetadata.properties.files_metadata.map((file: {name: string; gatewayUrl: string}, index: number) => (
+                    <div key={index} className="flex items-center justify-between bg-slate-700/50 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-600/20 rounded-lg flex items-center justify-center">
+                          <DocumentDuplicateIcon className="h-4 w-4 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{file.name}</p>
+                          <p className="text-xs text-slate-400">Caricato su IPFS</p>
+                        </div>
+                      </div>
+                      <a
+                        href={file.gatewayUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 text-xs"
+                      >
+                        Visualizza →
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Left Column */}
               <div className="space-y-4">
                 
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Nome Certificazione *
-                  </label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('name', e.target.value)}
-                    placeholder="Nome della certificazione"
-                    required
-                  />
+                {/* Nome Progetto e Nome Certificazione - Snelliti */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Nome Progetto
+                    </label>
+                    <div className="relative group">
+                      <Input
+                        value={formData.projectName}
+                        placeholder="Nome del progetto"
+                        disabled
+                        className="bg-slate-600/50 border-slate-500 text-slate-300 cursor-not-allowed text-sm py-2 pr-8"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <div className="relative">
+                          <InformationCircleIcon className="w-4 h-4 text-slate-500 hover:text-slate-400 cursor-help transition-colors" />
+                          <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 border border-slate-700">
+                            Questa è una informazione Onchain non modificabile
+                            <div className="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Nome Certificazione
+                    </label>
+                    <div className="relative group">
+                      <Input
+                        value={formData.assetName}
+                        placeholder="Nome della certificazione"
+                        disabled
+                        className="bg-slate-600/50 border-slate-500 text-slate-300 cursor-not-allowed text-sm py-2 pr-8"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <div className="relative">
+                          <InformationCircleIcon className="w-4 h-4 text-slate-500 hover:text-slate-400 cursor-help transition-colors" />
+                          <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 border border-slate-700">
+                            Questa è una informazione Onchain non modificabile
+                            <div className="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
+                {/* Origine File */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Origine del File <span className="text-slate-400">({formData.fileOrigin.length}/100 caratteri)</span>
+                  </label>
+                  <Input
+                    value={formData.fileOrigin}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('fileOrigin', e.target.value)}
+                    placeholder="Es. Museo, Collezione privata, etc."
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Massimo 100 caratteri
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Descrizione *
+                    Descrizione * <span className="text-slate-400">({formData.description.length}/300 caratteri)</span>
                   </label>
                   <Textarea
                     value={formData.description}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
                     placeholder="Descrizione dettagliata della certificazione"
                     rows={4}
+                    maxLength={300}
                     required
                   />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Massimo 300 caratteri
+                  </p>
                 </div>
-
-                {/* License File */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    File Certificazione (Licenza) *
-                  </label>
-                  <div 
-                    className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center hover:border-slate-500 transition-colors cursor-pointer"
-                    onClick={() => licenseInputRef.current?.click()}
-                  >
-                    <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-                    {formData.licenseFile ? (
-                      <div>
-                        <p className="text-sm text-white font-medium">{formData.licenseFile.name}</p>
-                        <p className="text-xs text-slate-400">{formatFileSize(formData.licenseFile.size)}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm text-slate-300">Clicca per caricare il file di certificazione</p>
-                        <p className="text-xs text-slate-400">PDF, DOC, DOCX fino a 50MB</p>
-                      </div>
-                    )}
-                    <input
-                      ref={licenseInputRef}
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => handleLicenseFileChange(e.target.files)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
                 
-                {/* Image */}
+                {/* Tipo Certificazione */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Immagine Certificazione
+                    Tipo Certificazione *
                   </label>
-                  <div 
-                    className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center hover:border-slate-500 transition-colors cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
+                  <select
+                    value={formData.type}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleInputChange('type', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   >
-                    {formData.image ? (
-                      <div className="space-y-2">
-                        <img 
-                          src={formData.image} 
-                          alt="Preview" 
-                          className="mx-auto h-32 w-32 object-cover rounded-lg"
-                        />
-                        <p className="text-xs text-slate-400">Clicca per cambiare immagine</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-                        <p className="text-sm text-slate-300">Clicca per caricare un'immagine</p>
-                        <p className="text-xs text-slate-400">PNG, JPG, GIF fino a 10MB</p>
-                      </div>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleImageFileChange(e.target.files)}
-                    />
-                  </div>
+                    <option value="">Seleziona tipo</option>
+                    {TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Additional Attachments */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Allegati Aggiuntivi
-                  </label>
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                dragActive 
-                        ? 'border-blue-500 bg-blue-900/20' 
-                        : 'border-slate-600 hover:border-slate-500'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-                    <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-                    <p className="text-sm text-slate-300">Trascina file qui o clicca per caricare</p>
-                    <p className="text-xs text-slate-400">Documenti di supporto, certificati, etc.</p>
+                {/* Tipo Personalizzato */}
+                {formData.type === 'altro' && (
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Specifica Tipo Personalizzato * <span className="text-slate-400">({formData.customType.length}/50 caratteri)</span>
+                    </label>
+                    <Input
+                      value={formData.customType}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('customType', e.target.value)}
+                      placeholder="Inserisci il tipo personalizzato"
+                      maxLength={50}
+                      required={formData.type === 'altro'}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Massimo 50 caratteri
+                    </p>
+                  </div>
+                )}
+                
+              </div>
+          </div>
+
+          {/* File Section - In fondo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* File Certificazione */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                File Certificazione
+              </label>
+              <div 
+                className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center hover:border-slate-500 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {formData.image ? (
+                  <div className="space-y-2">
+                    <img 
+                      src={formData.image} 
+                      alt="Preview" 
+                      className="mx-auto h-16 w-16 object-cover rounded-lg"
+                    />
+                    <p className="text-xs text-slate-400">Clicca per cambiare file</p>
+                  </div>
+                ) : (
+                  <div>
+                    <CloudArrowUpIcon className="mx-auto h-6 w-6 text-slate-400 mb-2" />
+                    <p className="text-sm text-slate-300">Clicca per caricare</p>
+                    <p className="text-xs text-slate-400">PNG, JPG, PDF fino a 10MB</p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf"
+                  onChange={(e) => handleImageFileChange(e.target.files)}
+                />
+              </div>
             </div>
 
-            {/* Attachments List */}
-            {attachments.length > 0 && (
-                    <div className="mt-3 space-y-2">
+            {/* Allegati Aggiuntivi */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Allegati Aggiuntivi
+              </label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+                  dragActive 
+                    ? 'border-blue-500 bg-blue-900/20' 
+                    : 'border-slate-600 hover:border-slate-500'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => attachmentInputRef.current?.click()}
+              >
+                <CloudArrowUpIcon className="mx-auto h-6 w-6 text-slate-400 mb-2" />
+                <p className="text-sm text-slate-300">Trascina file qui o clicca per selezionare</p>
+                <p className="text-xs text-slate-400">Documenti di supporto</p>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="*/*"
+                  onChange={(e) => handleFiles(e.target.files || new FileList())}
+                />
+              </div>
+
+              {/* Attachments List */}
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
                   {attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                          className="flex items-center justify-between p-2 bg-slate-700 rounded"
+                      className="flex items-center justify-between p-2 bg-slate-700 rounded"
                     >
                       <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{attachment.name}</p>
-                            <p className="text-xs text-slate-400">{formatFileSize(attachment.size)}</p>
+                        <p className="text-sm text-white truncate">{attachment.name}</p>
+                        <p className="text-xs text-slate-400">{formatFileSize(attachment.size)}</p>
                       </div>
                       <button
                         onClick={() => removeAttachment(attachment.id)}
-                            className="ml-2 p-1 text-red-400 hover:text-red-300"
+                        className="ml-2 p-1 text-red-400 hover:text-red-300"
                       >
-                            <TrashIcon className="h-4 w-4" />
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   ))}
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
+            </div>
           </div>
 
             {/* Error State */}
@@ -564,7 +734,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-                disabled={isVersioningProcessing || !formData.name.trim() || !formData.description.trim()}
+                disabled={isVersioningProcessing || !formData.description.trim() || !formData.type.trim()}
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center gap-2"
             >
                 {isVersioningProcessing ? (

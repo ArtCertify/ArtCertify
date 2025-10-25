@@ -34,6 +34,9 @@ export { FormHeader } from './FormHeader';
 export { FormLayout } from './FormLayout';
 export { OrganizationData } from './OrganizationData';
 export { DateInput } from './DateInput';
+export { ReusableDropdown } from './ReusableDropdown';
+export type { DropdownOption } from './ReusableDropdown';
+export { FilePreview } from './FilePreview';
 
 // Layout & Navigation Components
 export { default as PageHeader } from './PageHeader';

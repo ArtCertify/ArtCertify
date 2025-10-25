@@ -30,7 +30,6 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
     setIsLoggingOut(true);
     
     try {
-      console.log('🔴 LogoutButton: User confirmed logout');
       await logout();
     } catch (error) {
       console.error('🔴 LogoutButton: Logout failed:', error);

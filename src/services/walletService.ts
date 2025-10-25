@@ -62,7 +62,6 @@ class WalletService {
       
       // Se l'account non esiste, restituisci dati vuoti
       if (accountResult.isEmpty) {
-        console.log(`📭 Account vuoto/nuovo rilevato: ${address}`);
         return this.createEmptyWalletInfo(address);
       }
 
@@ -114,7 +113,6 @@ class WalletService {
       if (error?.status === 404 || 
           error?.message?.includes('no accounts found') ||
           error?.message?.includes('404')) {
-        console.log(`📭 Account ${address} non trovato nell'indexer (nuovo/vuoto)`);
         return { account: null, isEmpty: true };
       }
       
@@ -166,7 +164,6 @@ class WalletService {
       const ownedAssets = await nftService.getOwnedAssets(address);
       
       if (ownedAssets.assets.length === 0) {
-        console.log(`📭 Nessun asset trovato per: ${address}`);
         return [];
       }
 
@@ -223,7 +220,6 @@ class WalletService {
         .do();
 
       if (!response.transactions || response.transactions.length === 0) {
-        console.log(`📭 No transactions found for address: ${address}`);
         return [];
       }
 
@@ -277,7 +273,6 @@ class WalletService {
     } catch (error: any) {
       // 404 per le transazioni è normale per account nuovi
       if (error?.status === 404 || error?.message?.includes('404')) {
-        console.log(`📭 No transactions found for address: ${address} (nuovo account)`);
         return [];
       }
       

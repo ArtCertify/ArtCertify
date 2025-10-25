@@ -1,10 +1,10 @@
-# 🏗️ Architettura CaputMundi ArtCertify
+# 🏗️ Architettura ArtCertify
 
-Documentazione completa dell'architettura dell'applicazione CaputMundi ArtCertify, che implementa un sistema avanzato di certificazione digitale blockchain con Pera Wallet Connect e smart retry system.
+Documentazione completa dell'architettura dell'applicazione ArtCertify, che implementa un sistema avanzato di certificazione digitale blockchain con Pera Wallet Connect e smart retry system.
 
 ## 📋 Panoramica
 
-CaputMundi ArtCertify è una Single Page Application (SPA) React moderna che implementa certificazione digitale immutabile tramite Soulbound Tokens (SBT) su blockchain Algorand, con storage decentralizzato IPFS e compliance completa ARC-3 + ARC-19.
+ArtCertify è una Single Page Application (SPA) React moderna che implementa certificazione digitale immutabile tramite Soulbound Tokens (SBT) su blockchain Algorand, con storage decentralizzato IPFS e compliance completa ARC-3 + ARC-19.
 
 ### Stack Tecnologico Aggiornato
 
