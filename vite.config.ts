@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   define: {
     global: 'globalThis',
-    'process.env': {}
+    'process.env': {},
+    'process.browser': true
   },
   resolve: {
     alias: {
@@ -25,7 +26,8 @@ export default defineConfig({
       'util',
       'process',
       'vm-browserify'
-    ]
+    ],
+    exclude: ['@algorandfoundation/algokit-utils']
   },
   // Configurazione per SPA routing  
   server: {
@@ -36,6 +38,14 @@ export default defineConfig({
     // Rollup options per il build di produzione
     rollupOptions: {
       // Nessuna configurazione speciale necessaria per il routing
-    }
-  }
+      external: ['vm-browserify']
+    },
+    // Riduci i warning durante il build
+    chunkSizeWarningLimit: 1000,
+    // Riduci i warning di eval
+    target: 'esnext',
+    minify: 'esbuild'
+  },
+  // Riduci i warning in console
+  logLevel: 'warn'
 })

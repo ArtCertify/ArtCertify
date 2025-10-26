@@ -65,7 +65,6 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
   // Handle successful completion
   useEffect(() => {
     if (result && !isProcessing) {
-      console.log('Organization NFT created successfully:', result);
       // Call onSuccess to trigger refetch of certificates
       if (onSuccess) {
         onSuccess();
@@ -219,7 +218,6 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
       });
       
       // Success - the stepper modal will show the progress
-      console.log('Organization NFT creation started');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la creazione del profilo organizzazione');
     } finally {

@@ -36,10 +36,18 @@ export interface PeraCertificationFlowParams {
 }
 
 export interface PeraVersioningFlowParams {
-  assetId: number;
+  assetId?: number;
+  existingAssetId?: number;
+  existingReserveAddress?: string;
   newCertificationData: any;
   newFiles: File[];
   formData: any;
+  certificationData?: any;
+  files?: File[];
+  assetName?: string;
+  unitName?: string;
+  isOrganization?: boolean;
+  customJson?: any;
   onSuccess?: () => void;
   onModalOpen?: () => void;
 }
@@ -421,16 +429,33 @@ export const usePeraCertificationFlow = () => {
       updateStepState('wallet-check', 'success', undefined, undefined, `Wallet connesso: ${accountAddress?.slice(0, 8)}...`);
       updateStepState('ipfs-upload', 'active', undefined, undefined, `Caricamento ${params.newFiles?.length || 0} file su IPFS...`);
 
-      // Step 2: Upload IPFS - Usa dati intermedi se disponibili
-      let ipfsResult = intermediateData.ipfsResult;
-      if (!ipfsResult) {
-        ipfsResult = await ipfsService.uploadCertificationAssets(
-          params.newFiles,
-          params.newCertificationData,
-          params.formData
-        );
-        setIntermediateData(prev => ({ ...prev, ipfsResult }));
-      }
+        // Step 2: Upload IPFS - Usa dati intermedi se disponibili
+        let ipfsResult = intermediateData.ipfsResult;
+        if (!ipfsResult) {
+          if (params.isOrganization && params.customJson) {
+            // Use organization-specific upload method
+            ipfsResult = await ipfsService.uploadOrganizationVersion(
+              params.newFiles,
+              params.customJson,
+              params.formData
+            );
+          } else if (params.customJson) {
+            // Use certification-specific upload method with custom JSON
+            ipfsResult = await ipfsService.uploadCertificationVersion(
+              params.newFiles,
+              params.customJson,
+              params.formData
+            );
+          } else {
+            // Use standard certification upload method
+            ipfsResult = await ipfsService.uploadCertificationAssets(
+              params.newFiles,
+              params.newCertificationData,
+              params.formData
+            );
+          }
+          setIntermediateData(prev => ({ ...prev, ipfsResult }));
+        }
       
       // Crea link IPFS per versioning
       const versioningIpfsLinks = [
@@ -459,8 +484,13 @@ export const usePeraCertificationFlow = () => {
       const algodClient = algorandService.getAlgod();
       const suggestedParams = await getSuggestedParams();
       
-      // Assicurati che assetId sia un number per le API
-      const assetIdNumber = typeof params.assetId === 'bigint' ? Number(params.assetId) : params.assetId;
+      // Gestisci sia certificazioni che organizzazioni
+      const assetIdNumber = params.existingAssetId || 
+        (typeof params.assetId === 'bigint' ? Number(params.assetId) : params.assetId);
+      
+      if (!assetIdNumber) {
+        throw new Error('Asset ID mancante per il versioning');
+      }
       
       
       const currentAssetInfo = await algodClient.getAssetByID(assetIdNumber).do();
@@ -645,8 +675,13 @@ export const usePeraCertificationFlow = () => {
           const algodClient = algorandService.getAlgod();
           const suggestedParams = await getSuggestedParams();
           
-          // Assicurati che assetId sia un number per le API
-          const retryAssetIdNumber = typeof params.assetId === 'bigint' ? Number(params.assetId) : params.assetId;
+          // Gestisci sia certificazioni che organizzazioni
+          const retryAssetIdNumber = params.existingAssetId || 
+            (typeof params.assetId === 'bigint' ? Number(params.assetId) : params.assetId);
+          
+          if (!retryAssetIdNumber) {
+            throw new Error('Asset ID mancante per il retry');
+          }
   
           
           const currentAssetInfo = await algodClient.getAssetByID(retryAssetIdNumber).do();

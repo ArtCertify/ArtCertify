@@ -31,7 +31,7 @@ import { algorandService } from '../services/algorand';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import { useAsyncState } from '../hooks/useAsyncState';
 import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
-import { FilePreview } from './ui';
+import { FilePreviewDisplay } from './ui';
 import type { AssetInfo } from '../services/algorand';
 
 const AssetDetailsPage: React.FC = () => {
@@ -627,13 +627,17 @@ const AssetDetailsPage: React.FC = () => {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {ipfsMetadata.properties.files_metadata.map((file, index) => (
-                              <FilePreview
+                              <FilePreviewDisplay
                                 key={`${file.ipfsUrl}-${index}`}
-                                fileName={file.name}
-                                fileType={ipfsMetadata.properties?.form_data?.fileType || 'application/octet-stream'}
-                                fileSize={ipfsMetadata.properties?.form_data?.fileSize || 0}
-                                gatewayUrl={file.gatewayUrl}
-                                ipfsUrl={file.ipfsUrl}
+                                file={{
+                                  name: file.name,
+                                  type: 'application/octet-stream',
+                                  size: 0,
+                                  url: file.gatewayUrl
+                                }}
+                                url={file.gatewayUrl}
+                                showPreview={true}
+                                showDownload={true}
                               />
                             ))}
                           </div>

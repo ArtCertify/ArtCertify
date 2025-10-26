@@ -370,7 +370,6 @@ export const DashboardPage: React.FC = () => {
   };
 
   const emptyState = getEmptyStateMessage();
-  const hasNoCertificates = !state.loading && state.certificates.length === 0;
   
   // Check if user has an organization NFT
   const hasOrganizationNFT = state.certificates.some(cert => 
@@ -382,19 +381,6 @@ export const DashboardPage: React.FC = () => {
   // Check if filtered certificates list is empty (including when all certificates are filtered out)
   const hasNoFilteredCertificates = !state.loading && filteredAndSortedCertificates.length === 0;
   
-  // Debug: Log the state for troubleshooting
-  console.log('Dashboard Debug:', {
-    hasNoCertificates,
-    hasNoFilteredCertificates,
-    hasOrganizationNFT,
-    certificatesCount: state.certificates.length,
-    filteredCertificatesCount: filteredAndSortedCertificates.length,
-    certificates: state.certificates.map(cert => ({
-      paramsName: cert.params?.name,
-      nftMetadataName: cert.nftMetadata?.name,
-      isOrg: cert.params?.name?.startsWith('ORG: ')
-    }))
-  });
 
   if (state.error) {
     return (
