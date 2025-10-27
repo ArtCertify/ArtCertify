@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SPIDService, { type SPIDAuthResult, type SPIDUserAttributes } from '../services/spidService';
 import LoadingSpinner from './ui/LoadingSpinner';
+import BackgroundLayout from './layout/BackgroundLayout';
 
 export const SPIDCallbackPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -102,7 +103,12 @@ export const SPIDCallbackPage: React.FC = () => {
 
   if (isProcessing) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+      <BackgroundLayout 
+        className="min-h-screen bg-slate-900 flex items-center justify-center px-4"
+        backgroundDensity="low"
+        backgroundOpacity="subtle"
+        fullScreen={true}
+      >
         <div className="text-center">
           <LoadingSpinner size="lg" />
           <h2 className="text-xl font-semibold text-white mt-4">
@@ -112,13 +118,18 @@ export const SPIDCallbackPage: React.FC = () => {
             Attendere mentre verifichiamo le credenziali
           </p>
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+      <BackgroundLayout 
+        className="min-h-screen bg-slate-900 flex items-center justify-center px-4"
+        backgroundDensity="low"
+        backgroundOpacity="subtle"
+        fullScreen={true}
+      >
         <div className="max-w-md w-full bg-slate-800 rounded-xl border border-slate-700 p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,13 +147,18 @@ export const SPIDCallbackPage: React.FC = () => {
             Torna al Login
           </button>
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 
   if (needsAddressLinking && userInfo) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+      <BackgroundLayout 
+        className="min-h-screen bg-slate-900 flex items-center justify-center px-4"
+        backgroundDensity="low"
+        backgroundOpacity="subtle"
+        fullScreen={true}
+      >
         <div className="max-w-lg w-full bg-slate-800 rounded-xl border border-slate-700 p-8">
           <div className="text-center mb-6">
             <div className="w-16 h-16 mx-auto mb-4 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -211,7 +227,7 @@ export const SPIDCallbackPage: React.FC = () => {
             </p>
           </div>
         </div>
-      </div>
+      </BackgroundLayout>
     );
   }
 

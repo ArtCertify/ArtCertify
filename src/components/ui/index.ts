@@ -60,4 +60,7 @@ export { default as VersionCard } from './VersionCard';
 
 // Stepper Components
 export { Stepper, Step } from './Stepper';
-export type { StepState, StepProps } from './Stepper'; 
+export type { StepState, StepProps } from './Stepper';
+
+// Background Components
+export { default as CertificationBackgroundPattern } from './CertificationBackgroundPattern'; 

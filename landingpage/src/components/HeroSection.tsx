@@ -4,15 +4,22 @@ import {
   CubeTransparentIcon, 
   LockClosedIcon 
 } from '@heroicons/react/24/outline';
+import CertificationBackgroundPattern from './CertificationBackgroundPattern';
 
 const HeroSection: React.FC = () => {
   return (
-    <section className="relative pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-slate-900 to-purple-600/10" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary-500/20 via-transparent to-transparent" />
+    <section className="relative pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden rounded-b-3xl">
+      {/* Background Pattern with Icons - highly visible */}
+      <CertificationBackgroundPattern 
+        density="high"
+        opacity="prominent"
+        className="z-0"
+      />
       
-      <div className="max-w-6xl mx-auto relative">
+      {/* Background Gradient - very reduced opacity to show icons clearly */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-800/60 to-blue-900/70" />
+      
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center">
           {/* Badge */}
           <div className="inline-flex items-center px-3 py-1.5 bg-primary-500/10 border border-primary-500/20 rounded-full mb-8 animate-fade-in">
@@ -37,12 +44,12 @@ const HeroSection: React.FC = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-16 animate-slide-up">
-            <a
-              href="https://app.artcertify.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-all duration-200 shadow-xl hover:shadow-primary-500/50 hover:scale-105 min-w-[180px] justify-center"
-            >
+             <a
+               href="https://app.artcertify.com"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors duration-200 min-w-[180px] justify-center"
+             >
               Inizia Ora
               <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -56,9 +63,9 @@ const HeroSection: React.FC = () => {
             </button>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center p-6 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:border-primary-500/50 transition-all duration-300 hover:scale-105">
+           {/* Trust Indicators */}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+             <div className="flex flex-col items-center p-6 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-primary-500/50 transition-all duration-300 hover:scale-105">
               <div className="w-10 h-10 bg-primary-500/10 rounded-lg flex items-center justify-center mb-3">
                 <ShieldCheckIcon className="w-5 h-5 text-primary-400" />
               </div>
@@ -68,7 +75,7 @@ const HeroSection: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-col items-center p-6 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:border-success-500/50 transition-all duration-300 hover:scale-105">
+             <div className="flex flex-col items-center p-6 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-success-500/50 transition-all duration-300 hover:scale-105">
               <div className="w-10 h-10 bg-success-500/10 rounded-lg flex items-center justify-center mb-3">
                 <CubeTransparentIcon className="w-5 h-5 text-success-500" />
               </div>
@@ -78,7 +85,7 @@ const HeroSection: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-col items-center p-6 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 hover:scale-105">
+             <div className="flex flex-col items-center p-6 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 hover:scale-105">
               <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center mb-3">
                 <LockClosedIcon className="w-5 h-5 text-purple-400" />
               </div>
