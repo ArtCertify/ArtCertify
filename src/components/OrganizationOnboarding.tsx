@@ -3,6 +3,7 @@ import { CloudArrowUpIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, MapPinIc
 import { usePeraCertificationFlow } from '../hooks/usePeraCertificationFlow';
 import { Input, Textarea, Button, Alert } from './ui';
 import { CertificationModal } from './modals/CertificationModal';
+import { useOrganization } from '../contexts/OrganizationContext';
 
 interface OrganizationOnboardingProps {
   onBack?: () => void;
@@ -62,16 +63,20 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
     retryStep 
   } = usePeraCertificationFlow();
 
+  const { refreshOrganizationData } = useOrganization();
+
   // Handle successful completion
   useEffect(() => {
     if (result && !isProcessing) {
-      console.log('Organization NFT created successfully:', result);
+      // Refresh organization data to update header
+      refreshOrganizationData();
+      
       // Call onSuccess to trigger refetch of certificates
       if (onSuccess) {
         onSuccess();
       }
     }
-  }, [result, isProcessing, onSuccess]);
+  }, [result, isProcessing, onSuccess, refreshOrganizationData]);
 
   const handleInputChange = (field: keyof OrganizationData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -85,6 +90,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
+    // Campi obbligatori: Nome, Tipo, Descrizione
     if (!formData.name.trim()) {
       newErrors.name = 'Nome organizzazione è obbligatorio';
     } else if (formData.name.length > 27) {
@@ -95,15 +101,18 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
       newErrors.type = 'Tipo organizzazione è obbligatorio';
     }
     
-    if (!formData.vatNumber.trim()) {
-      newErrors.vatNumber = 'Partita IVA è obbligatoria';
-    } else if (formData.vatNumber.length < 11 || formData.vatNumber.length > 11) {
+    if (!formData.description.trim()) {
+      newErrors.description = 'Descrizione è obbligatoria';
+    } else if (formData.description.length > 500) {
+      newErrors.description = 'Descrizione deve essere massimo 500 caratteri';
+    }
+    
+    // Campi opzionali con validazione solo se compilati
+    if (formData.vatNumber.trim() && (formData.vatNumber.length < 11 || formData.vatNumber.length > 11)) {
       newErrors.vatNumber = 'Partita IVA deve essere di 11 cifre';
     }
     
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email è obbligatoria';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Email non valida';
     }
     
@@ -111,26 +120,12 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
       newErrors.website = 'Sito web deve iniziare con http://, https:// o www.';
     }
     
-    if (!formData.address.trim()) {
-      newErrors.address = 'Indirizzo è obbligatorio';
-    } else if (formData.address.length > 200) {
+    if (formData.address.trim() && formData.address.length > 200) {
       newErrors.address = 'Indirizzo deve essere massimo 200 caratteri';
     }
     
-    if (!formData.city.trim()) {
-      newErrors.city = 'Città è obbligatoria';
-    } else if (formData.city.length > 50) {
+    if (formData.city.trim() && formData.city.length > 50) {
       newErrors.city = 'Città deve essere massimo 50 caratteri';
-    }
-    
-    if (!formData.description.trim()) {
-      newErrors.description = 'Descrizione è obbligatoria';
-    } else if (formData.description.length > 500) {
-      newErrors.description = 'Descrizione deve essere massimo 500 caratteri';
-    }
-    
-    if (!formData.logoFile) {
-      newErrors.logo = 'Logo è obbligatorio';
     }
     
     setErrors(newErrors);
@@ -219,7 +214,6 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
       });
       
       // Success - the stepper modal will show the progress
-      console.log('Organization NFT creation started');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Errore durante la creazione del profilo organizzazione');
     } finally {
@@ -250,7 +244,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
         {/* Logo Upload */}
         <div>
           <label className="block text-sm font-medium text-white mb-2">
-            Logo Organizzazione *
+            Logo Organizzazione
           </label>
           <div 
             className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors cursor-pointer"
@@ -268,7 +262,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
             ) : (
               <div>
                 <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-                <p className="text-sm text-slate-300">Clicca per caricare logo</p>
+                <p className="text-sm text-slate-300">Clicca per caricare logo (opzionale)</p>
                 <p className="text-xs text-slate-400">PNG, JPG fino a 10MB</p>
               </div>
             )}
@@ -335,7 +329,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label={`Partita IVA * (${formData.vatNumber.length}/11 cifre)`}
+            label={`Partita IVA (${formData.vatNumber.length}/11 cifre)`}
             value={formData.vatNumber}
             onChange={(e) => handleInputChange('vatNumber', e.target.value)}
             placeholder="Es. 12345678901"
@@ -355,7 +349,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Email *"
+            label="Email"
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
@@ -375,7 +369,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
         </div>
 
         <Input
-          label={`Indirizzo * (${formData.address.length}/200 caratteri)`}
+          label={`Indirizzo (${formData.address.length}/200 caratteri)`}
           value={formData.address}
           onChange={(e) => handleInputChange('address', e.target.value)}
           placeholder="Via dei Musei, 15, 00100 Roma RM"
@@ -385,7 +379,7 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
         />
 
         <Input
-          label={`Città * (${formData.city.length}/50 caratteri)`}
+          label={`Città (${formData.city.length}/50 caratteri)`}
           value={formData.city}
           onChange={(e) => handleInputChange('city', e.target.value)}
           placeholder="Es. Milano"

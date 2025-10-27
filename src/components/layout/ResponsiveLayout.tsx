@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { IPFSUrlService } from '../../services/ipfsUrlService';
+import BackgroundLayout from './BackgroundLayout';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -70,7 +71,12 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <BackgroundLayout 
+      className="min-h-screen bg-slate-900"
+      backgroundDensity="medium"
+      backgroundOpacity="visible"
+      fullScreen={true}
+    >
       {/* Modern Header */}
       <header className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700/50 sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -165,7 +171,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
-    </div>
+    </BackgroundLayout>
   );
 };
 

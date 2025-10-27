@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   define: {
     global: 'globalThis',
-    'process.env': {}
+    'process.env': {},
+    'process.browser': true
   },
   resolve: {
     alias: {
@@ -25,17 +26,21 @@ export default defineConfig({
       'util',
       'process',
       'vm-browserify'
-    ]
+    ],
+    exclude: ['@algorandfoundation/algokit-utils']
   },
-  // Configurazione per SPA routing  
   server: {
-    // Fallback a index.html per tutte le rotte non trovate (sviluppo)
-    // Vite gestisce automaticamente le SPA
+    port: 5173,
+    host: true,
+    open: true
   },
   build: {
-    // Rollup options per il build di produzione
     rollupOptions: {
-      // Nessuna configurazione speciale necessaria per il routing
-    }
-  }
+      external: ['vm-browserify']
+    },
+    chunkSizeWarningLimit: 1000,
+    target: 'esnext',
+    minify: 'esbuild'
+  },
+  logLevel: 'info'
 })

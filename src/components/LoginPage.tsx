@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletIcon, DevicePhoneMobileIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import { usePeraWallet } from '../hooks/usePeraWallet';
+import BackgroundLayout from './layout/BackgroundLayout';
 
 interface LoginPageProps {
   onLogin: (address: string) => void;
@@ -35,7 +36,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 flex items-center justify-center px-4">
+    <BackgroundLayout 
+      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 flex items-center justify-center px-4"
+      backgroundDensity="low"
+      backgroundOpacity="subtle"
+      fullScreen={true}
+    >
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -172,6 +178,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </p>
         </div>
       </div>
-    </div>
+    </BackgroundLayout>
   );
 }; 

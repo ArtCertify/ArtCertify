@@ -67,7 +67,7 @@ export class CidDecoder {
          // Secondo ARC-0019, il reserve address contiene il digest SHA-256 (32 bytes)
          // Dobbiamo ricostruire il CID v1 usando:
          // - version: 1 (CID v1)
-         // - multicodec: 'raw' (0x55) per Pinata
+         // - multicodec: 'raw' (0x55) per ARC-19
          // - multihash: sha2-256 (0x12) + length (0x20) + digest (32 bytes)
          
          const cid = this.fromAddressToCid(addressObj.publicKey);
@@ -118,10 +118,10 @@ export class CidDecoder {
       multihashBytes[1] = 0x20; // 32 bytes length
       multihashBytes.set(hashDigest, 2);
       
-      // 3. Crea il CID v1: version (1) + codec (0x55 raw) + multihash
-      const cidBytes = new Uint8Array(36); // 1 + 1 + 34 bytes
-      cidBytes[0] = 0x01; // CID version 1
-      cidBytes[1] = 0x55; // raw codec
+        // 3. Crea il CID v1: version (1) + codec (0x55 raw) + multihash
+        const cidBytes = new Uint8Array(36); // 1 + 1 + 34 bytes
+        cidBytes[0] = 0x01; // CID version 1
+        cidBytes[1] = 0x55; // raw codec
       cidBytes.set(multihashBytes, 2);
       
       // 4. Codifica in base32 (senza padding)

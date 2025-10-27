@@ -370,7 +370,6 @@ export const DashboardPage: React.FC = () => {
   };
 
   const emptyState = getEmptyStateMessage();
-  const hasNoCertificates = !state.loading && state.certificates.length === 0;
   
   // Check if user has an organization NFT
   const hasOrganizationNFT = state.certificates.some(cert => 
@@ -382,19 +381,6 @@ export const DashboardPage: React.FC = () => {
   // Check if filtered certificates list is empty (including when all certificates are filtered out)
   const hasNoFilteredCertificates = !state.loading && filteredAndSortedCertificates.length === 0;
   
-  // Debug: Log the state for troubleshooting
-  console.log('Dashboard Debug:', {
-    hasNoCertificates,
-    hasNoFilteredCertificates,
-    hasOrganizationNFT,
-    certificatesCount: state.certificates.length,
-    filteredCertificatesCount: filteredAndSortedCertificates.length,
-    certificates: state.certificates.map(cert => ({
-      paramsName: cert.params?.name,
-      nftMetadataName: cert.nftMetadata?.name,
-      isOrg: cert.params?.name?.startsWith('ORG: ')
-    }))
-  });
 
   if (state.error) {
     return (
@@ -416,28 +402,55 @@ export const DashboardPage: React.FC = () => {
       if (!showOrganizationOnboarding) {
         return (
           <ResponsiveLayout>
-            <div className="space-y-8 relative pb-24">
+            <div className="space-y-8 relative pb-24 min-h-screen">
               {/* Welcome message with INIZIA button */}
-              <div className="text-center py-16">
+              <div className="text-center py-16 relative z-10">
                 <div className="max-w-2xl mx-auto">
                   <div className="mb-8">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <BuildingOfficeIcon className="h-10 w-10 text-white" />
+                    {/* Enhanced icon with glow effect */}
+                    <div className="relative mb-8">
+                      <div className="w-24 h-24 bg-gradient-to-br from-primary-500 via-primary-600 to-blue-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary-500/25">
+                        <BuildingOfficeIcon className="h-12 w-12 text-white" />
+                      </div>
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 w-24 h-24 bg-gradient-to-br from-primary-500/20 to-blue-700/20 rounded-3xl mx-auto blur-xl animate-pulse" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-4">
+                    
+                    {/* Enhanced title with gradient text */}
+                    <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-blue-100 to-primary-200 bg-clip-text text-transparent mb-6 leading-tight">
                       Benvenuto in ArtCertify
                     </h1>
-                    <p className="text-lg text-slate-300 mb-8">
+                    
+                    {/* Enhanced description */}
+                    <p className="text-xl text-slate-200 mb-10 leading-relaxed max-w-lg mx-auto">
                       Per iniziare a certificare i tuoi progetti, devi prima creare il profilo della tua organizzazione.
                     </p>
                   </div>
                   
+                  {/* Enhanced CTA button */}
                   <button
                     onClick={() => setShowOrganizationOnboarding(true)}
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                    className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold rounded-2xl transition-all duration-300 shadow-2xl hover:shadow-primary-500/25 hover:scale-105 transform"
                   >
-                    INIZIA
+                    <span className="mr-2">INIZIA</span>
+                    <div className="w-2 h-2 bg-white rounded-full group-hover:animate-pulse" />
                   </button>
+                  
+                  {/* Additional trust indicators */}
+                  <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                      <span>Certificazione Blockchain</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                      <span>Sicurezza Garantita</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                      <span>Tracciabilità Completa</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

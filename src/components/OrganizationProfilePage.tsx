@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import ResponsiveLayout from './layout/ResponsiveLayout';
-import { LoadingSpinner, ErrorMessage } from './ui';
+import { LoadingSpinner, ErrorMessage, Button } from './ui';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { IPFSUrlService } from '../services/ipfsUrlService';
+import ModifyOrganizationModal from './modals/ModifyOrganizationModal';
 import { 
   BuildingOfficeIcon, 
   GlobeAltIcon,
@@ -12,7 +13,8 @@ import {
   MapPinIcon,
   IdentificationIcon,
   WalletIcon,
-  CalendarIcon
+  CalendarIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 
 
@@ -20,6 +22,7 @@ export const OrganizationProfilePage: React.FC = () => {
   const { organizationData, loading, error: orgError, refreshOrganizationData } = useOrganization();
   const { userAddress } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
 
   // Helper function to convert IPFS URL to gateway URL
   const getImageUrl = (ipfsUrl: string): string => {
@@ -115,7 +118,34 @@ export const OrganizationProfilePage: React.FC = () => {
 
             {/* Right: Organization Information */}
             <div className="md:flex-1 lg:col-span-2 space-y-6">
-              <div>
+              <div className="relative">
+                {/* Edit button in top right */}
+                <div className="absolute top-0 right-0 flex items-center gap-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsModifyModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                    Modifica
+                  </Button>
+                </div>
+                
+                {/* Date below edit button */}
+                {organizationData?.rawData?.properties?.form_data?.timestamp && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <CalendarIcon className="w-4 h-4 text-slate-500" />
+                    <p className="text-slate-500 text-sm">
+                      Creata il {new Date(organizationData.rawData.properties.form_data.timestamp).toLocaleDateString('it-IT', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                )}
+                
                 <h1 className="text-3xl font-bold text-white mb-2">
                   {organizationData?.name || 'Organizzazione'}
                 </h1>
@@ -239,82 +269,15 @@ export const OrganizationProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Additional Organization Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Organization Details */}
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-              <BuildingOfficeIcon className="w-5 h-5" />
-              Dettagli Organizzazione
-            </h2>
-            <div className="space-y-4">
-              {organizationData?.city && (
-                <div className="flex items-center gap-3">
-                  <MapPinIcon className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <p className="text-sm text-slate-400">Città</p>
-                    <p className="text-white">{organizationData.city}</p>
-                  </div>
-                </div>
-              )}
-              {organizationData?.description && (
-                <div className="flex items-start gap-3">
-                  <BuildingOfficeIcon className="w-4 h-4 text-slate-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-slate-400 mb-2">Descrizione</p>
-                    <p className="text-white text-sm leading-relaxed">{organizationData.description}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Technical Information */}
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-              <IdentificationIcon className="w-5 h-5" />
-              Informazioni Tecniche
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <IdentificationIcon className="w-4 h-4 text-slate-400" />
-                <div>
-                  <p className="text-sm text-slate-400">Tipo di Organizzazione</p>
-                  <p className="text-white">{organizationData?.type || 'Non specificato'}</p>
-                </div>
-              </div>
-              {organizationData?.rawData?.properties?.form_data?.timestamp && (
-                <div className="flex items-center gap-3">
-                  <CalendarIcon className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <p className="text-sm text-slate-400">Data di Creazione Profilo</p>
-                    <p className="text-white">
-                      {new Date(organizationData.rawData.properties.form_data.timestamp).toLocaleDateString('it-IT', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {organizationData?.rawData?.properties?.form_data?.unitName && (
-                <div className="flex items-center gap-3">
-                  <BuildingOfficeIcon className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <p className="text-sm text-slate-400">Unit Name</p>
-                    <p className="text-white font-mono text-sm">{organizationData.rawData.properties.form_data.unitName}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
       </div>
+
+      {/* Modify Organization Modal */}
+      <ModifyOrganizationModal
+        isOpen={isModifyModalOpen}
+        onClose={() => setIsModifyModalOpen(false)}
+        organizationData={organizationData}
+        onOrganizationUpdated={refreshOrganizationData}
+      />
     </ResponsiveLayout>
   );
 }; 

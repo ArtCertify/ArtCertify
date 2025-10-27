@@ -1,36 +1,163 @@
-import React, { useState } from 'react';
-import { 
-  DocumentIcon, 
-  PhotoIcon, 
-  VideoCameraIcon, 
-  SpeakerWaveIcon,
+import React from 'react';
+import {
+  DocumentIcon,
+  DocumentTextIcon,
+  PhotoIcon,
+  VideoCameraIcon,
+  MusicalNoteIcon,
   ArchiveBoxIcon,
   CodeBracketIcon,
-  TableCellsIcon,
   PresentationChartBarIcon,
-  DocumentTextIcon,
-  ArrowDownTrayIcon
+  TableCellsIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 
 interface FilePreviewProps {
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-  gatewayUrl: string;
-  ipfsUrl: string;
+  file: File | { name: string; type: string; size?: number; url?: string };
   className?: string;
+  showSize?: boolean;
+  showName?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const FilePreview: React.FC<FilePreviewProps> = ({
-  fileName,
-  fileType,
-  fileSize,
-  gatewayUrl,
-  className = ''
+const FilePreview: React.FC<FilePreviewProps> = ({
+  file,
+  className = '',
+  showSize = true,
+  showName = true,
+  size = 'md'
 }) => {
-  const [imageError, setImageError] = useState(false);
+  const getFileType = (fileName: string, mimeType: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    
+    // Image types
+    if (mimeType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif'].includes(extension)) {
+      return 'image';
+    }
+    
+    // Video types
+    if (mimeType.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp', 'ogv'].includes(extension)) {
+      return 'video';
+    }
+    
+    // Audio types
+    if (mimeType.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus'].includes(extension)) {
+      return 'audio';
+    }
+    
+    // Document types
+    if (mimeType === 'application/pdf' || extension === 'pdf') {
+      return 'pdf';
+    }
+    
+    if (['doc', 'docx'].includes(extension)) {
+      return 'word';
+    }
+    
+    if (['xls', 'xlsx'].includes(extension)) {
+      return 'excel';
+    }
+    
+    if (['ppt', 'pptx'].includes(extension)) {
+      return 'powerpoint';
+    }
+    
+    if (['txt', 'rtf', 'odt'].includes(extension)) {
+      return 'text';
+    }
+    
+    // Archive types
+    if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'].includes(extension)) {
+      return 'archive';
+    }
+    
+    // Code types
+    if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass', 'less', 'json', 'xml', 'yaml', 'yml', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt'].includes(extension)) {
+      return 'code';
+    }
+    
+    // Database types
+    if (['sql', 'db', 'sqlite', 'mdb', 'accdb'].includes(extension)) {
+      return 'database';
+    }
+    
+    // 3D/CAD types
+    if (['obj', 'fbx', 'dae', '3ds', 'blend', 'max', 'ma', 'mb'].includes(extension)) {
+      return '3d';
+    }
+    
+    // Font types
+    if (['ttf', 'otf', 'woff', 'woff2', 'eot'].includes(extension)) {
+      return 'font';
+    }
+    
+    // Executable types
+    if (['exe', 'msi', 'dmg', 'pkg', 'deb', 'rpm', 'app'].includes(extension)) {
+      return 'executable';
+    }
+    
+    // Default
+    return 'unknown';
+  };
 
-  const formatFileSize = (bytes: number): string => {
+  const getFileIcon = (fileType: string) => {
+    const iconClass = size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8';
+    
+    switch (fileType) {
+      case 'image':
+        return <PhotoIcon className={`${iconClass} text-blue-400`} />;
+      case 'video':
+        return <VideoCameraIcon className={`${iconClass} text-purple-400`} />;
+      case 'audio':
+        return <MusicalNoteIcon className={`${iconClass} text-green-400`} />;
+      case 'pdf':
+        return <DocumentTextIcon className={`${iconClass} text-red-400`} />;
+      case 'word':
+        return <DocumentTextIcon className={`${iconClass} text-blue-500`} />;
+      case 'excel':
+        return <TableCellsIcon className={`${iconClass} text-green-500`} />;
+      case 'powerpoint':
+        return <PresentationChartBarIcon className={`${iconClass} text-orange-500`} />;
+      case 'text':
+        return <DocumentTextIcon className={`${iconClass} text-gray-400`} />;
+      case 'archive':
+        return <ArchiveBoxIcon className={`${iconClass} text-yellow-500`} />;
+      case 'code':
+        return <CodeBracketIcon className={`${iconClass} text-indigo-400`} />;
+      case 'database':
+        return <CpuChipIcon className={`${iconClass} text-cyan-400`} />;
+      case '3d':
+        return <CpuChipIcon className={`${iconClass} text-pink-400`} />;
+      case 'font':
+        return <DocumentTextIcon className={`${iconClass} text-teal-400`} />;
+      case 'executable':
+        return <CpuChipIcon className={`${iconClass} text-red-500`} />;
+      default:
+        return <DocumentIcon className={`${iconClass} text-slate-400`} />;
+    }
+  };
+
+  const getFileTypeLabel = (fileType: string) => {
+    switch (fileType) {
+      case 'image': return 'Immagine';
+      case 'video': return 'Video';
+      case 'audio': return 'Audio';
+      case 'pdf': return 'PDF';
+      case 'word': return 'Word';
+      case 'excel': return 'Excel';
+      case 'powerpoint': return 'PowerPoint';
+      case 'text': return 'Testo';
+      case 'archive': return 'Archivio';
+      case 'code': return 'Codice';
+      case 'database': return 'Database';
+      case '3d': return '3D/CAD';
+      case 'font': return 'Font';
+      case 'executable': return 'Eseguibile';
+      default: return 'File';
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -38,194 +165,48 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileExtension = (fileName: string): string => {
-    return fileName.split('.').pop()?.toLowerCase() || '';
+  const fileType = getFileType(file.name, file.type);
+  const fileSize = (file as any).size || 0;
+
+  const sizeClasses = {
+    sm: 'p-2',
+    md: 'p-3',
+    lg: 'p-4'
   };
 
-  const getFileIcon = (type: string, fileName: string) => {
-    const extension = getFileExtension(fileName);
-    
-    // Prima controlla l'estensione per maggiore precisione
-    if (extension === 'pdf') return DocumentTextIcon;
-    if (extension === 'doc' || extension === 'docx') return DocumentIcon;
-    if (extension === 'xls' || extension === 'xlsx') return TableCellsIcon;
-    if (extension === 'ppt' || extension === 'pptx') return PresentationChartBarIcon;
-    if (extension === 'zip' || extension === 'rar' || extension === '7z') return ArchiveBoxIcon;
-    if (extension === 'txt' || extension === 'json' || extension === 'xml' || extension === 'csv') return CodeBracketIcon;
-    if (extension === 'mp3' || extension === 'wav' || extension === 'flac') return SpeakerWaveIcon;
-    if (extension === 'mp4' || extension === 'avi' || extension === 'mov') return VideoCameraIcon;
-    if (extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif' || extension === 'webp') return PhotoIcon;
-    
-    // Fallback al tipo MIME
-    if (type.startsWith('image/')) return PhotoIcon;
-    if (type.startsWith('video/')) return VideoCameraIcon;
-    if (type.startsWith('audio/')) return SpeakerWaveIcon;
-    if (type.includes('pdf')) return DocumentTextIcon;
-    if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return ArchiveBoxIcon;
-    if (type.includes('excel') || type.includes('spreadsheet')) return TableCellsIcon;
-    if (type.includes('powerpoint') || type.includes('presentation')) return PresentationChartBarIcon;
-    if (type.includes('text') || type.includes('json') || type.includes('xml')) return CodeBracketIcon;
-    
-    return DocumentIcon;
+  const textSizeClasses = {
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-base'
   };
-
-  const getFileCategory = (type: string, fileName: string): string => {
-    const extension = getFileExtension(fileName);
-    
-    // Prima controlla l'estensione per maggiore precisione
-    if (extension === 'pdf') return 'PDF';
-    if (extension === 'doc' || extension === 'docx') return 'Word';
-    if (extension === 'xls' || extension === 'xlsx') return 'Excel';
-    if (extension === 'ppt' || extension === 'pptx') return 'PowerPoint';
-    if (extension === 'zip' || extension === 'rar' || extension === '7z') return 'Archivio';
-    if (extension === 'txt') return 'Testo';
-    if (extension === 'json') return 'JSON';
-    if (extension === 'xml') return 'XML';
-    if (extension === 'csv') return 'CSV';
-    if (extension === 'mp3' || extension === 'wav' || extension === 'flac') return 'Audio';
-    if (extension === 'mp4' || extension === 'avi' || extension === 'mov') return 'Video';
-    if (extension === 'jpg' || extension === 'jpeg' || extension === 'png' || extension === 'gif' || extension === 'webp') return 'Immagine';
-    
-    // Fallback al tipo MIME
-    if (type.startsWith('image/')) return 'Immagine';
-    if (type.startsWith('video/')) return 'Video';
-    if (type.startsWith('audio/')) return 'Audio';
-    if (type.includes('pdf')) return 'PDF';
-    if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'Archivio';
-    if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
-    if (type.includes('powerpoint') || type.includes('presentation')) return 'PowerPoint';
-    if (type.includes('text') || type.includes('json') || type.includes('xml')) return 'Testo';
-    
-    return 'Documento';
-  };
-
-  const handleDownload = async () => {
-    try {
-      // Prova prima a scaricare come blob per garantire il download anche da IPFS gateway
-      const response = await fetch(gatewayUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Pulisci l'URL blob dopo un breve delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      // Fallback: apri in una nuova scheda se il download via blob fallisce
-      console.warn('Download via blob failed, falling back to direct link', error);
-      const link = document.createElement('a');
-      link.href = gatewayUrl;
-      link.download = fileName;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const handleView = () => {
-    window.open(gatewayUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const IconComponent = getFileIcon(fileType, fileName);
-  const isImage = fileType.startsWith('image/');
-  const isVideo = fileType.startsWith('video/');
-  const isAudio = fileType.startsWith('audio/');
 
   return (
-    <div className={`bg-slate-800 rounded-lg border border-slate-700 p-3 ${className}`}>
-      {/* Header con icona, nome e azioni */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2 min-w-0 flex-1">
-          <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-            <IconComponent className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium text-white truncate" title={fileName}>{fileName}</h3>
-            <p className="text-xs text-slate-400">{getFileCategory(fileType, fileName)} • {formatFileSize(fileSize)}</p>
-          </div>
-        </div>
-        <div className="flex space-x-1 flex-shrink-0">
-          <button
-            onClick={handleView}
-            className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600 transition-colors"
-          >
-            Visualizza
-          </button>
-          <button
-            onClick={handleDownload}
-            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded flex items-center space-x-1 transition-colors"
-          >
-            <ArrowDownTrayIcon className="w-3 h-3" />
-            <span>Download</span>
-          </button>
-        </div>
+    <div className={`flex items-center gap-3 ${sizeClasses[size]} ${className}`}>
+      <div className="flex-shrink-0">
+        {getFileIcon(fileType)}
       </div>
-
-      {/* Preview Area - Quadrata */}
-      <div className="bg-slate-900 rounded border border-slate-700 p-2">
-        {isImage && !imageError ? (
-          <div className="relative w-full aspect-square">
-            <img
-              src={gatewayUrl}
-              alt={fileName}
-              className="w-full h-full object-contain rounded"
-              onError={() => setImageError(true)}
-            />
-          </div>
-        ) : isVideo ? (
-          <div className="relative w-full aspect-square">
-            <video
-              src={gatewayUrl}
-              controls
-              className="w-full h-full rounded"
-              preload="metadata"
-            >
-              Il tuo browser non supporta il tag video.
-            </video>
-          </div>
-        ) : isAudio ? (
-          <div className="relative w-full aspect-square flex items-center justify-center">
-            <audio
-              src={gatewayUrl}
-              controls
-              className="w-full max-w-xs"
-              preload="metadata"
-            >
-              Il tuo browser non supporta il tag audio.
-            </audio>
-          </div>
-        ) : (
-          <div className="w-full aspect-square flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-lg flex items-center justify-center mb-3">
-              <IconComponent className="w-8 h-8 text-slate-400" />
-            </div>
-            <p className="text-slate-400 text-xs font-medium">
-              {getFileCategory(fileType, fileName)}
-            </p>
-            <p className="text-slate-500 text-xs mt-1">
-              {formatFileSize(fileSize)}
-            </p>
-          </div>
+      <div className="min-w-0 flex-1">
+        {showName && (
+          <p className={`${textSizeClasses[size]} text-white font-medium truncate`} title={file.name}>
+            {file.name}
+          </p>
         )}
-      </div>
-
-      {/* File Info - Compatta */}
-      <div className="mt-2 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Tipo:</span>
-          <span className="text-white">{fileType}</span>
-        </div>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-slate-400">Dimensione:</span>
-          <span className="text-white">{formatFileSize(fileSize)}</span>
+        <div className="flex items-center gap-2 text-slate-400">
+          <span className={`${textSizeClasses[size]} text-slate-400`}>
+            {getFileTypeLabel(fileType)}
+          </span>
+          {showSize && fileSize > 0 && (
+            <>
+              <span className="text-slate-500">•</span>
+              <span className={`${textSizeClasses[size]} text-slate-400`}>
+                {formatFileSize(fileSize)}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+export default FilePreview;

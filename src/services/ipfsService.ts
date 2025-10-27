@@ -214,6 +214,212 @@ class IPFSService {
   }
 
   /**
+   * Upload certification version with custom JSON and optional new files
+   */
+  async uploadCertificationVersion(
+    files: File[],
+    customJson: any,
+    formData: Record<string, any>
+  ): Promise<{
+    metadataHash: string;
+    fileHashes: Array<{ name: string; hash: string; type: string; size: number }>;
+    metadataUrl: string;
+    individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }>;
+  }> {
+    try {
+      // Upload new files if any
+      const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
+      const individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }> = [];
+      
+      for (const file of files) {
+        const uploadResult = await this.uploadFile(file, {
+          name: `CERT_${formData.assetName || 'file'}_${file.name}`,
+          keyvalues: {
+            asset_id: formData.assetName || '',
+            file_type: file.type,
+            file_size: file.size.toString(),
+            upload_timestamp: new Date().toISOString()
+          }
+        });
+
+        const fileInfo = {
+          name: file.name,
+          hash: uploadResult.IpfsHash,
+          type: file.type,
+          size: file.size
+        };
+        
+        fileHashes.push(fileInfo);
+        
+        individualFileUrls.push({
+          name: file.name,
+          ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
+          gatewayUrl: IPFSUrlService.getGatewayUrl(uploadResult.IpfsHash)
+        });
+      }
+
+      // Files will be handled in the updatedJson construction
+
+      const updatedJson = {
+        ...customJson, // Keep ALL existing data
+        // Image should always be the current primary image from File Certificazione
+        // Only update if a new image file is uploaded (formData.imageFile)
+        image: formData.imageFile ? individualFileUrls[0].ipfsUrl : customJson.image,
+        properties: {
+          ...customJson.properties, // Keep ALL existing properties
+          form_data: {
+            ...customJson.properties?.form_data, // Keep ALL existing form_data
+            ...formData, // Add form data changes
+            timestamp: new Date().toISOString()
+          },
+          // Update files_metadata - prioritize new image file if uploaded, otherwise keep existing primary image
+          files_metadata: formData.imageFile ? 
+            [
+              individualFileUrls[0], // New primary image (first uploaded file)
+              ...(customJson.properties?.files_metadata?.slice(1) || []), // Keep existing additional files
+              ...individualFileUrls.slice(1) // Add remaining new files
+            ] : [
+              ...(customJson.properties?.files_metadata?.slice(0, 1) || []), // Keep existing primary image
+              ...individualFileUrls // Add new files
+            ],
+          // Update IPFS info
+          ipfs_info: {
+            uploaded_at: new Date().toISOString(),
+            total_files: formData.imageFile ? 
+              (customJson.properties?.files_metadata?.slice(1)?.length || 0) + individualFileUrls.length :
+              (customJson.properties?.files_metadata?.slice(0, 1)?.length || 0) + individualFileUrls.length,
+            gateway: config.pinataGateway
+          }
+        }
+      };
+
+      // Upload updated JSON
+      const metadataResult = await this.uploadJSON(updatedJson, {
+        name: `${formData.assetName || 'CERT'}_metadata.json`,
+        keyvalues: {
+          asset_id: formData.assetName || '',
+          metadata_type: 'certification',
+          files_count: fileHashes.length.toString(),
+          upload_timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        metadataHash: metadataResult.IpfsHash,
+        fileHashes,
+        metadataUrl: `ipfs://${metadataResult.IpfsHash}`,
+        individualFileUrls
+      };
+    } catch (error) {
+      console.error('❌ Error uploading certification version:', error);
+      throw new Error(`Failed to upload certification version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Upload organization version with custom JSON and optional new files
+   */
+  async uploadOrganizationVersion(
+    files: File[],
+    customJson: any,
+    formData: Record<string, any>
+  ): Promise<{
+    metadataHash: string;
+    fileHashes: Array<{ name: string; hash: string; type: string; size: number }>;
+    metadataUrl: string;
+    individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }>;
+  }> {
+    try {
+      // Upload new files if any
+      const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
+      const individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }> = [];
+      
+      for (const file of files) {
+        const uploadResult = await this.uploadFile(file, {
+          name: `ORG_${formData.assetName || 'file'}_${file.name}`,
+          keyvalues: {
+            asset_id: formData.assetName || '',
+            file_type: file.type,
+            file_size: file.size.toString(),
+            upload_timestamp: new Date().toISOString()
+          }
+        });
+
+        const fileInfo = {
+          name: file.name,
+          hash: uploadResult.IpfsHash,
+          type: file.type,
+          size: file.size
+        };
+        
+        fileHashes.push(fileInfo);
+        
+        individualFileUrls.push({
+          name: file.name,
+          ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
+          gatewayUrl: IPFSUrlService.getGatewayUrl(uploadResult.IpfsHash)
+        });
+      }
+
+      // Files will be handled in the updatedJson construction
+
+      const updatedJson = {
+        ...customJson,
+        // Image should always be the current primary image from File Certificazione
+        // Only update if a new image file is uploaded (formData.imageFile)
+        image: formData.imageFile ? individualFileUrls[0].ipfsUrl : customJson.image,
+        properties: {
+          ...customJson.properties,
+          form_data: {
+            ...customJson.properties?.form_data,
+            ...formData,
+            timestamp: new Date().toISOString()
+          },
+          // Update files_metadata - prioritize new image file if uploaded, otherwise keep existing primary image
+          files_metadata: formData.imageFile ? 
+            [
+              individualFileUrls[0], // New primary image (first uploaded file)
+              ...(customJson.properties?.files_metadata?.slice(1) || []), // Keep existing additional files
+              ...individualFileUrls.slice(1) // Add remaining new files
+            ] : [
+              ...(customJson.properties?.files_metadata?.slice(0, 1) || []), // Keep existing primary image
+              ...individualFileUrls // Add new files
+            ],
+          // Update IPFS info
+          ipfs_info: {
+            uploaded_at: new Date().toISOString(),
+            total_files: formData.imageFile ? 
+              (customJson.properties?.files_metadata?.slice(1)?.length || 0) + individualFileUrls.length :
+              (customJson.properties?.files_metadata?.slice(0, 1)?.length || 0) + individualFileUrls.length,
+            gateway: config.pinataGateway
+          }
+        }
+      };
+
+      // Upload updated JSON
+      const metadataResult = await this.uploadJSON(updatedJson, {
+        name: `${formData.assetName || 'ORG'}_metadata.json`,
+        keyvalues: {
+          asset_id: formData.assetName || '',
+          metadata_type: 'organization',
+          files_count: fileHashes.length.toString(),
+          upload_timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        metadataHash: metadataResult.IpfsHash,
+        fileHashes,
+        metadataUrl: `ipfs://${metadataResult.IpfsHash}`,
+        individualFileUrls
+      };
+    } catch (error) {
+      console.error('❌ Error uploading organization version:', error);
+      throw new Error(`Failed to upload organization version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Upload multiple files individually and create a comprehensive metadata JSON
    */
   async uploadCertificationAssets(

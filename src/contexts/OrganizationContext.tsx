@@ -15,6 +15,9 @@ export interface OrganizationData {
   email?: string;
   website?: string;
   address?: string;
+  // NFT metadata
+  assetId?: number;
+  reserveAddress?: string;
   // Raw JSON data for detailed display
   rawData?: any;
 }
@@ -93,14 +96,11 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         email: jsonData.properties?.form_data?.email,
         website: jsonData.properties?.form_data?.website,
         address: jsonData.properties?.form_data?.address,
+        assetId: organizationNFT.index,
+        reserveAddress: organizationNFT.params.reserve,
         rawData: jsonData
       });
 
-      console.log('🏢 Organization data loaded:', {
-        name: orgName,
-        image: orgImage,
-        hasRawData: !!jsonData
-      });
 
     } catch (err) {
       console.error('❌ Error fetching organization data:', err);
@@ -141,3 +141,6 @@ export const useOrganization = (): OrganizationContextType => {
   }
   return context;
 };
+
+// Default export for Vite Fast Refresh compatibility
+export default OrganizationProvider;

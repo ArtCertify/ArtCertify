@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { Dialog } from '@headlessui/react';
-import { XMarkIcon, CloudArrowUpIcon, TrashIcon, DocumentDuplicateIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CloudArrowUpIcon, DocumentDuplicateIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
-import { Alert } from '../ui';
+import { Alert, FilePreviewDisplay } from '../ui';
 import type { AssetInfo } from '../../services/algorand';
 import { CertificationModal } from './CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import type { IPFSMetadata } from '../../hooks/useIPFSMetadata';
+import { IPFSUrlService } from '../../services/ipfsUrlService';
 
 interface Attachment {
   id: string;
@@ -48,22 +49,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     walletAddress
   } = usePeraCertificationFlow();
 
-  // Form state - prioritizza i metadati IPFS
-  const [formData, setFormData] = useState({
-    // Campi non modificabili (da IPFS)
-    projectName: ipfsMetadata?.properties?.form_data?.projectName || '',
-    assetName: ipfsMetadata?.properties?.form_data?.assetName || asset.nftMetadata?.name || asset.params.name || '',
-    
-    // Campi modificabili
-    description: ipfsMetadata?.properties?.form_data?.description || asset.nftMetadata?.description || asset.description || '',
-    fileOrigin: ipfsMetadata?.properties?.form_data?.fileOrigin || '',
-    type: ipfsMetadata?.properties?.form_data?.type || '',
-    customType: ipfsMetadata?.properties?.form_data?.customType || '',
-    
-    // File
-    image: ipfsMetadata?.image || asset.nftMetadata?.image || '',
-    imageFile: null as File | null,
-  });
 
   // Versioning info
   const [versionInfo, setVersionInfo] = useState({
@@ -80,11 +65,74 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [currentCertJson, setCurrentCertJson] = useState<any>(null);
+  const [loadingCurrentJson, setLoadingCurrentJson] = useState(false);
+  const [filesToRemove, setFilesToRemove] = useState<string[]>([]);
 
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to convert IPFS URL to gateway URL
+  const getImageUrl = (ipfsUrl: string): string => {
+    if (ipfsUrl.startsWith('ipfs://')) {
+      const hash = ipfsUrl.replace('ipfs://', '');
+      return IPFSUrlService.getGatewayUrl(hash);
+    }
+    return ipfsUrl;
+  };
+
+  // Form state - prioritizza i metadati IPFS
+  const [formData, setFormData] = useState({
+    // Campi non modificabili (da IPFS)
+    projectName: ipfsMetadata?.properties?.form_data?.projectName || '',
+    assetName: ipfsMetadata?.properties?.form_data?.assetName || asset.nftMetadata?.name || asset.params.name || '',
+    
+    // Campi modificabili
+    description: ipfsMetadata?.properties?.form_data?.description || asset.nftMetadata?.description || asset.description || '',
+    fileOrigin: ipfsMetadata?.properties?.form_data?.fileOrigin || '',
+    type: ipfsMetadata?.properties?.form_data?.type || '',
+    customType: ipfsMetadata?.properties?.form_data?.customType || '',
+    
+    // File - usa URL gateway per il preview
+    image: ipfsMetadata?.image ? getImageUrl(ipfsMetadata.image) : (asset.nftMetadata?.image ? getImageUrl(asset.nftMetadata.image) : ''),
+    imageFile: null as File | null,
+    originalImage: ipfsMetadata?.image || asset.nftMetadata?.image || '', // Mantiene l'immagine originale IPFS
+  });
+
+  // Load current certification JSON when modal opens
+  useEffect(() => {
+    const loadCurrentCertJson = async () => {
+      if (!isOpen || !asset.params?.reserve) return;
+      
+      setLoadingCurrentJson(true);
+      try {
+        // Convert reserve address to CID and fetch JSON
+        const result = IPFSUrlService.getReserveAddressUrl(asset.params.reserve);
+        if (!result.success || !result.gatewayUrl) {
+          throw new Error('Errore nella conversione del reserve address');
+        }
+
+        // Fetch current JSON data
+        const response = await fetch(result.gatewayUrl);
+        if (!response.ok) {
+          throw new Error('Errore nel fetch dei dati certificazione');
+        }
+        
+        const jsonData = await response.json();
+        setCurrentCertJson(jsonData);
+        
+      } catch (error) {
+        console.error('❌ Error loading current certification JSON:', error);
+        setSubmitError('Errore nel caricamento dei dati attuali della certificazione');
+      } finally {
+        setLoadingCurrentJson(false);
+      }
+    };
+
+    loadCurrentCertJson();
+  }, [isOpen, asset.params?.reserve]);
 
   // Opzioni per il tipo di certificazione
   const TYPE_OPTIONS = [
@@ -159,6 +207,40 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     }
   };
 
+  const handleFileRemove = () => {
+      setFormData(prev => ({
+        ...prev,
+      image: prev.originalImage ? getImageUrl(prev.originalImage) : '',
+      imageFile: null
+    }));
+  };
+
+  const handleRemoveExistingFile = (fileIndex: number) => {
+    if (currentCertJson?.properties?.files_metadata?.[fileIndex]) {
+      const fileToRemove = currentCertJson.properties.files_metadata[fileIndex];
+      setFilesToRemove(prev => [...prev, fileToRemove.name]);
+      
+      // Update currentCertJson to immediately remove the file from display
+      setCurrentCertJson((prev: any) => {
+        if (!prev?.properties?.files_metadata) return prev;
+        
+        const updatedFiles = prev.properties.files_metadata.filter((_: any, index: number) => index !== fileIndex);
+        
+        return {
+          ...prev,
+          properties: {
+            ...prev.properties,
+            files_metadata: updatedFiles,
+            // Update image if we removed the first file (primary image)
+            ...(fileIndex === 0 && updatedFiles.length > 0 && {
+              image: updatedFiles[0].ipfsUrl
+            })
+          }
+        };
+      });
+    }
+  };
+
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -207,13 +289,6 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
 
   const handleSave = async () => {
@@ -243,61 +318,87 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         throw new Error('Pera Wallet non connesso. Effettua il login prima di procedere.');
       }
 
+      // Verifica che abbiamo il JSON attuale
+      if (!currentCertJson) {
+        throw new Error('Caricamento dati certificazione in corso. Riprova tra qualche secondo.');
+      }
+
       // Collect all files to upload to IPFS
       const filesToUpload: File[] = [];
       
-      // Add image file if present
-      if (formData.imageFile) {
-        filesToUpload.push(formData.imageFile);
-      }
-      
-      // Add attachment files
+      // Add attachment files first (these will be additional files)
       filesToUpload.push(...attachmentFiles);
+      
+      // Add image file if present (this will become the primary image)
+      if (formData.imageFile) {
+        filesToUpload.unshift(formData.imageFile); // Add to beginning to make it primary
+      }
 
-      // Prepare certification data for versioning
-      const newCertificationData = {
-        asset_type: asset.nftMetadata?.certification_data?.asset_type || 'document',
-        unique_id: asset.params.name || `ASSET_${asset.index}`,
-        title: formData.assetName,
-        author: asset.nftMetadata?.certification_data?.author || 'Unknown',
-        creation_date: asset.nftMetadata?.certification_data?.creation_date || new Date().toISOString(),
-        organization: asset.nftMetadata?.certification_data?.organization || {
-          name: 'Unknown',
-          code: 'UNK',
-          type: 'Organization',
-          city: 'Unknown'
-        },
-        technical_specs: {
+      // Filter out files marked for removal
+      const remainingFiles = currentCertJson.properties?.files_metadata?.filter((file: any) => 
+        !filesToRemove.includes(file.name)
+      ) || [];
+
+      // Simply reuse the current JSON and add only the necessary changes
+      const updatedJson = {
+        ...currentCertJson, // Keep ALL existing data
+        // Update only the fields that can be modified
         description: formData.description,
+        properties: {
+          ...currentCertJson.properties, // Keep ALL existing properties
+          form_data: {
+            ...currentCertJson.properties?.form_data, // Keep ALL existing form_data
+            // Update only the fields that can be modified
+            description: formData.description,
+            fileOrigin: formData.fileOrigin,
+            type: formData.type,
+            customType: formData.customType,
+            // Add versioning info
           version: versionInfo.nextVersion,
-          previous_version: versionInfo.previousVersion.version,
-          modification_date: new Date().toISOString(),
-          files_count: filesToUpload.length,
-          ...asset.nftMetadata?.certification_data?.technical_specs
+            previous_version_cid: asset.params.reserve ? 
+              IPFSUrlService.getReserveAddressUrl(asset.params.reserve).cid : 
+              null,
+            previous_version_url: asset.params.reserve ? 
+              IPFSUrlService.getReserveAddressUrl(asset.params.reserve).gatewayUrl : 
+              null,
+            // Update image info only if new file is uploaded
+            ...(formData.imageFile && {
+              fileName: formData.imageFile.name,
+              fileSize: formData.imageFile.size,
+              fileType: formData.imageFile.type,
+              fileExtension: formData.imageFile.name.split('.').pop() || '',
+              fileCreationDate: new Date().toISOString()
+            }),
+            timestamp: new Date().toISOString()
+          },
+          // Update files_metadata - remove marked files and add new ones
+          files_metadata: [
+            ...remainingFiles, // Keep remaining existing files
+            // New files will be added by the IPFS service
+          ]
         }
       };
 
       const result = await startVersioningFlow({
         assetId: asset.index,
-        newCertificationData,
+          existingAssetId: asset.index,
+          existingReserveAddress: asset.params.reserve,
+          newCertificationData: updatedJson, // Use updated JSON as certification data
         newFiles: filesToUpload,
         formData: {
-          // Preserva tutti i campi originali dall'IPFS metadata
-          fileName: ipfsMetadata?.properties?.form_data?.fileName || '',
-          fileSize: ipfsMetadata?.properties?.form_data?.fileSize || 0,
-          fileType: ipfsMetadata?.properties?.form_data?.fileType || '',
-          fileExtension: ipfsMetadata?.properties?.form_data?.fileExtension || '',
-          fileCreationDate: ipfsMetadata?.properties?.form_data?.fileCreationDate || '',
-          projectName: formData.projectName,
-          assetName: formData.assetName,
-          unitName: ipfsMetadata?.properties?.form_data?.unitName || asset.params.unitName || '',
-          fullAssetName: ipfsMetadata?.properties?.form_data?.fullAssetName || `${formData.projectName} / ${formData.assetName}`,
+            projectName: formData.projectName,
+            assetName: formData.assetName,
+            unitName: currentCertJson.properties?.form_data?.unitName || asset.params.unitName || '',
+            fullAssetName: currentCertJson.properties?.form_data?.fullAssetName || `${formData.projectName} / ${formData.assetName}`,
           description: formData.description,
-          fileOrigin: formData.fileOrigin,
-          type: formData.type,
-          customType: formData.customType,
-          version: versionInfo.nextVersion
-        }
+            fileOrigin: formData.fileOrigin,
+            type: formData.type,
+            customType: formData.customType,
+            version: versionInfo.nextVersion,
+            imageFile: formData.imageFile // Pass the image file info
+          },
+          isOrganization: false, // This is a certification, not organization
+          customJson: updatedJson // Pass the custom JSON for IPFS upload
       });
 
       if (result) {
@@ -343,6 +444,19 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
           <div className="p-6 space-y-6">
             
+            {/* Loading State */}
+            {loadingCurrentJson && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-slate-400">Caricamento dati certificazione...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Content - only show when not loading */}
+            {!loadingCurrentJson && (
+              <>
             {/* Asset Basic Info */}
             <div className="bg-slate-700/50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-white mb-3">Informazioni Asset</h3>
@@ -519,7 +633,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
 
               {/* Right Column */}
               <div className="space-y-4">
-                
+
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
@@ -537,7 +651,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                     Massimo 300 caratteri
                   </p>
                 </div>
-                
+
                 {/* Tipo Certificazione */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
@@ -556,11 +670,11 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                       </option>
                     ))}
                   </select>
-                </div>
+                      </div>
 
                 {/* Tipo Personalizzato */}
                 {formData.type === 'altro' && (
-                  <div>
+                      <div>
                     <label className="block text-sm font-medium text-white mb-2">
                       Specifica Tipo Personalizzato * <span className="text-slate-400">({formData.customType.length}/50 caratteri)</span>
                     </label>
@@ -577,34 +691,43 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                   </div>
                 )}
                 
+                </div>
               </div>
-          </div>
 
-          {/* File Section - In fondo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* File Management Section */}
+          <div className="space-y-6">
             
-            {/* File Certificazione */}
+            {/* File Certificazione - Immagine Principale */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-white mb-3">
                 File Certificazione
               </label>
               <div 
-                className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center hover:border-slate-500 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {formData.image ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <img 
-                      src={formData.image} 
+                      src={getImageUrl(formData.image)} 
                       alt="Preview" 
-                      className="mx-auto h-16 w-16 object-cover rounded-lg"
+                      className="mx-auto h-20 w-20 object-cover rounded-lg"
                     />
-                    <p className="text-xs text-slate-400">Clicca per cambiare file</p>
+                    <p className="text-sm text-slate-300">Clicca per cambiare file</p>
+                    {formData.imageFile && (
+                      <button
+                        type="button"
+                        onClick={handleFileRemove}
+                        className="text-sm text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded border border-red-400/30 hover:bg-red-400/10"
+                      >
+                        Rimuovi
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div>
-                    <CloudArrowUpIcon className="mx-auto h-6 w-6 text-slate-400 mb-2" />
-                    <p className="text-sm text-slate-300">Clicca per caricare</p>
+                    <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-3" />
+                    <p className="text-sm text-slate-300 mb-1">Clicca per caricare</p>
                     <p className="text-xs text-slate-400">PNG, JPG, PDF fino a 10MB</p>
                   </div>
                 )}
@@ -618,58 +741,99 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
               </div>
             </div>
 
-            {/* Allegati Aggiuntivi */}
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Allegati Aggiuntivi
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
-                  dragActive 
-                    ? 'border-blue-500 bg-blue-900/20' 
-                    : 'border-slate-600 hover:border-slate-500'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => attachmentInputRef.current?.click()}
-              >
-                <CloudArrowUpIcon className="mx-auto h-6 w-6 text-slate-400 mb-2" />
-                <p className="text-sm text-slate-300">Trascina file qui o clicca per selezionare</p>
-                <p className="text-xs text-slate-400">Documenti di supporto</p>
-                <input
-                  ref={attachmentInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  accept="*/*"
-                  onChange={(e) => handleFiles(e.target.files || new FileList())}
-                />
+            {/* Allegati Esistenti e Nuovi */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Allegati Esistenti */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-3">
+                  Allegati Esistenti
+                </label>
+                {currentCertJson?.properties?.files_metadata && currentCertJson.properties.files_metadata.length > 1 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {currentCertJson.properties.files_metadata.slice(1).map((file: any, index: number) => {
+                      const actualIndex = index + 1;
+                      
+                      return (
+                        <FilePreviewDisplay
+                          key={actualIndex}
+                          file={{
+                            name: file.name,
+                            type: file.type || 'application/octet-stream',
+                            size: file.size || 0,
+                            url: file.gatewayUrl
+                          }}
+                          url={file.gatewayUrl}
+                          onRemove={() => handleRemoveExistingFile(actualIndex)}
+                          showDownload={false}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 bg-slate-700/30 rounded-lg border border-slate-600 text-center">
+                    <DocumentDuplicateIcon className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                    <p className="text-sm text-slate-400">Nessun allegato esistente</p>
+                  </div>
+                )}
               </div>
 
-              {/* Attachments List */}
-              {attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="flex items-center justify-between p-2 bg-slate-700 rounded"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">{attachment.name}</p>
-                        <p className="text-xs text-slate-400">{formatFileSize(attachment.size)}</p>
-                      </div>
-                      <button
-                        onClick={() => removeAttachment(attachment.id)}
-                        className="ml-2 p-1 text-red-400 hover:text-red-300"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+              {/* Aggiungi Nuovi Allegati */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-3">
+                  Aggiungi Nuovi Allegati
+                </label>
+                
+                {/* Box Upload */}
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer mb-4 ${
+                    dragActive 
+                      ? 'border-blue-500 bg-blue-900/20' 
+                      : 'border-slate-600 hover:border-slate-500'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => attachmentInputRef.current?.click()}
+                >
+                  <CloudArrowUpIcon className="mx-auto h-8 w-8 text-slate-400 mb-3" />
+                  <p className="text-sm text-slate-300 mb-1">Trascina file qui o clicca per selezionare</p>
+                  <p className="text-xs text-slate-400">Documenti di supporto</p>
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept="*/*"
+                    onChange={(e) => handleFiles(e.target.files || new FileList())}
+                  />
                 </div>
-              )}
+
+                {/* Lista Nuovi File */}
+                {attachments.length > 0 && (
+                  <div>
+                    <p className="text-sm text-slate-400 mb-2">Nuovi allegati da caricare:</p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {attachments.map((attachment) => (
+                        <FilePreviewDisplay
+                          key={attachment.id}
+                          file={{
+                            name: attachment.name,
+                            type: attachment.type,
+                            size: attachment.size,
+                            url: attachment.url
+                          }}
+                          url={attachment.url}
+                          onRemove={() => removeAttachment(attachment.id)}
+                          showPreview={false}
+                          showDownload={false}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -734,7 +898,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-                disabled={isVersioningProcessing || !formData.description.trim() || !formData.type.trim()}
+                disabled={isVersioningProcessing || loadingCurrentJson || !currentCertJson || !formData.description.trim() || !formData.type.trim()}
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center gap-2"
             >
                 {isVersioningProcessing ? (
@@ -747,6 +911,8 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                 )}
             </button>
             </div>
+              </>
+            )}
           </div>
         </Dialog.Panel>
       </div>
