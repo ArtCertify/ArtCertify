@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
               href="https://app.artcertify.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-5 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-all duration-200"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
             >
               APRI APP
             </a>
