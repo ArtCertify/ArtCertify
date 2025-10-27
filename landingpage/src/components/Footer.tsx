@@ -36,7 +36,7 @@ const Footer: React.FC = () => {
                   onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                   className="text-slate-400 text-sm hover:text-white transition-colors"
                 >
-                  Funzionalità
+                  Soluzioni
                 </button>
               </li>
               <li>

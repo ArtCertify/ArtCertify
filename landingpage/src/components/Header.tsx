@@ -43,7 +43,7 @@ const Header: React.FC = () => {
               onClick={() => scrollToSection('features')}
               className="text-slate-300 hover:text-white transition-colors duration-200"
             >
-              Funzionalità
+              Soluzioni
             </button>
             <button 
               onClick={() => scrollToSection('how-it-works')}
@@ -96,7 +96,7 @@ const Header: React.FC = () => {
               onClick={() => scrollToSection('features')}
               className="block w-full text-left px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
             >
-              Funzionalità
+              Soluzioni
             </button>
             <button
               onClick={() => scrollToSection('how-it-works')}
