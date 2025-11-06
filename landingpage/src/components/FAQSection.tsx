@@ -57,45 +57,63 @@ const FAQSection: React.FC = () => {
   };
 
   return (
-    <section id="faq" className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-      <div className="max-w-3xl mx-auto">
+    <section id="faq" className="relative py-20 px-4 sm:px-6 lg:px-8 bg-slate-900 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl" />
+      
+      <div className="max-w-3xl mx-auto relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+        <div className="text-center mb-16 animate-fade-in-up">
+          <div className="inline-block px-4 py-1.5 bg-primary-500/10 border border-primary-500/20 rounded-full mb-4">
+            <span className="text-primary-400 text-sm font-medium">Supporto</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Domande Frequenti
           </h2>
-          <p className="text-base text-slate-300">
+          <p className="text-lg text-slate-300 leading-relaxed">
             Trova le risposte alle domande più comuni su ArtCertify
           </p>
         </div>
 
-        {/* FAQ Items */}
-        <div className="space-y-3">
+        {/* FAQ Items with enhanced design */}
+        <div className="space-y-4">
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 overflow-hidden transition-all duration-300 hover:border-primary-500/50"
+              className={`group glass-effect rounded-2xl border overflow-hidden transition-all duration-300 ${
+                openIndex === index 
+                  ? 'border-primary-500/50 shadow-lg shadow-primary-500/20' 
+                  : 'border-slate-700/50 hover:border-primary-500/30'
+              }`}
             >
               <button
                 onClick={() => toggleFAQ(index)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-800/70 transition-colors"
+                className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-slate-800/30 transition-all duration-300"
               >
-                <span className="text-base font-semibold text-white pr-6">
+                <span className={`text-base font-bold pr-6 transition-colors duration-300 ${
+                  openIndex === index ? 'text-primary-300' : 'text-white group-hover:text-primary-400'
+                }`}>
                   {faq.question}
                 </span>
-                <ChevronDownIcon
-                  className={`w-5 h-5 text-primary-400 flex-shrink-0 transition-transform duration-300 ${
-                    openIndex === index ? 'transform rotate-180' : ''
-                  }`}
-                />
+                <div className="relative flex-shrink-0">
+                  {openIndex === index && (
+                    <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-md" />
+                  )}
+                  <ChevronDownIcon
+                    className={`relative w-6 h-6 text-primary-400 transition-all duration-300 ${
+                      openIndex === index ? 'transform rotate-180 scale-110' : 'group-hover:scale-110'
+                    }`}
+                  />
+                </div>
               </button>
               
               <div
-                className={`overflow-hidden transition-all duration-300 ${
-                  openIndex === index ? 'max-h-96' : 'max-h-0'
+                className={`overflow-hidden transition-all duration-500 ${
+                  openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="px-5 pb-4 text-slate-300 text-sm leading-relaxed">
+                <div className="px-6 pb-5 text-slate-300 text-sm leading-relaxed border-t border-slate-700/50 pt-4">
                   {faq.answer}
                 </div>
               </div>
@@ -103,20 +121,22 @@ const FAQSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Contact CTA */}
-        <div className="mt-10 text-center">
-          <p className="text-slate-400 mb-3 text-sm">
-            Non hai trovato la risposta che cercavi?
-          </p>
-          <a
-            href="mailto:info@activadigital.it"
-            className="inline-flex items-center text-primary-400 hover:text-primary-300 font-medium text-sm transition-colors"
-          >
-            Contattaci
-            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </a>
+        {/* Contact CTA with enhanced design */}
+        <div className="mt-12 text-center">
+          <div className="glass-effect rounded-2xl border border-slate-700/50 p-8 hover:border-primary-500/30 transition-all duration-300">
+            <p className="text-slate-300 mb-4 text-base">
+              Non hai trovato la risposta che cercavi?
+            </p>
+            <a
+              href="mailto:info@activadigital.it"
+              className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500/10 to-purple-500/10 hover:from-primary-500/20 hover:to-purple-500/20 border border-primary-500/30 hover:border-primary-500/50 rounded-xl text-primary-400 hover:text-primary-300 font-semibold transition-all duration-300 hover:scale-105"
+            >
+              Contattaci
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
     </section>

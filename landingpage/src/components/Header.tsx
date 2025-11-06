@@ -65,7 +65,7 @@ const Header: React.FC = () => {
               href="https://app.artcertify.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
             >
               APRI APP
             </a>
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
               href="https://app.artcertify.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="block mx-4 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-center font-medium rounded-lg transition-all duration-200"
+              className="block mx-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-center font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
             >
               APRI APP
             </a>
