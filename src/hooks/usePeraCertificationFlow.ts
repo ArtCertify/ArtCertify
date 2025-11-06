@@ -148,20 +148,12 @@ export const usePeraCertificationFlow = () => {
     ];
 
     if (flowType === 'certification') {
-      baseSteps.push(
-        {
-          id: 'asset-creation',
-          title: 'Creazione Asset',
-          description: 'Firma transazione di creazione asset con Pera Wallet',
-          state: 'pending' as StepState
-        },
-        {
-          id: 'asset-config',
-          title: 'Configurazione Asset',
-          description: 'Firma transazione di aggiornamento reserve address con Pera Wallet',
-          state: 'pending' as StepState
-        }
-      );
+      baseSteps.push({
+        id: 'asset-creation',
+        title: 'Creazione Asset',
+        description: 'Firma transazione di creazione asset con Pera Wallet',
+        state: 'pending' as StepState
+      });
     } else {
       baseSteps.push({
         id: 'metadata-update',
@@ -285,73 +277,22 @@ export const usePeraCertificationFlow = () => {
           if (!assetId) {
             throw new Error('Failed to extract Asset ID from confirmed transaction');
           }
-          const updatedData3 = { ...currentData, assetId, createTxId };
-          setIntermediateData(updatedData3);
           
           // Crea link blockchain per asset e transazione
-                  const explorerUrl = config.network.explorerUrl;
+          const explorerUrl = config.network.explorerUrl;
           const blockchainLinks = [
+            `✅ Certificazione completata!`,
             `🔗 <a href="${explorerUrl}/asset/${assetId}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Asset ${assetId}</a>`,
             `📋 <a href="${explorerUrl}/tx/${createTxId}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Transazione</a>`
           ];
           
           updateStepState('asset-creation', 'success', undefined, undefined, blockchainLinks.join('<br>'));
-          return updatedData3;
-        }
-
-        case 'asset-config': {
-          if (!currentData.assetId || !currentData.reserveAddress) {
-            throw new Error('Asset ID o reserve address mancanti');
-          }
-          updateStepState(stepId, 'active', undefined, undefined, 'Recupero informazioni asset...');
-          const algodClientConfig = algorandService.getAlgod();
-          
-          // Assicurati che assetId sia un number, non BigInt
-          const assetIdNumber = typeof currentData.assetId === 'bigint' 
-            ? Number(currentData.assetId) 
-            : currentData.assetId;
-          
-          const currentAssetInfo = await algodClientConfig.getAssetByID(assetIdNumber).do();
-          
-          const suggestedParamsConfig = await getSuggestedParams();
-
-          const configParams = {
-            sender: accountAddress!,
-            assetIndex: assetIdNumber!,
-            manager: currentAssetInfo.params.manager,
-            reserve: currentData.reserveAddress,
-            suggestedParams: suggestedParamsConfig,
-            strictEmptyAddressChecking: false,
-          };
-
-          updateStepState(stepId, 'active', undefined, undefined, 'Richiesta firma configurazione...');
-          const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject(configParams);
-          const signedUpdateTxns = await peraWalletService.signTransaction([
-            [formatTransactionForPera(assetConfigTxn)]
-          ]);
-          
-          updateStepState(stepId, 'active', undefined, undefined, 'Invio configurazione alla blockchain...');
-          const updateResponse = await algodClientConfig.sendRawTransaction(signedUpdateTxns[0]).do();
-          const updateTxId = updateResponse.txid;
-          updateStepState(stepId, 'active', undefined, undefined, `Attesa conferma: ${updateTxId.slice(0, 12)}...`);
-          
-          const confirmedUpdate = await waitForConfirmation(updateTxId);
-          
-          // Link finale con transazione di configurazione
-                  const configExplorerUrl = config.network.explorerUrl;
-          const configLinks = [
-            `✅ Certificazione completata!`,
-            `📋 <a href="${configExplorerUrl}/tx/${updateTxId}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Transazione Configurazione</a>`
-          ];
-          
-          updateStepState('asset-config', 'success', undefined, undefined, configLinks.join('<br>'));
 
           // Completo - crea il risultato finale
           const finalResult = {
-            assetId: currentData.assetId,
-            txId: currentData.createTxId,
-            updateTxId: updateTxId,
-            confirmedRound: confirmedUpdate.confirmedRound || 0,
+            assetId: assetId,
+            txId: createTxId,
+            confirmedRound: confirmedCreate.confirmedRound || 0,
             assetAddress: accountAddress,
             metadataUrl: currentData.ipfsResult.metadataUrl,
             reserveAddress: currentData.reserveAddress,
@@ -387,7 +328,7 @@ export const usePeraCertificationFlow = () => {
     setIsProcessing(true);
     setResult(null);
 
-    const stepOrder = ['wallet-check', 'ipfs-upload', 'cid-conversion', 'asset-creation', 'asset-config'];
+    const stepOrder = ['wallet-check', 'ipfs-upload', 'cid-conversion', 'asset-creation'];
 
     try {
       let currentData = {};
@@ -770,7 +711,7 @@ export const usePeraCertificationFlow = () => {
         }
         
         // Se il retry ha successo, continua con gli step successivi
-        const stepOrder = ['wallet-check', 'ipfs-upload', 'cid-conversion', 'asset-creation', 'asset-config'];
+        const stepOrder = ['wallet-check', 'ipfs-upload', 'cid-conversion', 'asset-creation'];
         const currentIndex = stepOrder.indexOf(stepId);
         
         if (currentIndex >= 0 && currentIndex < stepOrder.length - 1) {
