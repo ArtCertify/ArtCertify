@@ -291,8 +291,8 @@ npm run build
 ## 📞 Supporto
 
 Per supporto tecnico o domande sulla documentazione:
-- **📧 Email**: [info@activadigital.it](mailto:info@activadigital.it)
-- **🌐 Website**: [www.activadigital.it](https://www.activadigital.it)
+- **📧 Email**: [info@artcertify.com](mailto:info@artcertify.com)
+- **🌐 Website**: [www.artcertify.com](https://www.artcertify.com)
 - **🐛 Issues**: Repository issues per bug report e feature request
 
 **🚀 Happy Coding con ArtCertify!** 
