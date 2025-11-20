@@ -116,10 +116,10 @@ npm run build
 ## 📞 Supporto
 
 Per domande o supporto:
-- **Email**: info@activadigital.it
-- **Website**: https://www.activadigital.it
+- **Email**: info@artcertify.com
+- **Website**: https://www.artcertify.com
 
 ---
 
-Sviluppato da **Activa Digital** con ❤️
+Sviluppato da **ArtCertify**
 

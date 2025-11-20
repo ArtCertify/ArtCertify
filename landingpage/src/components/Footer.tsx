@@ -100,15 +100,7 @@ const Footer: React.FC = () => {
         <div className="pt-6 border-t border-slate-800">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
             <p className="text-slate-400 text-xs">
-              © {currentYear} ArtCertify. Sviluppato da{' '}
-              <a
-                href="https://www.activadigital.it"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary-400 hover:text-primary-300 transition-colors"
-              >
-                Activa Digital
-              </a>
+              © {currentYear} ArtCertify Team. 
             </p>
             
           </div>

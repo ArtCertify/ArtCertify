@@ -1091,7 +1091,7 @@ const roadmapPhases = {
 
 Per domande specifiche sull'architettura:
 
-- **📧 Technical Lead**: [tech@activadigital.it](mailto:tech@activadigital.it)
+- **📧 Technical Lead**: [info@artcertify.com](mailto:info@artcertify.com)
 - **📚 Architecture Docs**: Questo documento + file specifici in `/docs`
 - **🛠️ GitHub Issues**: Per proposte di miglioramento architetturale
 - **💬 Team Discussion**: Per decisioni architetturali importanti

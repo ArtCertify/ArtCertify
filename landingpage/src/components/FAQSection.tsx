@@ -128,7 +128,7 @@ const FAQSection: React.FC = () => {
               Non hai trovato la risposta che cercavi?
             </p>
             <a
-              href="mailto:info@activadigital.it"
+              href="mailto:info@artcertify.com"
               className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500/10 to-purple-500/10 hover:from-primary-500/20 hover:to-purple-500/20 border border-primary-500/30 hover:border-primary-500/50 rounded-xl text-primary-400 hover:text-primary-300 font-semibold transition-all duration-300 hover:scale-105"
             >
               Contattaci
