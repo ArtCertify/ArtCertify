@@ -463,7 +463,7 @@ npm run preview
 ## 🏢 Informazioni Progetto
 
 ### **📄 Licenza**
-Sviluppato da **Activa Digital**. Tutti i diritti riservati.
+Sviluppato dall'**ArtCertify Team** con licenza GPLv3.
 
 ### **👥 Team**
 - **Frontend Development**: React + TypeScript
@@ -475,8 +475,8 @@ Sviluppato da **Activa Digital**. Tutti i diritti riservati.
 
 Per supporto tecnico, domande o contributi:
 
-- **📧 Email**: [info@activadigital.it](mailto:info@activadigital.it)
-- **🌐 Website**: [www.activadigital.it](https://www.activadigital.it)
+- **📧 Email**: [info@artcertify.com](mailto:info@artcertify.com)
+- **🌐 Website**: [www.artcertify.com](https://www.artcertify.com)
 - **📚 Documentazione**: [docs/](docs/)
 - **🐛 Issues**: Aprire issue su repository per bug report
 

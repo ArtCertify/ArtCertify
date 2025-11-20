@@ -744,6 +744,6 @@ Per supporto specifico su Pera Wallet Connect:
 - **📚 Docs Ufficiali**: [Pera Connect Documentation](https://github.com/perawallet/connect)
 - **🛠️ GitHub Issues**: [Pera Connect Issues](https://github.com/perawallet/connect/issues)
 - **💬 Discord**: [Algorand Discord](https://discord.gg/algorand)
-- **📧 Support**: [info@activadigital.it](mailto:info@activadigital.it)
+- **📧 Support**: [info@artcertify.com](mailto:info@artcertify.com)
 
 **🔌 Pera Wallet Connect - Sicurezza e UX di ultima generazione per CaputMundi ArtCertify!** 

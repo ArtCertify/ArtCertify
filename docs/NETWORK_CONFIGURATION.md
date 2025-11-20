@@ -695,7 +695,7 @@ export const handleNetworkError = (error: any) => {
 
 Per supporto sulla configurazione di rete:
 
-- **📧 Email**: [info@activadigital.it](mailto:info@activadigital.it)
+- **📧 Email**: [info@artcertify.com](mailto:info@artcertify.com)
 - **📚 Algorand Docs**: [Algorand Developer Portal](https://developer.algorand.org)
 - **🌐 Algonode**: [Algonode API Documentation](https://algonode.io)
 - **🔍 Explorer**: [Pera Explorer](https://explorer.perawallet.app)
