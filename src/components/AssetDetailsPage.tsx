@@ -15,7 +15,8 @@ import {
   TagIcon,
   DocumentIcon,
   CheckBadgeIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveLayout from './layout/ResponsiveLayout';
 import { 
@@ -31,6 +32,9 @@ import { algorandService } from '../services/algorand';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import { useAsyncState } from '../hooks/useAsyncState';
 import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
+import { useWalletSignature } from '../hooks/useWalletSignature';
+import { useAuth } from '../contexts/AuthContext';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import { FilePreviewDisplay } from './ui';
 import type { AssetInfo } from '../services/algorand';
 
@@ -38,7 +42,10 @@ const AssetDetailsPage: React.FC = () => {
   const { assetId } = useParams<{ assetId: string }>();
   const navigate = useNavigate();
   const { data: asset, loading, error, execute } = useAsyncState<AssetInfo>();
+  const { userAddress } = useAuth();
+  const { hasSigned } = useWalletSignature();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('certificate');
   const [expandedVersions, setExpandedVersions] = useState<Set<number>>(new Set());
   const [creationDate, setCreationDate] = useState<string>('');
@@ -284,13 +291,23 @@ const AssetDetailsPage: React.FC = () => {
             </div>
           </div>
           
-          <button 
-            onClick={() => setIsModifyModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
-          >
-            <PencilIcon className="h-4 w-4" />
-            Modifica Allegati
-          </button>
+          {hasSigned ? (
+            <button 
+              onClick={() => setIsModifyModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Modifica Allegati
+            </button>
+          ) : (
+            <button 
+              onClick={() => setIsSignatureModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Modifica Allegati
+            </button>
+          )}
         </div>
 
         {/* Modern Asset Card with Image - IPFS Powered */}
@@ -799,6 +816,14 @@ const AssetDetailsPage: React.FC = () => {
           />
         )}
 
+        {/* Wallet Signature Modal */}
+        {userAddress && (
+          <WalletSignatureModal
+            isOpen={isSignatureModalOpen}
+            onClose={() => setIsSignatureModalOpen(false)}
+            walletAddress={userAddress}
+          />
+        )}
       </div>
     </ResponsiveLayout>
   );

@@ -1,0 +1,258 @@
+import React, { useState } from 'react';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { useTransactionSigning } from '../../hooks/useTransactionSigning';
+import { TermsAndConditions } from './TermsAndConditions';
+import { CheckCircleIcon, ExclamationCircleIcon, ClipboardIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
+
+interface WalletSignatureModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  walletAddress: string;
+}
+
+export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
+  isOpen,
+  onClose,
+  walletAddress
+}) => {
+  const { signAuthTransaction, isSigning, error: signingError } = useTransactionSigning();
+  const [isSigned, setIsSigned] = useState(false);
+  const [txId, setTxId] = useState<string | null>(null);
+  const [signedTxBase64, setSignedTxBase64] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Helper function to parse and format error messages
+  const formatErrorMessage = (error: unknown): string => {
+    if (!(error instanceof Error)) {
+      return 'Errore durante la firma della transazione';
+    }
+
+    const errorMessage = error.message;
+    const errorString = error.toString();
+
+    // Check for insufficient funds error
+    if (errorMessage.includes('overspend') || 
+        errorMessage.includes('insufficient') || 
+        errorMessage.includes('MicroAlgos') ||
+        errorString.includes('overspend') ||
+        errorString.includes('insufficient')) {
+      return 'Il tuo wallet non ha abbastanza fondi per pagare la fee di transazione. La transazione richiede una fee minima di circa 0.001 Algo. Ricarica il tuo wallet e riprova.';
+    }
+
+    // Check for network errors
+    if (errorMessage.includes('Network request error') || errorMessage.includes('status 400')) {
+      if (errorMessage.includes('overspend')) {
+        return 'Il tuo wallet non ha abbastanza fondi per pagare la fee di transazione. La transazione richiede una fee minima di circa 0.001 Algo. Ricarica il tuo wallet e riprova.';
+      }
+      return 'Errore di rete durante l\'invio della transazione. Verifica la connessione e riprova.';
+    }
+
+    // Return a simplified version of the error message
+    if (errorMessage.length > 200) {
+      return 'Errore durante la firma della transazione. Verifica che il wallet abbia fondi sufficienti e riprova.';
+    }
+
+    return errorMessage;
+  };
+
+  const handleSign = async () => {
+    if (!acceptedTerms) {
+      setError('È necessario accettare i Termini e Condizioni per procedere');
+      return;
+    }
+
+    try {
+      setError(null);
+      
+      // Firma la transazione di autenticazione con nota JSON (domain, nonce, timestamp, expirySeconds)
+      // La transazione è: 0 Algo, receiver = wallet stesso
+      const result = await signAuthTransaction();
+
+      if (result.txId && result.signedTxBase64) {
+        setIsSigned(true);
+        setTxId(result.txId);
+        setSignedTxBase64(result.signedTxBase64);
+        
+        // Salva in localStorage che l'utente ha firmato
+        // signedTxBase64 può essere usato per inviare al backend per la generazione JWT
+        localStorage.setItem(`wallet_signature_${walletAddress}`, 'true');
+        localStorage.setItem(`wallet_signature_tx_${walletAddress}`, result.txId);
+        localStorage.setItem(`wallet_signature_base64_${walletAddress}`, result.signedTxBase64);
+        
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new Event('walletSignatureUpdated'));
+      }
+    } catch (err) {
+      // Format error message - this will be shown instead of signingError from hook
+      const errorMessage = formatErrorMessage(err);
+      setError(errorMessage);
+    }
+  };
+
+  const handleClose = () => {
+    // Se l'utente ha firmato, chiudi il modale
+    if (isSigned) {
+      onClose();
+    } else {
+      // Altrimenti, chiudi comunque ma senza salvare la firma
+      onClose();
+    }
+  };
+
+  const handleCopyBase64 = async () => {
+    if (signedTxBase64) {
+      try {
+        await navigator.clipboard.writeText(signedTxBase64);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+      }
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Conferma Proprietà Wallet"
+      size="lg"
+      closeOnOverlayClick={!isSigning}
+    >
+      <div className="space-y-4">
+        {!isSigned ? (
+          <>
+            <div className="text-center">
+              <p className="text-slate-300 text-sm mb-4">
+                Per completare la connessione, conferma di essere il proprietario del wallet firmando una transazione.
+              </p>
+              <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                <p className="text-xs text-slate-400 mb-2">Indirizzo Wallet:</p>
+                <p className="text-sm font-mono text-slate-200 break-all">
+                  {walletAddress}
+                </p>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">
+                La transazione sarà di <span className="font-semibold text-white">0 Algo</span> e verrà inviata al tuo stesso wallet.
+              </p>
+            </div>
+
+            {/* Terms and Conditions */}
+            <TermsAndConditions walletAddress={walletAddress} />
+
+            {/* Checkbox accettazione T&C */}
+            <div className="flex items-start gap-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+              <input
+                type="checkbox"
+                id="accept-terms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                disabled={isSigning}
+                className="mt-0.5 w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              <label htmlFor="accept-terms" className="text-xs text-slate-300 cursor-pointer flex-1">
+                Dichiaro di aver letto, compreso e accettato integralmente i <span className="font-semibold text-white">Termini e Condizioni</span> sopra indicati. 
+                Accetto che i dati vengano pubblicati on-chain e su IPFS pubblicamente, e che i metadati dei file vengano archiviati su database centralizzato. 
+                Confermo di essere il legittimo proprietario del wallet {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 8)}.
+              </label>
+            </div>
+
+            {(error || signingError) && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+                <ExclamationCircleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-400 text-sm font-medium">Errore</p>
+                  <p className="text-red-300 text-xs mt-1">
+                    {/* Prefer local error (already formatted), otherwise format signingError from hook */}
+                    {error || (signingError ? formatErrorMessage(new Error(signingError)) : '')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleClose}
+                disabled={isSigning}
+                className="flex-1"
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSign}
+                loading={isSigning}
+                disabled={isSigning || !acceptedTerms}
+                className="flex-1"
+              >
+                SIGN
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <CheckCircleIcon className="w-16 h-16 text-green-400" />
+              </div>
+              <p className="text-green-400 font-medium mb-2">
+                Firma completata con successo!
+              </p>
+              <p className="text-slate-300 text-sm mb-4">
+                La transazione è stata firmata e inviata alla blockchain.
+              </p>
+              {txId && (
+                <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-slate-400 mb-1">Transaction ID:</p>
+                  <p className="text-xs font-mono text-slate-200 break-all">
+                    {txId}
+                  </p>
+                </div>
+              )}
+              {signedTxBase64 && (
+                <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-slate-400">Transazione Firmata (Base64):</p>
+                    <button
+                      onClick={handleCopyBase64}
+                      className="text-slate-400 hover:text-white transition-colors p-1 rounded"
+                      title="Copia negli appunti"
+                    >
+                      {copied ? (
+                        <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <ClipboardIcon className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="bg-slate-900/50 rounded p-2 max-h-32 overflow-y-auto">
+                    <p className="text-xs font-mono text-slate-200 break-all whitespace-pre-wrap">
+                      {signedTxBase64}
+                    </p>
+                  </div>
+                  {copied && (
+                    <p className="text-xs text-green-400 mt-1">Copiato!</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleClose}
+              className="w-full"
+            >
+              Continua
+            </Button>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+};
+
+
+
