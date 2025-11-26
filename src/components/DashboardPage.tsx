@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, FolderIcon, BuildingOfficeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, FolderIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 import ResponsiveLayout from './layout/ResponsiveLayout';
 import { CertificateCard } from './CertificateCard';
 import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';

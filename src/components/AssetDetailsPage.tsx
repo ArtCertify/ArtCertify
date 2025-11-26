@@ -15,8 +15,7 @@ import {
   TagIcon,
   DocumentIcon,
   CheckBadgeIcon,
-  InformationCircleIcon,
-  ExclamationTriangleIcon
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveLayout from './layout/ResponsiveLayout';
 import { 

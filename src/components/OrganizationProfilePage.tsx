@@ -16,8 +16,7 @@ import {
   IdentificationIcon,
   WalletIcon,
   CalendarIcon,
-  PencilIcon,
-  ExclamationTriangleIcon
+  PencilIcon
 } from '@heroicons/react/24/outline';
 
 
