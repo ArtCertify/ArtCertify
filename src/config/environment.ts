@@ -69,6 +69,11 @@ export const config = {
   // Pinata IPFS Gateway (optional for basic functionality)
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
   
+  // Backend API Base URL (optional - required for authentication)
+  api: {
+    baseUrl: getEnvVar('VITE_API_BASE_URL', true)
+  },
+  
   // Algorand Network
   algorandNetwork,
   

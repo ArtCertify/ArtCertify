@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletIcon, DevicePhoneMobileIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import { usePeraWallet } from '../hooks/usePeraWallet';
 import BackgroundLayout from './layout/BackgroundLayout';
-import { WalletSignatureModal } from './modals/WalletSignatureModal';
 
 interface LoginPageProps {
   onLogin: (address: string) => void;
@@ -19,55 +18,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     connect,
     error
   } = usePeraWallet();
-  
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const hasCheckedSignature = useRef<string | null>(null); // Track which address we've checked
-  const hasNavigated = useRef<string | null>(null); // Track which address we've navigated for
 
-  // Check if wallet has already signed when connected
+  // Auto-login when wallet connects
   useEffect(() => {
     if (isConnected && accountAddress) {
-      // Reset navigation flag if address changed
-      if (hasNavigated.current !== accountAddress) {
-        hasNavigated.current = null;
-      }
-      
-      // Only check if we haven't checked for this specific address
-      if (hasCheckedSignature.current !== accountAddress) {
-        hasCheckedSignature.current = accountAddress;
-        
-        // Check if user has already signed for this wallet
-        const hasSigned = localStorage.getItem(`wallet_signature_${accountAddress}`) === 'true';
-        
-        if (!hasSigned) {
-          // Show signature modal
-          setShowSignatureModal(true);
-        } else {
-          // Already signed, proceed with login
-          if (!hasNavigated.current) {
-            hasNavigated.current = accountAddress;
-            onLogin(accountAddress);
-            navigate('/');
-          }
-        }
-      }
-    } else if (!isConnected || !accountAddress) {
-      // Reset flags when disconnected or address is cleared
-      hasCheckedSignature.current = null;
-      hasNavigated.current = null;
-    }
-  }, [isConnected, accountAddress, onLogin, navigate]);
-
-  // Handle signature modal close
-  const handleSignatureModalClose = () => {
-    setShowSignatureModal(false);
-    // Proceed with login after modal is closed (whether signed or not)
-    if (accountAddress && hasNavigated.current !== accountAddress) {
-      hasNavigated.current = accountAddress;
       onLogin(accountAddress);
       navigate('/');
     }
-  };
+  }, [isConnected, accountAddress, onLogin, navigate]);
 
   const handleConnect = async () => {
     try {
@@ -220,15 +178,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </p>
         </div>
       </div>
-
-      {/* Wallet Signature Modal */}
-      {accountAddress && (
-        <WalletSignatureModal
-          isOpen={showSignatureModal}
-          onClose={handleSignatureModalClose}
-          walletAddress={accountAddress}
-        />
-      )}
     </BackgroundLayout>
   );
 }; 

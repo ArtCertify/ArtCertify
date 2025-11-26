@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { useTransactionSigning } from '../../hooks/useTransactionSigning';
+import { authService } from '../../services/authService';
 import { TermsAndConditions } from './TermsAndConditions';
 import { CheckCircleIcon, ExclamationCircleIcon, ClipboardIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 
@@ -23,6 +24,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Helper function to parse and format error messages
   const formatErrorMessage = (error: unknown): string => {
@@ -72,15 +74,36 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
       const result = await signAuthTransaction();
 
       if (result.txId && result.signedTxBase64) {
-        setIsSigned(true);
         setTxId(result.txId);
         setSignedTxBase64(result.signedTxBase64);
         
         // Salva in localStorage che l'utente ha firmato
-        // signedTxBase64 può essere usato per inviare al backend per la generazione JWT
         localStorage.setItem(`wallet_signature_${walletAddress}`, 'true');
         localStorage.setItem(`wallet_signature_tx_${walletAddress}`, result.txId);
         localStorage.setItem(`wallet_signature_base64_${walletAddress}`, result.signedTxBase64);
+        
+        // Try to authenticate with backend to get JWT token
+        setIsAuthenticating(true);
+        try {
+          const jwtToken = await authService.authenticateWithAlgorand(
+            walletAddress,
+            result.signedTxBase64
+          );
+          
+          // Save JWT token to localStorage (overwrites previous token if exists)
+          authService.saveToken(jwtToken);
+          
+          setIsSigned(true);
+        } catch (authError) {
+          // If authentication fails, still mark as signed (transaction is on blockchain)
+          // but show error message
+          setIsSigned(true);
+          const authErrorMessage = authError instanceof Error ? authError.message : 'Errore durante l\'autenticazione con il server';
+          setError(`Transazione firmata con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
+          console.error('Authentication error:', authError);
+        } finally {
+          setIsAuthenticating(false);
+        }
         
         // Dispatch custom event to notify other components
         window.dispatchEvent(new Event('walletSignatureUpdated'));
@@ -173,6 +196,15 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               </div>
             )}
 
+            {isAuthenticating && (
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                <p className="text-blue-400 text-sm">
+                  Autenticazione con il server in corso...
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 variant="secondary"
@@ -185,11 +217,11 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               <Button
                 variant="primary"
                 onClick={handleSign}
-                loading={isSigning}
-                disabled={isSigning || !acceptedTerms}
+                loading={isSigning || isAuthenticating}
+                disabled={isSigning || isAuthenticating || !acceptedTerms}
                 className="flex-1"
               >
-                SIGN
+                {isAuthenticating ? 'Autenticazione...' : 'SIGN'}
               </Button>
             </div>
           </>
