@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { useTransactionSigning } from '../../hooks/useTransactionSigning';
@@ -25,6 +25,19 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Reset all state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSigned(false);
+      setTxId(null);
+      setSignedTxBase64(null);
+      setCopied(false);
+      setAcceptedTerms(false);
+      setError(null);
+      setIsAuthenticating(false);
+    }
+  }, [isOpen]);
 
   // Helper function to parse and format error messages
   const formatErrorMessage = (error: unknown): string => {
