@@ -3,7 +3,7 @@
 ## Documento Tecnico - Servizi e Funzionalità
 
 **Versione:** 1.0  
-**Data:** 2024  
+**Data:** 26/11/2025  
 **Scopo:** Documentazione funzionale dei servizi dell'applicazione ArtCertify per certificazione digitale blockchain
 
 ---
