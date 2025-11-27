@@ -10,7 +10,8 @@ const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
     value = process.env[key];
   }
   
-  if (value === undefined || (!allowEmpty && value === '')) {
+  // If allowEmpty is true, undefined and empty string are allowed
+  if (!allowEmpty && (value === undefined || value === '')) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   
