@@ -46,7 +46,6 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
     }
 
     const errorMessage = error.message;
-    const errorString = error.toString();
 
     // Check for user rejection
     if (errorMessage.includes('User rejected') || errorMessage.includes('rejected')) {
