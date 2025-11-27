@@ -48,26 +48,19 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
     const errorMessage = error.message;
     const errorString = error.toString();
 
-    // Check for insufficient funds error
-    if (errorMessage.includes('overspend') || 
-        errorMessage.includes('insufficient') || 
-        errorMessage.includes('MicroAlgos') ||
-        errorString.includes('overspend') ||
-        errorString.includes('insufficient')) {
-      return 'Il tuo wallet non ha abbastanza fondi per pagare la fee di transazione. La transazione richiede una fee minima di circa 0.001 Algo. Ricarica il tuo wallet e riprova.';
+    // Check for user rejection
+    if (errorMessage.includes('User rejected') || errorMessage.includes('rejected')) {
+      return 'Firma del messaggio annullata dall\'utente.';
     }
 
     // Check for network errors
     if (errorMessage.includes('Network request error') || errorMessage.includes('status 400')) {
-      if (errorMessage.includes('overspend')) {
-        return 'Il tuo wallet non ha abbastanza fondi per pagare la fee di transazione. La transazione richiede una fee minima di circa 0.001 Algo. Ricarica il tuo wallet e riprova.';
-      }
-      return 'Errore di rete durante l\'invio della transazione. Verifica la connessione e riprova.';
+      return 'Errore di rete durante la firma del messaggio. Verifica la connessione e riprova.';
     }
 
     // Return a simplified version of the error message
     if (errorMessage.length > 200) {
-      return 'Errore durante la firma della transazione. Verifica che il wallet abbia fondi sufficienti e riprova.';
+      return 'Errore durante la firma del messaggio. Riprova.';
     }
 
     return errorMessage;
@@ -82,8 +75,8 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
     try {
       setError(null);
       
-      // Firma la transazione di autenticazione con nota JSON (domain, nonce, timestamp, expirySeconds)
-      // La transazione è: 0 Algo, receiver = wallet stesso
+      // Firma il messaggio di autenticazione con JSON (domain, nonce, timestamp, expirySeconds)
+      // La firma del messaggio è gratuita e non richiede fees
       const result = await signAuthTransaction();
 
       if (result.txId && result.signedTxBase64) {
@@ -108,11 +101,11 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           
           setIsSigned(true);
         } catch (authError) {
-          // If authentication fails, still mark as signed (transaction is on blockchain)
+          // If authentication fails, still mark as signed (message is signed)
           // but show error message
           setIsSigned(true);
           const authErrorMessage = authError instanceof Error ? authError.message : 'Errore durante l\'autenticazione con il server';
-          setError(`Transazione firmata con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
+          setError(`Messaggio firmato con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
           console.error('Authentication error:', authError);
         } finally {
           setIsAuthenticating(false);
@@ -163,7 +156,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           <>
             <div className="text-center">
               <p className="text-slate-300 text-sm mb-4">
-                Per completare la connessione, conferma di essere il proprietario del wallet firmando una transazione.
+                Per completare la connessione, conferma di essere il proprietario del wallet firmando un messaggio.
               </p>
               <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
                 <p className="text-xs text-slate-400 mb-2">Indirizzo Wallet:</p>
@@ -172,7 +165,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
                 </p>
               </div>
               <p className="text-xs text-slate-400 mb-4">
-                La transazione sarà di <span className="font-semibold text-white">0 Algo</span> e verrà inviata al tuo stesso wallet.
+                La firma del messaggio è <span className="font-semibold text-green-400">gratuita</span> e non richiede alcuna fee di transazione.
               </p>
             </div>
 
@@ -248,11 +241,11 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
                 Firma completata con successo!
               </p>
               <p className="text-slate-300 text-sm mb-4">
-                La transazione è stata firmata e inviata alla blockchain.
+                Il messaggio è stato firmato con successo.
               </p>
               {txId && (
                 <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
-                  <p className="text-xs text-slate-400 mb-1">Transaction ID:</p>
+                  <p className="text-xs text-slate-400 mb-1">Signature ID:</p>
                   <p className="text-xs font-mono text-slate-200 break-all">
                     {txId}
                   </p>
@@ -261,7 +254,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               {signedTxBase64 && (
                 <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-400">Transazione Firmata (Base64):</p>
+                    <p className="text-xs text-slate-400">Messaggio Firmato (Base64):</p>
                     <button
                       onClick={handleCopyBase64}
                       className="text-slate-400 hover:text-white transition-colors p-1 rounded"

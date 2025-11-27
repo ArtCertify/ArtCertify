@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePeraWallet } from './usePeraWallet';
 import algosdk from 'algosdk';
 import { config } from '../config/environment';
+import peraWalletService from '../services/peraWalletService';
 
 export interface TransactionSigningState {
   isSigning: boolean;
@@ -169,9 +170,10 @@ export const useTransactionSigning = () => {
   };
 
   /**
-   * Sign authentication transaction for JWT generation
-   * Creates a transaction with JSON note containing domain, nonce, timestamp, expirySeconds
-   * Returns both the signed transaction in base64 format and the transaction ID
+   * Sign authentication message for JWT generation
+   * Creates a message with JSON containing domain, nonce, timestamp, expirySeconds
+   * Signs the message using Pera Wallet (no transaction fees required)
+   * Returns the signed message in base64 format
    */
   const signAuthTransaction = async (): Promise<{ signedTxBase64: string; txId: string }> => {
     if (!isConnected || !accountAddress) {
@@ -181,59 +183,45 @@ export const useTransactionSigning = () => {
     setState(prev => ({ ...prev, isSigning: true, error: null }));
 
     try {
-      // Create Algod client
-      const algodClient = new algosdk.Algodv2(
-        config.algod.token,
-        config.algod.server,
-        config.algod.port
-      );
-
-      // Get suggested parameters
-      const suggestedParams = await algodClient.getTransactionParams().do();
-
-      // Create auth note JSON (matching backend format)
-      const authNote = {
+      // Create auth message JSON (matching backend format)
+      const authMessage = {
         domain: typeof window !== 'undefined' ? window.location.origin : '',
         nonce: crypto.randomUUID(),
         timestamp: Math.floor(Date.now() / 1000), // epoch seconds
         expirySeconds: 1000
       };
-      const noteJson = JSON.stringify(authNote);
-
-      // Create payment transaction: 0 Algo, receiver = sender (self)
-      const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        sender: accountAddress,
-        receiver: accountAddress, // Self transaction
-        amount: 0, // 0 Algo
-        note: new Uint8Array(Buffer.from(noteJson)),
-        suggestedParams
-      });
-
-      // Prepare transaction for signing (Pera Connect format)
-      const txGroup = [{ 
-        txn, 
-        signers: [accountAddress] 
-      }];
+      const messageJson = JSON.stringify(authMessage);
       
-      // Sign with Pera Wallet
-      const signedTxns = await signTransaction([txGroup]);
-      const signedTxn = signedTxns[0];
+      // Convert message to Uint8Array for signing
+      const messageBytes = new Uint8Array(Buffer.from(messageJson, 'utf-8'));
 
-      // Encode signed transaction to base64 (matching backend format)
-      const signedTxBase64 = Buffer.from(signedTxn).toString('base64');
+      // Sign message with Pera Wallet (no transaction, no fees)
+      const signedMessages = await peraWalletService.signData(
+        [{
+          data: messageBytes,
+          message: 'Firma questo messaggio per autenticarti'
+        }],
+        accountAddress
+      );
 
-      // Send transaction to blockchain
-      const result = await algodClient.sendRawTransaction(signedTxn).do();
-      const txId = result.txid;
+      if (!signedMessages || signedMessages.length === 0) {
+        throw new Error('Firma del messaggio fallita');
+      }
+
+      // Encode signed message to base64 (matching backend format)
+      const signedTxBase64 = Buffer.from(signedMessages[0]).toString('base64');
+
+      // Generate a unique ID for this signature (not a transaction ID)
+      const signatureId = `sig_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
       
       setState(prev => ({ 
         ...prev, 
         isSigning: false, 
-        lastSignedTxId: txId,
+        lastSignedTxId: signatureId,
         error: null 
       }));
 
-      return { signedTxBase64, txId };
+      return { signedTxBase64, txId: signatureId };
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
