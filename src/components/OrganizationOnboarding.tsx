@@ -3,7 +3,10 @@ import { CloudArrowUpIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, MapPinIc
 import { usePeraCertificationFlow } from '../hooks/usePeraCertificationFlow';
 import { Input, Textarea, Button, Alert } from './ui';
 import { CertificationModal } from './modals/CertificationModal';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useWalletSignature } from '../hooks/useWalletSignature';
 
 interface OrganizationOnboardingProps {
   onBack?: () => void;
@@ -35,6 +38,9 @@ const ORGANIZATION_TYPES = [
 ];
 
 const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack, onSuccess }) => {
+  const { userAddress } = useAuth();
+  const { hasSigned } = useWalletSignature();
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [formData, setFormData] = useState<OrganizationData>({
     name: '',
     type: '',
@@ -133,6 +139,11 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
   };
 
   const handleSubmit = async () => {
+    // Check if user has signed terms and conditions
+    if (!hasSigned) {
+      setIsSignatureModalOpen(true);
+      return;
+    }
     if (!validateForm()) {
       return;
     }
@@ -428,6 +439,15 @@ const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ onBack,
         isProcessing={isProcessing}
         title="Creazione Profilo Organizzazione"
       />
+
+      {/* Wallet Signature Modal */}
+      {userAddress && (
+        <WalletSignatureModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => setIsSignatureModalOpen(false)}
+          walletAddress={userAddress}
+        />
+      )}
     </div>
   );
 };

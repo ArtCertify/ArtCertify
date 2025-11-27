@@ -7,6 +7,8 @@ import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';
 import { nftService } from '../services/nftService';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectsCache } from '../hooks/useProjectsCache';
+import { useWalletSignature } from '../hooks/useWalletSignature';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import OrganizationOnboarding from './OrganizationOnboarding';
 import type { AssetInfo } from '../services/algorand';
 
@@ -75,7 +77,9 @@ interface CertificationsPageState {
 
 export const DashboardPage: React.FC = () => {
   const { userAddress, isAuthenticated } = useAuth();
+  const { hasSigned } = useWalletSignature();
   const { getCachedProjects, setCachedProjects, clearProjectsCache } = useProjectsCache();
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [state, setState] = useState<CertificationsPageState>({
     certificates: [],
     loading: true,
@@ -488,13 +492,23 @@ export const DashboardPage: React.FC = () => {
             
             {/* Bottone per creare prima certificazione */}
             <div className="flex justify-center">
-              <Link
-                to="/certificates"
-                className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
-              >
-                <PlusIcon className="h-5 w-5" />
-                Crea la tua prima certificazione
-              </Link>
+              {hasSigned ? (
+                <Link
+                  to="/certificates"
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Crea la tua prima certificazione
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setIsSignatureModalOpen(true)}
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-slate-600 hover:bg-slate-500 text-slate-300 font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Crea la tua prima certificazione
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -634,13 +648,23 @@ export const DashboardPage: React.FC = () => {
               title="Nessun progetto trovato"
               description="Non hai ancora creato certificazioni con progetti associati."
               action={
-                <Link
-                  to="/certificates"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                >
-                  <PlusIcon className="h-5 w-5" />
-                  Crea la tua prima certificazione
-                </Link>
+                hasSigned ? (
+                  <Link
+                    to="/certificates"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    Crea la tua prima certificazione
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setIsSignatureModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 font-medium rounded-lg transition-colors"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    Crea la tua prima certificazione
+                  </button>
+                )
               }
             />
           )
@@ -649,19 +673,41 @@ export const DashboardPage: React.FC = () => {
         {/* Create New Certification Button - Fixed at bottom when there are certificates */}
         {!hasNoFilteredCertificates && (
           <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-            <Link
-              to="/certificates"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 min-w-[280px] justify-center"
-              style={{
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
-              }}
-            >
-              <PlusIcon className="h-5 w-5" />
-              Crea nuova certificazione
-            </Link>
+            {hasSigned ? (
+              <Link
+                to="/certificates"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 min-w-[280px] justify-center"
+                style={{
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                }}
+              >
+                <PlusIcon className="h-5 w-5" />
+                Crea nuova certificazione
+              </Link>
+            ) : (
+              <button
+                onClick={() => setIsSignatureModalOpen(true)}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-slate-600 hover:bg-slate-500 text-slate-300 font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 min-w-[280px] justify-center"
+                style={{
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                }}
+              >
+                <PlusIcon className="h-5 w-5" />
+                Crea nuova certificazione
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Wallet Signature Modal */}
+      {userAddress && (
+        <WalletSignatureModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => setIsSignatureModalOpen(false)}
+          walletAddress={userAddress}
+        />
+      )}
     </ResponsiveLayout>
   );
 }; 

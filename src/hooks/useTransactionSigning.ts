@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePeraWallet } from './usePeraWallet';
 import algosdk from 'algosdk';
 import { config } from '../config/environment';
+import peraWalletService from '../services/peraWalletService';
 
 export interface TransactionSigningState {
   isSigning: boolean;
@@ -169,6 +170,73 @@ export const useTransactionSigning = () => {
   };
 
   /**
+   * Sign authentication message for JWT generation
+   * Creates a message with JSON containing domain, nonce, timestamp, expirySeconds
+   * Signs the message using Pera Wallet (no transaction fees required)
+   * Returns the signed message in base64 format
+   */
+  const signAuthTransaction = async (): Promise<{ signedTxBase64: string; txId: string }> => {
+    if (!isConnected || !accountAddress) {
+      throw new Error('Pera Wallet not connected');
+    }
+
+    setState(prev => ({ ...prev, isSigning: true, error: null }));
+
+    try {
+      // Create auth message JSON (matching backend format)
+      const authMessage = {
+        domain: typeof window !== 'undefined' ? window.location.origin : '',
+        nonce: crypto.randomUUID(),
+        timestamp: Math.floor(Date.now() / 1000), // epoch seconds
+        expirySeconds: 1000
+      };
+      const messageJson = JSON.stringify(authMessage);
+      
+      // Convert message to Uint8Array for signing
+      const messageBytes = new Uint8Array(Buffer.from(messageJson, 'utf-8'));
+
+      // Sign message with Pera Wallet (no transaction, no fees)
+      const signedMessages = await peraWalletService.signData(
+        [{
+          data: messageBytes,
+          message: 'Firma questo messaggio per autenticarti'
+        }],
+        accountAddress
+      );
+
+      if (!signedMessages || signedMessages.length === 0) {
+        throw new Error('Firma del messaggio fallita');
+      }
+
+      // Encode signed message to base64 (matching backend format)
+      const signedTxBase64 = Buffer.from(signedMessages[0]).toString('base64');
+
+      // Generate a unique ID for this signature (not a transaction ID)
+      const signatureId = `sig_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+      
+      setState(prev => ({ 
+        ...prev, 
+        isSigning: false, 
+        lastSignedTxId: signatureId,
+        error: null 
+      }));
+
+      return { signedTxBase64, txId: signatureId };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      setState(prev => ({ 
+        ...prev, 
+        isSigning: false, 
+        error: errorMessage 
+      }));
+
+      throw error;
+    }
+  };
+
+  /**
    * Clear the last transaction and error state
    */
   const clearState = () => {
@@ -190,6 +258,7 @@ export const useTransactionSigning = () => {
     // Methods
     signPaymentTransaction,
     signAssetCreationTransaction,
+    signAuthTransaction,
     clearState
   };
 }; 
