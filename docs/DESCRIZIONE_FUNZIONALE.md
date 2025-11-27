@@ -15,9 +15,10 @@
 3. [Servizio Storage IPFS](#servizio-storage-ipfs)
 4. [Servizio Minting Certificazioni](#servizio-minting-certificazioni)
 5. [Servizio Autenticazione Pera Wallet](#servizio-autenticazione-pera-wallet)
-6. [Servizio Configurazione Network](#servizio-configurazione-network)
-7. [Servizio Decodifica CID](#servizio-decodifica-cid)
-8. [Architettura Applicazione](#architettura-applicazione)
+6. [Servizio Autenticazione JWT Backend](#servizio-autenticazione-jwt-backend)
+7. [Servizio Configurazione Network](#servizio-configurazione-network)
+8. [Servizio Decodifica CID](#servizio-decodifica-cid)
+9. [Architettura Applicazione](#architettura-applicazione)
 
 ---
 
@@ -269,6 +270,74 @@ Il servizio Pera Wallet fornisce:
 4. **Sessione Attiva**: La sessione viene mantenuta per le operazioni successive
 5. **Firma Transazioni**: Per ogni operazione blockchain, l'utente firma tramite wallet
 6. **Disconnessione**: L'utente può disconnettersi in qualsiasi momento
+
+---
+
+## Servizio Autenticazione JWT Backend
+
+### Descrizione
+
+Il servizio di autenticazione JWT Backend rappresenta l'integrazione tra l'applicazione frontend e il backend API per l'autenticazione basata su token JWT. Questo servizio estende il sistema di autenticazione Pera Wallet aggiungendo la capacità di ottenere e gestire token JWT dal backend, che possono essere utilizzati per autenticare richieste API future.
+
+Quando un utente firma i Terms & Conditions tramite una transazione blockchain, il servizio invia la transazione firmata al backend API. Il backend verifica la firma della transazione, valida che l'utente possieda effettivamente il wallet, e restituisce un token JWT che può essere utilizzato per autenticare richieste successive al backend.
+
+Il servizio gestisce l'intero ciclo di vita del token JWT: ottenimento dal backend, salvataggio in localStorage, recupero per utilizzo in richieste API, e rimozione quando necessario. Il token viene salvato in modo persistente in localStorage, permettendo all'utente di rimanere autenticato tra le sessioni del browser.
+
+Il servizio include anche un sistema di gestione dello stato della firma dei Terms & Conditions. Utilizzando il hook `useWalletSignature`, i componenti possono verificare se l'utente ha già firmato i termini e accettato le condizioni, e mostrare il modal di firma solo quando necessario.
+
+L'importanza di questo servizio risiede nel fatto che permette all'applicazione di autenticarsi con il backend utilizzando un sistema sicuro basato su blockchain, senza richiedere password tradizionali. Il token JWT può essere utilizzato per autenticare tutte le richieste API future, fornendo un sistema di autenticazione standard e sicuro.
+
+### Scopo Funzionale
+
+Il servizio JWT Backend gestisce l'autenticazione con il backend API tramite firma transazione blockchain, ottenendo e gestendo token JWT per autenticazione API.
+
+### Funzionalità Principali
+
+#### Autenticazione con Backend
+
+- **Firma Transazione**: Creazione e firma transazione 0 Algo con nota JSON
+- **Invio al Backend**: Comunicazione con endpoint `/api/v1/auth/algorand`
+- **Ricezione JWT**: Ottenimento token JWT dal backend dopo verifica firma
+- **Gestione Errori**: Gestione robusta errori autenticazione con messaggi user-friendly
+
+#### Gestione Token JWT
+
+- **Salvataggio Token**: Persistenza token in localStorage
+- **Recupero Token**: Metodo per recuperare token salvato
+- **Rimozione Token**: Metodo per rimuovere token (logout)
+- **Verifica Token**: Metodo per verificare presenza token
+
+#### Gestione Stato Firma
+
+- **Verifica Firma**: Hook per verificare se utente ha firmato Terms & Conditions
+- **Sincronizzazione Cross-Tab**: Aggiornamento automatico stato tra tab/window
+- **Event-Driven Updates**: Aggiornamento stato tramite eventi custom
+- **Persistenza**: Salvataggio stato firma in localStorage per wallet address
+
+### Utilità nell'Applicazione
+
+Il servizio JWT Backend fornisce:
+
+- **Autenticazione API**: Token JWT per autenticare richieste backend
+- **Sicurezza Blockchain**: Autenticazione basata su firma transazione
+- **Terms & Conditions**: Sistema per accettazione esplicita termini
+- **Session Management**: Gestione sessioni con token persistente
+- **User Experience**: Modal interattivo per firma Terms & Conditions
+
+### Flusso Operativo
+
+1. **Richiesta Autenticazione**: Utente tenta azione che richiede autenticazione
+2. **Verifica Stato**: Sistema verifica se utente ha già firmato
+3. **Mostra Modal**: Se non firmato, mostra WalletSignatureModal
+4. **Accettazione Terms**: Utente deve accettare esplicitamente Terms & Conditions
+5. **Firma Transazione**: Utente firma transazione 0 Algo con Pera Wallet
+6. **Invio Blockchain**: Transazione inviata alla blockchain
+7. **Salvataggio Firma**: Stato firma salvato in localStorage
+8. **Autenticazione Backend**: Transazione firmata inviata al backend
+9. **Ricezione JWT**: Backend verifica e restituisce token JWT
+10. **Salvataggio Token**: Token JWT salvato in localStorage
+11. **Aggiornamento Stato**: Componenti aggiornati tramite eventi
+12. **Utilizzo Token**: Token disponibile per future richieste API
 
 ---
 
