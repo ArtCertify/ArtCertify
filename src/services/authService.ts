@@ -113,6 +113,69 @@ class AuthService {
   hasToken(): boolean {
     return this.getToken() !== null;
   }
+
+  /**
+   * Clear all authentication data including JWT, wallet signatures, cache, cookies, and sessionStorage
+   * This should be called on logout or when connecting a new wallet
+   * @param previousAddress Optional previous wallet address to clear signature data for
+   */
+  clearAllAuthData(previousAddress?: string | null): void {
+    try {
+      // Clear JWT token
+      this.clearToken();
+
+      // Clear wallet signature data for previous address (if provided) or all addresses
+      if (previousAddress) {
+        localStorage.removeItem(`wallet_signature_${previousAddress}`);
+        localStorage.removeItem(`wallet_signature_base64_${previousAddress}`);
+        localStorage.removeItem(`wallet_signature_tx_${previousAddress}`);
+      } else {
+        // Clear all wallet signature data (iterate through localStorage keys)
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.startsWith('wallet_signature_') ||
+            key.startsWith('wallet_signature_base64_') ||
+            key.startsWith('wallet_signature_tx_')
+          )) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+
+      // Clear projects cache
+      localStorage.removeItem('artcertify_projects_cache');
+
+      // Clear wallet connection data
+      localStorage.removeItem('algorand_address');
+      localStorage.removeItem('pera_wallet_connected');
+      localStorage.removeItem('pera_wallet_account');
+
+      // Clear SPID session data
+      sessionStorage.removeItem('spid_auth_state');
+      localStorage.removeItem('spid_user_session');
+
+      // Clear all cookies
+      document.cookie.split(';').forEach((cookie) => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        // Clear cookie for current domain and all paths
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+        // Also try to clear for parent domain
+        const hostnameParts = window.location.hostname.split('.');
+        if (hostnameParts.length > 1) {
+          const parentDomain = '.' + hostnameParts.slice(-2).join('.');
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${parentDomain}`;
+        }
+      });
+    } catch (error) {
+      console.error('Error clearing authentication data:', error);
+      // Continue anyway - try to clear as much as possible
+    }
+  }
 }
 
 // Export singleton instance
