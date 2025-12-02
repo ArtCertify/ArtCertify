@@ -9,13 +9,15 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.17-blue?logo=tailwindcss)
 ![Pera Wallet](https://img.shields.io/badge/Pera%20Wallet-1.4.2-orange)
 
-## 🚀 Caratteristiche Principali
+## 🚀 Caratteristiche Principali 
 
 ### ✨ **Autenticazione Sicura**
-- **Pera Wallet Connect**: Unico metodo di autenticazione supportato
-- **Session Persistence**: Riconnessione automatica tra sessioni
-- **Multi-Platform**: Supporto mobile (QR Code) e desktop
-- **Zero Private Keys**: Nessuna chiave privata memorizzata nell'applicazione
+- **Pera Wallet Connect** (v1.0): Metodo di autenticazione principale
+- **JWT Backend Integration** (v2.0): Autenticazione con backend tramite firma transazione Algorand
+- **Terms & Conditions** (v2.0): Accettazione esplicita termini con firma blockchain
+- **Session Persistence** (v1.0): Riconnessione automatica tra sessioni
+- **Multi-Platform** (v1.0): Supporto mobile (QR Code) e desktop
+- **Zero Private Keys** (v1.0): Nessuna chiave privata memorizzata nell'applicazione
 
 ### 🏗️ **Certificazione Blockchain**
 - **Soulbound Tokens (SBT)**: Certificazioni non trasferibili
@@ -84,9 +86,12 @@ artcertify/
 │   │   │   ├── DocumentForm.tsx     # Form certificazione documenti
 │   │   │   └── BaseCertificationForm.tsx # Form base condiviso
 │   │   │
-│   │   ├── modals/                  # 🪟 Dialog e modal
-│   │   │   ├── CertificationModal.tsx      # Modal processo certificazione
-│   │   │   └── ModifyAttachmentsModal.tsx  # Modal modifica allegati
+│   │   ├── modals/                  # 🪟 Dialog e modal (v2.0)
+│   │   │   ├── CertificationModal.tsx      # v1.0 - Modal processo certificazione
+│   │   │   ├── WalletSignatureModal.tsx   # v2.0 - Modal firma Terms & Conditions
+│   │   │   ├── TermsAndConditions.tsx     # v2.0 - Componente Termini e Condizioni
+│   │   │   ├── ModifyAttachmentsModal.tsx  # v1.0 - Modal modifica allegati
+│   │   │   └── ModifyOrganizationModal.tsx # v1.0 - Modal modifica organizzazione
 │   │   │
 │   │   ├── asset/                   # 🏛️ Componenti gestione asset
 │   │   │   ├── AssetHeader.tsx      # Header dettagli asset
@@ -108,22 +113,28 @@ artcertify/
 │   │   ├── CertificateCard.tsx      # 🎫 Card certificato singolo
 │   │   └── VersioningSection.tsx    # 🔄 Sezione versioning asset
 │   │
-│   ├── hooks/                       # 🪝 Custom Hooks React
-│   │   ├── usePeraCertificationFlow.ts # Hook flusso certificazione completo
-│   │   ├── usePeraWallet.ts         # Hook integrazione Pera Wallet
-│   │   ├── useTransactionSigning.ts # Hook firma transazioni
-│   │   ├── useAsyncState.ts         # Hook gestione stati asincroni
-│   │   ├── useDebounce.ts           # Hook debounce per ricerche
-│   │   └── useLocalStorage.ts       # Hook persistenza localStorage
+│   ├── hooks/                       # 🪝 Custom Hooks React (v2.0)
+│   │   ├── usePeraCertificationFlow.ts # v1.0 - Hook flusso certificazione completo
+│   │   ├── usePeraWallet.ts         # v1.0 - Hook integrazione Pera Wallet
+│   │   ├── useTransactionSigning.ts # v2.0 - Hook firma transazioni + auth
+│   │   ├── useWalletSignature.ts    # v2.0 - Hook gestione firma Terms & Conditions
+│   │   ├── useAsyncState.ts         # v1.0 - Hook gestione stati asincroni
+│   │   ├── useDebounce.ts           # v1.0 - Hook debounce per ricerche
+│   │   ├── useLocalStorage.ts       # v1.0 - Hook persistenza localStorage
+│   │   ├── useIPFSMetadata.ts       # v1.0 - Hook gestione metadata IPFS
+│   │   ├── useProjectsCache.ts      # v1.0 - Hook cache progetti
+│   │   └── useWalletValidation.ts   # v1.0 - Hook validazione wallet
 │   │
-│   ├── services/                    # 🔧 Servizi Core Business Logic
-│   │   ├── peraWalletService.ts     # Servizio Pera Wallet Connect
-│   │   ├── algorand.ts              # API Algorand + gestione asset
-│   │   ├── ipfsService.ts           # Integrazione Pinata IPFS
-│   │   ├── cidDecoder.ts            # Decodifica CID ARC-19 compliance
-│   │   ├── walletService.ts         # Servizi wallet generici
-│   │   ├── nftService.ts            # Gestione NFT e portfolio
-│   │   └── spidService.ts           # Integrazione SPID (placeholder)
+│   ├── services/                    # 🔧 Servizi Core Business Logic (v2.0)
+│   │   ├── peraWalletService.ts     # v1.0 - Servizio Pera Wallet Connect
+│   │   ├── authService.ts          # v2.0 - Servizio autenticazione JWT con backend
+│   │   ├── algorand.ts              # v1.0 - API Algorand + gestione asset
+│   │   ├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS
+│   │   ├── ipfsUrlService.ts        # v1.0 - Gestione URL IPFS e gateway
+│   │   ├── cidDecoder.ts            # v1.0 - Decodifica CID ARC-19 compliance
+│   │   ├── walletService.ts         # v1.0 - Servizi wallet generici
+│   │   ├── nftService.ts            # v1.0 - Gestione NFT e portfolio
+│   │   └── spidService.ts           # v1.0 - Integrazione SPID (placeholder)
 │   │
 │   ├── contexts/                    # 🌐 Context React per stato globale
 │   │   └── AuthContext.tsx          # Context autenticazione Pera Wallet
@@ -144,14 +155,17 @@ artcertify/
 │
 ├── docs/                           # 📚 Documentazione completa
 │   ├── ARCHITECTURE.md             # Architettura software
-│   ├── ALGORAND_INTEGRATION.md     # Integrazione blockchain
-│   ├── IPFS_INTEGRATION.md         # Integrazione IPFS e storage
-│   ├── PERA_CONNECT_INTEGRATION.md # Integrazione Pera Wallet
-│   ├── CID_DECODER.md              # Decodifica CID e ARC-19
-│   ├── CUSTOM_HOOKS.md             # Documentazione custom hooks
-│   ├── DESIGN_SYSTEM.md            # Sistema di design e UI
-│   ├── NETWORK_CONFIGURATION.md    # Configurazione rete Algorand
-│   └── README.md                   # Indice documentazione
+│   ├── ALGORAND_INTEGRATION.md     # v1.0 - Integrazione blockchain
+│   ├── IPFS_INTEGRATION.md         # v1.0 - Integrazione IPFS e storage
+│   ├── PERA_CONNECT_INTEGRATION.md # v1.0 - Integrazione Pera Wallet
+│   ├── AUTH_JWT_INTEGRATION.md    # v2.0 - Autenticazione JWT con backend
+│   ├── CID_DECODER.md              # v1.0 - Decodifica CID e ARC-19
+│   ├── CUSTOM_HOOKS.md             # v2.0 - Documentazione custom hooks
+│   ├── DESIGN_SYSTEM.md            # v1.0 - Sistema di design e UI
+│   ├── NETWORK_CONFIGURATION.md    # v1.0 - Configurazione rete Algorand
+│   ├── ARCHITECTURE.md             # v2.0 - Architettura applicazione
+│   ├── DESCRIZIONE_FUNZIONALE.md   # v1.0 - Descrizione funzionale servizi
+│   └── README.md                   # v2.0 - Indice documentazione
 │
 ├── public/                         # 🌐 File statici pubblici
 │   ├── manifest.json               # PWA manifest
@@ -252,6 +266,9 @@ VITE_PINATA_JWT=your_pinata_jwt_token
 
 # Configurazione rete (testnet o mainnet)
 VITE_ALGORAND_NETWORK=testnet  # o mainnet per produzione
+
+# Backend API (opzionale - richiesto per autenticazione JWT)
+VITE_API_BASE_URL=http://localhost:8088  # URL del backend API
 ```
 
 4. **🚀 Avvio applicazione**
@@ -399,13 +416,16 @@ La documentazione completa è disponibile nella cartella `/docs/`:
 | File | Descrizione |
 |------|-------------|
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Architettura software e pattern utilizzati |
-| **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** | Integrazione blockchain Algorand dettagliata |
-| **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** | Integrazione IPFS e servizi Pinata |
-| **[PERA_CONNECT_INTEGRATION.md](docs/PERA_CONNECT_INTEGRATION.md)** | Integrazione Pera Wallet Connect |
-| **[CID_DECODER.md](docs/CID_DECODER.md)** | Decodifica CID e compliance ARC-19 |
-| **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** | Documentazione custom hooks React |
-| **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** | Sistema di design e componenti UI |
-| **[NETWORK_CONFIGURATION.md](docs/NETWORK_CONFIGURATION.md)** | Configurazione rete e ambiente |
+| **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** | v1.0 - Integrazione blockchain Algorand dettagliata |
+| **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** | v1.0 - Integrazione IPFS e servizi Pinata |
+| **[PERA_CONNECT_INTEGRATION.md](docs/PERA_CONNECT_INTEGRATION.md)** | v1.0 - Integrazione Pera Wallet Connect |
+| **[AUTH_JWT_INTEGRATION.md](docs/AUTH_JWT_INTEGRATION.md)** | v2.0 - Autenticazione JWT con backend API |
+| **[CID_DECODER.md](docs/CID_DECODER.md)** | v1.0 - Decodifica CID e compliance ARC-19 |
+| **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** | v2.0 - Documentazione custom hooks React |
+| **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** | v1.0 - Sistema di design e componenti UI |
+| **[NETWORK_CONFIGURATION.md](docs/NETWORK_CONFIGURATION.md)** | v1.0 - Configurazione rete e ambiente |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | v2.0 - Architettura applicazione e pattern |
+| **[DESCRIZIONE_FUNZIONALE.md](docs/DESCRIZIONE_FUNZIONALE.md)** | v1.0 - Descrizione funzionale servizi |
 
 ## 🚀 Deployment
 
