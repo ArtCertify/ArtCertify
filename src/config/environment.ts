@@ -67,10 +67,7 @@ const networkConfig = getNetworkConfig(algorandNetwork);
 
 // Environment configuration - Flexible for deployment
 export const config = {
-
-  // Backend API
-  apiUrl: getEnvVar('VITE_API_BASE_URL'),
-
+  
   // Pinata IPFS Gateway (optional for basic functionality)
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
   

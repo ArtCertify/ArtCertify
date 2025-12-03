@@ -31,7 +31,7 @@ class MinIOService {
                 // console.log(data);
 
 
-                const pippo = await fetch(`${config.apiUrl}/api/v1/admin/organizations`, {
+                const pippo = await fetch(`${config.api}/api/v1/admin/organizations`, {
                     method: 'GET', 
                     headers: {
                         'Content-Type': 'application/json', 
