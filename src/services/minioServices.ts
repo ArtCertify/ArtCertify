@@ -32,6 +32,7 @@ class MinIOService {
 
                     const presignedUrl = response.data;
 
+                    console.log(presignedUrl)
                     // const presignedUrl = "http://minio.caputmundi.svc.cluster.local:9000/lvf377k5dwvgloy53kc64w473s3ox74axb6osxmc3yjevhjxyl6vxyk7dy/pippo.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20251203%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251203T095504Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=e4aa678d3354cc06749d8005bbd843b7f5a6ecfccad08652d64d6efa565fa5a0";
 
                     // const uploadResponse = await fetch(presignedUrl, {
@@ -39,7 +40,7 @@ class MinIOService {
                     //     body: file,
                     //     headers: {
                     //         'Content-Type': file.type, 
-                    //     }
+                    //     } 
                     // });
 
                     // if (!uploadResponse.ok) {
