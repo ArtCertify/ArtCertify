@@ -29,6 +29,7 @@ class MinIOService {
                 }
             );
 
+
             return response.data;
 
         } catch (error) {
@@ -41,15 +42,17 @@ class MinIOService {
         }
     }
 
-    private async uploadFile(file: File): Promise<void> {
+    private async uploadFile(file: File): Promise<{ url: string, etag: string | undefined }> {
         try {
             const presignedUrl = await this.getPresignedUrl(file.name);
-            await axios.put(presignedUrl, file, {
-                headers: {
-                    'Content-Type': file.type,
-                },
+            const res = await axios.put(presignedUrl, file, {
+                headers: { 'Content-Type': file.type },
             });
-            console.log(`Upload completato per: ${file.name}`);
+
+            return {
+                url: presignedUrl,
+                etag: res.headers['etag'] 
+            };
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 console.error(`Errore nella richiesta per ${file.name}:`, error.response?.data || error.message);
