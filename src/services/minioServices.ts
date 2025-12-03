@@ -31,17 +31,6 @@ class MinIOService {
                 // console.log(data);
 
 
-                const pippo = await fetch(`${config.api}/api/v1/admin/organizations`, {
-                    method: 'GET', 
-                    headers: {
-                        'Content-Type': 'application/json', 
-                    }
-                })
-                   
-
-                const pippo2 = pippo.ok;
-
-
                 // const presignedUrl = await response.text();
 
                 // const uploadResponse = await fetch(presignedUrl, {
