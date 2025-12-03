@@ -15,6 +15,7 @@ class MinIOService {
     private async getPresignedUrl(fileName: string): Promise<string> {
         const jwtToken = authService.getToken();
         if (!jwtToken) throw new Error('Token JWT non trovato');
+        if (!config.api?.baseUrl) throw new Error('Base URL API non configurata');
 
         try {
             const response = await axios.get(
