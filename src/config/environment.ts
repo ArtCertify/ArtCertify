@@ -9,8 +9,9 @@ const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
     // Fallback for Node.js environment (testing)
     value = process.env[key];
   }
-
-  if (value === undefined || (!allowEmpty && value === '')) {
+  
+  // If allowEmpty is true, undefined and empty string are allowed
+  if (!allowEmpty && (value === undefined || value === '')) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
 
@@ -72,7 +73,12 @@ export const config = {
 
   // Pinata IPFS Gateway (optional for basic functionality)
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
-
+  
+  // Backend API Base URL (optional - required for authentication)
+  api: {
+    baseUrl: getEnvVar('VITE_API_BASE_URL', true)
+  },
+  
   // Algorand Network
   algorandNetwork,
 
