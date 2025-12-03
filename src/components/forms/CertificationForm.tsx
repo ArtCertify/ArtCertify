@@ -443,7 +443,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     try {
       setIsUploadLocked(true);
       await minioService.uploadCertificationToMinio(
-        userAddress,
         uploadedFile ? [uploadedFile] : []
       );
     } catch (error) {

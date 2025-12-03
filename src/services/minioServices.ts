@@ -1,6 +1,7 @@
 import IPFSService from "./ipfsService";
 import { config } from '../config/environment';
-
+import { authService } from '../services/authService'
+import axios from "axios";
 
 class MinIOService {
 
@@ -10,72 +11,55 @@ class MinIOService {
 
     }
 
+    async uploadCertificationToMinio(files: File[]) {
+        const jwtToken = authService.getToken();
+        if (!jwtToken) throw new Error('Token JWT non trovato');
 
-    async uploadCertificationToMinio(accountAddress: string | null, files: File[]) {
-        const results = await Promise.all(
+        await Promise.all(
             files.map(async (file) => {
-                // const response = await fetch(`${config.apiUrl}/api/v1/presigned/upload?filename=${encodeURIComponent(file.name)}`);
-
-                // const resp = await fetch(
-                //     "https://caputmundi.dev.ids.internal/api/v1/admin/organizations",
-                //     {
-                //         method: "GET",
-                //         headers: {
-                //             "Accept": "*/*"
-                //         }
-                //     }
-                // );
-
-
-                //           const data = await resp.ok;
-                // console.log(data);
+                try {
+                    const response = await axios.get(
+                        `${config.api}/api/v1/presigned/upload?filename=${encodeURIComponent(file.name)}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${jwtToken}`,
+                                'Accept': 'text/plain',
+                            },
+                            timeout: 30000,
+                        }
+                    );
 
 
-                // const presignedUrl = await response.text();
+                    const presignedUrl = response.data;
 
-                // const uploadResponse = await fetch(presignedUrl, {
-                //     method: "PUT",
-                //     body: file,
-                // });
+                    // const presignedUrl = "http://minio.caputmundi.svc.cluster.local:9000/lvf377k5dwvgloy53kc64w473s3ox74axb6osxmc3yjevhjxyl6vxyk7dy/pippo.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20251203%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251203T095504Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=e4aa678d3354cc06749d8005bbd843b7f5a6ecfccad08652d64d6efa565fa5a0";
 
-                // const etag = uploadResponse.headers.get("etag") || uploadResponse.headers.get("ETag")
+                    // const uploadResponse = await fetch(presignedUrl, {
+                    //     method: "PUT",
+                    //     body: file,
+                    //     headers: {
+                    //         'Content-Type': file.type, 
+                    //     }
+                    // });
 
-                // const result = {
-                //     name: file.name,
-                //     etag,
-                // }
+                    // if (!uploadResponse.ok) {
+                    //     throw new Error(`Upload fallito: ${uploadResponse.statusText}`);
+                    // }
 
-                // const fileInfo = {
-                //     name: file.name,
-                //     hash: result.etag!,
-                //     type: file.type,
-                //     size: file.size
-                // };
-                // const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
-
-                // fileHashes.push(fileInfo);
+                } catch (error) {
+                    if (axios.isAxiosError(error)) {
+                        console.error('Errore nella richiesta:', error.response?.data || error.message);
+                    } else {
+                        console.error('Errore sconosciuto:', error);
+                    }
+                    throw error;
+                }
             })
-
-
         );
 
-
-
-        // const metadataResult = await this.ipfsService.uploadJSON(metadata, {
-        //     name: `${certificationData?.unique_id || 'metadata'}_metadata.json`,
-        //     keyvalues: {
-        //         asset_id: certificationData?.unique_id || '',
-        //         metadata_type: 'certification',
-        //         files_count: fileHashes.length.toString(),
-        //         asset_name: formData.assetName || '',
-        //         unit_name: formData.unitName || '',
-        //         upload_timestamp: new Date().toISOString()
-        //     }
-
-        // return results;
-        // }
-        // );
     }
+
+
 }
 
 export default MinIOService;
