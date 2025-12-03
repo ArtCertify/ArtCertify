@@ -19,7 +19,7 @@ class MinIOService {
             files.map(async (file) => {
                 try {
                     const response = await axios.get(
-                        `${config.api}/api/v1/presigned/upload?filename=${encodeURIComponent(file.name)}`,
+                        `${config.api?.baseUrl}/api/v1/presigned/upload?filename=${encodeURIComponent(file.name)}`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${jwtToken}`,
