@@ -703,7 +703,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
 
             {/* Project and Asset Information */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -724,7 +724,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                     {/* Custom dropdown input */}
                     <div className="relative">
                       <input
-                        disabled={!isUploadLocked}
                         type="text"
                         value={projectSearchTerm}
                         onChange={(e) => handleProjectInputChange(e.target.value)}
@@ -799,7 +798,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                       Nome Asset *
                     </label>
                     <input
-                      disabled={!isUploadLocked}
                       type="text"
                       placeholder="es. ASSET001"
                       value={formData.assetName}
@@ -852,7 +850,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
 
             {/* Type Selection */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -868,7 +866,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <div>
                     <label className="block text-sm font-medium text-white mb-3">Tipo *</label>
                     <ReusableDropdown
-                      disabled={!isUploadLocked}
                       value={formData.type}
                       onChange={(value) => handleInputChange('type', value)}
                       options={TYPE_OPTIONS}
@@ -894,7 +891,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                       Descrizione * <span className="text-slate-400">({formData.description.length}/300 caratteri)</span>
                     </label>
                     <textarea
-                      disabled={!isUploadLocked}
                       placeholder="Inserisci descrizione dettagliata tecnica e contestuale."
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
@@ -909,7 +905,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
 
             {/* File Origin (Optional) */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -921,7 +917,6 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
               </div>
 
               <Input
-                disabled={!isUploadLocked}
                 label="Origine del File"
                 placeholder="Informazioni sulla fonte del file (opzionale)"
                 value={formData.fileOrigin}
