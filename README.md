@@ -9,7 +9,7 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.17-blue?logo=tailwindcss)
 ![Pera Wallet](https://img.shields.io/badge/Pera%20Wallet-1.4.2-orange)
 
-## 🚀 Caratteristiche Principali
+## 🚀 Caratteristiche Principali 
 
 ### ✨ **Autenticazione Sicura**
 - **Pera Wallet Connect** (v1.0): Metodo di autenticazione principale

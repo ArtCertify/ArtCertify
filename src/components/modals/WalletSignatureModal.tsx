@@ -49,17 +49,17 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
 
     // Check for user rejection
     if (errorMessage.includes('User rejected') || errorMessage.includes('rejected')) {
-      return 'Firma del messaggio annullata dall\'utente.';
+      return 'Firma della transazione annullata dall\'utente.';
     }
 
     // Check for network errors
     if (errorMessage.includes('Network request error') || errorMessage.includes('status 400')) {
-      return 'Errore di rete durante la firma del messaggio. Verifica la connessione e riprova.';
+      return 'Errore di rete durante la firma della transazione. Verifica la connessione e riprova.';
     }
 
     // Return a simplified version of the error message
     if (errorMessage.length > 200) {
-      return 'Errore durante la firma del messaggio. Riprova.';
+      return 'Errore durante la firma della transazione. Riprova.';
     }
 
     return errorMessage;
@@ -74,8 +74,9 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
     try {
       setError(null);
       
-      // Firma il messaggio di autenticazione con JSON (domain, nonce, timestamp, expirySeconds)
-      // La firma del messaggio è gratuita e non richiede fees
+      // Firma la transazione di autenticazione (Payment 0 Algo con nota JSON)
+      // La transazione contiene domain, nonce, timestamp, expirySeconds nella nota
+      // La transazione è gratuita (0 Algo, self transaction) e viene codificata in base64 (msgpack)
       const result = await signAuthTransaction();
 
       if (result.txId && result.signedTxBase64) {
@@ -104,7 +105,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           // but show error message
           setIsSigned(true);
           const authErrorMessage = authError instanceof Error ? authError.message : 'Errore durante l\'autenticazione con il server';
-          setError(`Messaggio firmato con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
+          setError(`Transazione firmata con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
           console.error('Authentication error:', authError);
         } finally {
           setIsAuthenticating(false);
@@ -155,7 +156,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           <>
             <div className="text-center">
               <p className="text-slate-300 text-sm mb-4">
-                Per completare la connessione, conferma di essere il proprietario del wallet firmando un messaggio.
+                Per completare la connessione, conferma di essere il proprietario del wallet firmando una transazione di autenticazione.
               </p>
               <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
                 <p className="text-xs text-slate-400 mb-2">Indirizzo Wallet:</p>
@@ -164,7 +165,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
                 </p>
               </div>
               <p className="text-xs text-slate-400 mb-4">
-                La firma del messaggio è <span className="font-semibold text-green-400">gratuita</span> e non richiede alcuna fee di transazione.
+                La transazione di autenticazione è <span className="font-semibold text-green-400">gratuita</span> (0 Algo, self transaction) e non richiede alcuna fee.
               </p>
             </div>
 
@@ -237,10 +238,10 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
                 <CheckCircleIcon className="w-16 h-16 text-green-400" />
               </div>
               <p className="text-green-400 font-medium mb-2">
-                Firma completata con successo!
+                Transazione firmata con successo!
               </p>
               <p className="text-slate-300 text-sm mb-4">
-                Il messaggio è stato firmato con successo.
+                La transazione di autenticazione è stata firmata e codificata correttamente.
               </p>
               {txId && (
                 <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
@@ -253,7 +254,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               {signedTxBase64 && (
                 <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-400">Messaggio Firmato (Base64):</p>
+                    <p className="text-xs text-slate-400">Transazione Firmata (Base64 - MsgPack):</p>
                     <button
                       onClick={handleCopyBase64}
                       className="text-slate-400 hover:text-white transition-colors p-1 rounded"

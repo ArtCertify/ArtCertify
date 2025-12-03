@@ -512,6 +512,15 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Wallet Signature Modal */}
+        {userAddress && (
+          <WalletSignatureModal
+            isOpen={isSignatureModalOpen}
+            onClose={() => setIsSignatureModalOpen(false)}
+            walletAddress={userAddress}
+          />
+        )}
       </ResponsiveLayout>
     );
   }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import peraWalletService from '../services/peraWalletService';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   userAddress: string | null;
@@ -29,6 +30,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logoutInProgress.current = true;
 
     try {
+      // Get current address before clearing
+      const currentAddress = userAddress;
+      
       // Disconnect from Pera Wallet if connected
       if (peraWalletService.isConnected()) {
         await peraWalletService.disconnect();
@@ -38,20 +42,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserAddress(null);
       setIsAuthenticated(false);
       
-      // Clear ALL authentication-related localStorage items
-      localStorage.removeItem('algorand_address');
-      localStorage.removeItem('pera_wallet_connected');
-      localStorage.removeItem('pera_wallet_account');
+      // Clear ALL authentication data (JWT, base64, signature, cache, cookies, sessionStorage)
+      authService.clearAllAuthData(currentAddress);
     } catch (error) {
       // Force clear state even if there's an error
-    setUserAddress(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('algorand_address');
-      localStorage.removeItem('pera_wallet_connected');
-      localStorage.removeItem('pera_wallet_account');
+      const currentAddress = userAddress;
+      setUserAddress(null);
+      setIsAuthenticated(false);
+      authService.clearAllAuthData(currentAddress);
     } finally {
-    // Reset logout flag
-    logoutInProgress.current = false;
+      // Reset logout flag
+      logoutInProgress.current = false;
 
       // Navigate to login page using React Router
       setTimeout(() => {
@@ -112,11 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Don't call logout here to avoid circular dependency
       // Just clear the authentication state if not already logging out
       if (!logoutInProgress.current) {
+        const currentAddress = userAddress;
         setUserAddress(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('algorand_address');
-        localStorage.removeItem('pera_wallet_connected');
-        localStorage.removeItem('pera_wallet_account');
+        
+        // Clear ALL authentication data (JWT, base64, signature, cache, cookies, sessionStorage)
+        authService.clearAllAuthData(currentAddress);
         
         // Navigate to login page
         setTimeout(() => {
