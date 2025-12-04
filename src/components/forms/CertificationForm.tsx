@@ -444,12 +444,13 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       await minioService.uploadCertificationToMinio(
         uploadedFile ? [uploadedFile] : []
       );
+      setIsUploadCompleted(true);
+
     } catch (error) {
       setIsUploadFailed(true);
       setIsUploadLocked(false);
     } finally {
       setIsUploadingFile(false);
-      setIsUploadCompleted(true);
     }
   };
 
