@@ -349,7 +349,7 @@ Il progetto utilizza un design system completo basato su TailwindCSS:
 1. **Test Connessione Pera Wallet**
 ```bash
 # Avvia app in dev mode
-npm run dev
+npm run dev 
 
 # Nel browser:
 # 1. Vai su http://localhost:5173/login
