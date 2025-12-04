@@ -215,14 +215,53 @@ const AssetDetailsPage: React.FC = () => {
            '';
   };
 
-  // Get main image URL from IPFS metadata
+  // Get main image URL from IPFS metadata (supports both IPFS and MINIO URLs)
   const getMainImageUrl = () => {
-    if (ipfsMetadata?.image) {
-      const hash = ipfsMetadata.image.replace('ipfs://', '');
-      return IPFSUrlService.getGatewayUrl(hash);
+    // First priority: use image field from JSON (now contains MINIO URL or IPFS URL)
+    if (ipfsMetadata?.image && ipfsMetadata.image.trim() !== '') {
+      const imageUrl = ipfsMetadata.image.trim();
+      // If it's already a full URL (MINIO or gateway), use it directly
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return imageUrl;
+      }
+      // If it's an IPFS URL (ipfs://), convert to gateway URL
+      if (imageUrl.startsWith('ipfs://')) {
+        const hash = imageUrl.replace('ipfs://', '').trim();
+        if (hash) {
+          return IPFSUrlService.getGatewayUrl(hash);
+        }
+      }
+      // Otherwise, if it's a valid hash (not empty and looks like a hash), try to use it
+      if (imageUrl && imageUrl.length > 0 && !imageUrl.includes('://')) {
+        return IPFSUrlService.getGatewayUrl(imageUrl);
+      }
     }
+    // Fallback: use first file from files_metadata (supports MINIO URLs)
     if (ipfsMetadata?.properties?.files_metadata?.[0]?.gatewayUrl) {
-      return ipfsMetadata.properties.files_metadata[0].gatewayUrl;
+      const gatewayUrl = ipfsMetadata.properties.files_metadata[0].gatewayUrl;
+      if (gatewayUrl && gatewayUrl.trim() !== '') {
+        return gatewayUrl.trim();
+      }
+    }
+    // Last fallback: try s3StorageUrl or ipfsUrl from files_metadata (for backward compatibility)
+    const firstFile = ipfsMetadata?.properties?.files_metadata?.[0];
+    if (firstFile) {
+      // Priority: s3StorageUrl (for MINIO files) > ipfsUrl (for IPFS files or backward compatibility)
+      const fileUrl = (firstFile as any).s3StorageUrl || firstFile.ipfsUrl;
+      if (fileUrl && fileUrl.trim() !== '') {
+        const trimmedUrl = fileUrl.trim();
+        // If it's already a full URL (MINIO), use it directly
+        if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+          return trimmedUrl;
+        }
+        // If it's an IPFS URL, convert it
+        if (trimmedUrl.startsWith('ipfs://')) {
+          const hash = trimmedUrl.replace('ipfs://', '').trim();
+          if (hash) {
+            return IPFSUrlService.getGatewayUrl(hash);
+          }
+        }
+      }
     }
     return null;
   };
@@ -325,7 +364,7 @@ const AssetDetailsPage: React.FC = () => {
               ) : getMainImageUrl() && !imageError ? (
                 <div className="w-full">
                   <img
-                    src={getMainImageUrl()!}
+                    src={getMainImageUrl() || undefined}
                     alt={getDisplayName()}
                     className="w-full aspect-square object-cover rounded-lg shadow-lg"
                     onError={() => setImageError(true)}
@@ -642,16 +681,16 @@ const AssetDetailsPage: React.FC = () => {
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {ipfsMetadata.properties.files_metadata.map((file, index) => (
+                            {ipfsMetadata.properties.files_metadata.map((file: any, index) => (
                               <FilePreviewDisplay
-                                key={`${file.ipfsUrl}-${index}`}
+                                key={`${file.s3StorageUrl || file.ipfsUrl || file.gatewayUrl || index}-${index}`}
                                 file={{
                                   name: file.name,
                                   type: 'application/octet-stream',
                                   size: 0,
-                                  url: file.gatewayUrl
+                                  url: file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl
                                 }}
-                                url={file.gatewayUrl}
+                                url={file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl}
                                 showPreview={true}
                                 showDownload={true}
                               />
