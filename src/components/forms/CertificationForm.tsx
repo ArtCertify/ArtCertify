@@ -90,7 +90,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [isUploadFailed, setIsUploadFailed] = useState(false);
   const [isUploadLocked, setIsUploadLocked] = useState(false);
   const [isUploadCompleted, setIsUploadCompleted] = useState(false);
-
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Form data state
   const [formData, setFormData] = useState<CertificationFormData>({
@@ -442,7 +442,8 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     setIsUploadLocked(true);
     try {
       await minioService.uploadCertificationToMinio(
-        uploadedFile ? [uploadedFile] : []
+        uploadedFile ? [uploadedFile] : [],
+        (progress) => setUploadProgress(progress)
       );
       setIsUploadCompleted(true);
 
@@ -671,32 +672,49 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
               {/* Allert confirm */}
               <div style={{ marginTop: "10px" }}>
-                {formData.fileCreationDate !== "" && !isUploadCompleted && (
+                {formData.fileCreationDate !== "" && (
                   <Alert
-                    variant={isUploadFailed ? "error" : "info"}
-                    title={isUploadFailed ? "Caricamento file fallito" : "Conferma caricamento file"}
+                    variant={
+                      isUploadFailed
+                        ? "error"
+                        : isUploadCompleted
+                          ? "success"
+                          : "info"
+                    }
+                    title={
+                      isUploadFailed
+                        ? "Caricamento file fallito"
+                        : isUploadCompleted
+                          ? "Upload completato"
+                          : "Conferma caricamento file"
+                    }
                     className="space-y-4"
                   >
                     <div className="flex flex-col gap-4 self-center">
                       <p>
                         {isUploadFailed
                           ? "Clicca sul pulsante qui sotto per riprovare il caricamento del file."
-                          : "Sei sicuro di voler caricare questo file? Clicca sul pulsante qui sotto per procedere."}
+                          : isUploadCompleted
+                            ? "Il file è stato caricato correttamente."
+                            : "Sei sicuro di voler caricare questo file? Clicca sul pulsante qui sotto per procedere."}
                       </p>
 
-                      <div className="w-2/5 mx-auto">
-                        <Button
-                          disabled={isUploadingFile}
-                          className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
-                          onClick={uploadToMinio}
-                        >
-                          {isUploadingFile
-                            ? "Upload in corso..."
-                            : isUploadFailed
-                              ? "Ritenta upload"
-                              : "Upload file"}
-                        </Button>
-                      </div>
+                      {/* Mostra il bottone solo se l’upload non è completato */}
+                      {!isUploadCompleted && (
+                        <div className="w-2/5 mx-auto">
+                          <Button
+                            disabled={isUploadingFile}
+                            className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
+                            onClick={uploadToMinio}
+                          >
+                            {isUploadingFile
+                              ? `Upload in corso... ${uploadProgress}%`
+                              : isUploadFailed
+                                ? "Ritenta upload"
+                                : "Upload file"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Alert>
                 )}

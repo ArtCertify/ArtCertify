@@ -42,29 +42,52 @@ class MinIOService {
         }
     }
 
-    private async uploadFile(file: File): Promise<{ url: string, etag: string | undefined }> {
-        try {
-            const presignedUrl = await this.getPresignedUrl(file.name);
-            const res = await axios.put(presignedUrl, file, {
-                headers: { 'Content-Type': file.type },
+    private async uploadFile(
+        file: File,
+        onProgress?: (percent: number) => void   // <--- qui viene definito
+    ): Promise<{ url: string; etag: string | undefined }> {
+        const presignedUrl = await this.getPresignedUrl(file.name);
+
+        const etag = await new Promise<string | undefined>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener("progress", (event) => {
+                if (event.lengthComputable && onProgress) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    onProgress(percent);
+                }
             });
 
-            return {
-                url: presignedUrl,
-                etag: res.headers['etag'] 
-            };
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                console.error(`Errore nella richiesta per ${file.name}:`, error.response?.data || error.message);
-            } else {
-                console.error(`Errore sconosciuto per ${file.name}:`, error);
-            }
-            throw error;
-        }
-    }
+            xhr.upload.addEventListener("error", () => {
+                reject(new Error("Errore upload"));
+            });
 
-    public async uploadCertificationToMinio(files: File[]): Promise<void> {
-        await Promise.all(files.map(file => this.uploadFile(file)));
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(xhr.getResponseHeader("ETag") || undefined);
+                    } else {
+                        reject(new Error(`Upload fallito: ${xhr.status}`));
+                    }
+                }
+            };
+
+            xhr.open("PUT", presignedUrl);
+            xhr.setRequestHeader("Content-Type", file.type);
+
+            xhr.send(file);
+        });
+
+        return { url: presignedUrl, etag };
+    }
+    public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void): Promise<void> {
+        await Promise.all(
+            files.map(file =>
+                this.uploadFile(file, (p) => {
+                    if (onProgress) onProgress(p);
+                })
+            )
+        );
     }
 }
 
