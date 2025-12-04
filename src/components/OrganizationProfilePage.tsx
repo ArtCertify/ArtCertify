@@ -98,10 +98,10 @@ export const OrganizationProfilePage: React.FC = () => {
             
             {/* Left: Organization Image */}
             <div className="md:flex-1 lg:col-span-1 bg-slate-900/50 p-6 flex items-center justify-center">
-              {organizationData?.image ? (
+              {organizationData?.image && getImageUrl(organizationData.image) ? (
                 <div className="w-full">
                   <img
-                    src={getImageUrl(organizationData.image)}
+                    src={getImageUrl(organizationData.image) || undefined}
                     alt={organizationData.name}
                     className="w-full aspect-square object-cover rounded-lg shadow-lg"
                     onError={(e) => {

@@ -19,7 +19,8 @@ src/services/
 ├── algorand.ts              # v1.0 - Integrazione blockchain Algorand
 ├── authService.ts           # v2.0 - Autenticazione JWT con backend API
 ├── cidDecoder.ts            # v1.0 - Decodifica CID ARC-19 compliance
-├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS
+├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS (solo metadata JSON)
+├── minioServices.ts         # v2.0 - Integrazione MINIO/S3 per file certificazioni
 ├── ipfsUrlService.ts        # v1.0 - Gestione URL IPFS e gateway
 ├── nftService.ts            # v1.0 - Gestione NFT e portfolio
 ├── peraWalletService.ts     # v1.0 - Integrazione Pera Wallet Connect
@@ -145,16 +146,19 @@ Guida completa per l'integrazione blockchain Algorand con Soulbound Tokens (SBT)
 - Explorer integration e transaction tracking
 - Performance optimization per API calls
 
-### 🌐 [Integrazione IPFS](./IPFS_INTEGRATION.md) - v1.0
-Documentazione storage decentralizzato IPFS con Pinata gateway.
+### 🌐 [Integrazione Storage](./IPFS_INTEGRATION.md) - v2.0
+Documentazione storage ibrido MINIO + IPFS per certificazioni digitali.
 
 **Contenuti:**
-- Setup Pinata completo con custom gateway
-- Upload workflow ottimizzato con parallel processing
+- Architettura ibrida: MINIO per file + IPFS per metadata JSON
+- Setup MINIO con presigned URLs tramite backend API
+- Setup Pinata completo con custom gateway (solo per JSON)
+- Upload workflow ottimizzato per entrambi i storage
 - ARC-19 CID to Address conversion integrata
 - Caching IPFS per versioning performance
 - Security best practices e content validation
 - Error handling e fallback strategies
+- Retrocompatibilità con file IPFS esistenti
 
 ### 🔌 [Integrazione Pera Connect](./PERA_CONNECT_INTEGRATION.md) - v1.0
 Documentazione completa dell'integrazione Pera Wallet Connect come metodo di autenticazione.
@@ -244,14 +248,18 @@ cp env.example .env.local
 # Network Algorand (Auto-configuration)
 VITE_ALGORAND_NETWORK=testnet  # o mainnet
 
-# Backend API (OPZIONALE - Richiesto per autenticazione JWT)
+# Backend API (RICHIESTO - Per autenticazione JWT e MINIO presigned URLs)
 VITE_API_BASE_URL=http://localhost:8088  # URL del backend API
 
-# Pinata IPFS (OBBLIGATORIO)
+# Pinata IPFS (OBBLIGATORIO - Solo per metadata JSON)
 VITE_PINATA_API_KEY=your_api_key
 VITE_PINATA_API_SECRET=your_api_secret  
 VITE_PINATA_JWT=your_jwt_token
 VITE_PINATA_GATEWAY=your-gateway.mypinata.cloud
+
+# MINIO Storage (gestito tramite backend API)
+# I file vengono caricati su: https://s3.caputmundi.artcertify.com/{userAddress}/{filename}
+# Il backend genera presigned URLs tramite: GET /api/v1/presigned/upload?filename=...
 
 # Optional: Private key per testing quick login
 VITE_PRIVATE_KEY_MNEMONIC=your_test_mnemonic
@@ -280,7 +288,8 @@ npm run dev
 | `algorand.ts` | v1.0 | Integrazione blockchain Algorand |
 | `authService.ts` | v2.0 | Autenticazione JWT con backend API |
 | `cidDecoder.ts` | v1.0 | Decodifica CID ARC-19 compliance |
-| `ipfsService.ts` | v1.0 | Integrazione Pinata IPFS |
+| `ipfsService.ts` | v1.0 | Integrazione Pinata IPFS (solo metadata JSON) |
+| `minioServices.ts` | v2.0 | Integrazione MINIO/S3 per file certificazioni |
 | `ipfsUrlService.ts` | v1.0 | Gestione URL IPFS e gateway |
 | `nftService.ts` | v1.0 | Gestione NFT e portfolio |
 | `peraWalletService.ts` | v1.0 | Integrazione Pera Wallet Connect |
@@ -395,7 +404,12 @@ npm run build
 - Controlla versione Pera Wallet aggiornata
 - Assicurati che wallet abbia saldo per transazioni
 
-### ❌ IPFS Upload Failures  
+### ❌ MINIO Upload Failures
+- Verifica backend API configurato e accessibile
+- Controlla JWT token valido per presigned URLs
+- Verifica formato filename e encoding URL
+
+### ❌ IPFS Upload Failures (Metadata JSON)
 - Verifica credenziali Pinata in `.env.local`
 - Controlla rate limits API Pinata
 - Verifica connettività gateway

@@ -23,8 +23,12 @@ Blockchain Integration:
 ├── Pera Wallet Connect 1.4.2        # Autenticazione sicura
 └── Auto Network Configuration       # TestNet/MainNet automatico
 
-Storage Decentralizzato:
-├── IPFS + Pinata Gateway            # Storage immutabile
+Storage Ibrido:
+├── MINIO/S3 Storage                 # File certificazioni (centralizzato)
+│   ├── Presigned URLs              # Upload sicuro tramite backend API
+│   ├── URL Format                  # s3.caputmundi.artcertify.com/{userAddress}/{filename}
+│   └── MinIOService (v2.0)         # Gestione upload file
+├── IPFS + Pinata Gateway            # Metadata JSON (decentralizzato)
 ├── Multiformats 13.3.7             # CID manipulation
 ├── Uint8arrays 5.1.0               # Binary data handling
 └── LocalStorage + Session Cache    # Performance client
@@ -33,7 +37,8 @@ Services Architettura (v2.0):
 ├── PeraWalletService (v1.0)        # Pera Wallet Connect integration
 ├── AuthService (v2.0)              # JWT authentication with backend API
 ├── AlgorandService (v1.0)          # Blockchain integration
-├── IPFSService (v1.0)              # Pinata + ARC-19 integration
+├── IPFSService (v1.0)              # Pinata + ARC-19 integration (solo metadata JSON)
+├── MinIOService (v2.0)             # MINIO/S3 file storage per certificazioni
 ├── IPFSUrlService (v1.0)          # IPFS URL and gateway management
 ├── CidDecoder (v1.0)               # ARC-19 standard compliance
 ├── WalletService (v1.0)            # Multi-wallet support
@@ -97,11 +102,15 @@ Services Architettura (v2.0):
 │  ├── Indexer API (testnet/mainnet-idx.algonode.cloud)     │
 │  └── Explorer (testnet.explorer/explorer.perawallet.app)  │
 ├─────────────────────────────────────────────────────────────┤
-│  📁 Storage Layer (Decentralized)                         │
-│  ├── IPFS Network (Content-addressed storage)             │
+│  📁 Storage Layer (Hybrid: MINIO + IPFS)                   │
+│  ├── MINIO/S3 Storage (File certificazioni)              │
+│  │   ├── Backend API (Presigned URLs)                     │
+│  │   ├── Base URL: s3.caputmundi.artcertify.com          │
+│  │   └── Structure: /{userAddress}/{filename}             │
+│  ├── IPFS Network (Metadata JSON only)                    │
 │  ├── Pinata Gateway (Custom gateway support)              │
-│  ├── Pinata API (File pinning + metadata)                 │
-│  └── CID Resolution (ARC-19 reserve address mapping)      │
+│  ├── Pinata API (JSON pinning + metadata)                 │
+│  └── CID Resolution (ARC-19 reserve address mapping)       │
 ├─────────────────────────────────────────────────────────────┤
 │  🔐 Authentication Layer (Zero Private Keys)              │
 │  ├── Pera Wallet Connect (Primary authentication)         │
@@ -138,14 +147,21 @@ sequenceDiagram
     S->>P: Verifica connessione
     P-->>S: Wallet connesso
     
-    Note over F,S: Step 2: IPFS Upload
-    S->>I: uploadCertificationAssets(files, metadata)
-    I-->>S: return ipfsResult (hash, urls)
+    Note over F,S: Step 2: File Upload (MINIO)
+    S->>S: uploadCertificationToMinio(files)
+    S->>Backend: GET /api/v1/presigned/upload?filename=...
+    Backend-->>S: Presigned URL
+    S->>MINIO: PUT file (presigned URL)
+    MINIO-->>S: Upload success
     
-    Note over F,S: Step 3: CID Conversion
+    Note over F,S: Step 3: IPFS Upload (Metadata JSON)
+    S->>I: uploadJSON(metadata with MINIO URLs)
+    I-->>S: return ipfsResult (metadataHash)
+    
+    Note over F,S: Step 4: CID Conversion
     S->>S: convertCidToReserveAddress(ipfsHash)
     
-    Note over F,S: Step 4: Asset Creation
+    Note over F,S: Step 5: Asset Creation
     S->>P: signTransaction(createAssetTxn)
     P->>U: Richiesta firma transazione
     U->>P: Approva firma

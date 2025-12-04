@@ -9,6 +9,7 @@ import { CertificationModal } from './CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import type { IPFSMetadata } from '../../hooks/useIPFSMetadata';
 import { IPFSUrlService } from '../../services/ipfsUrlService';
+import MinIOService from '../../services/minioServices';
 
 interface Attachment {
   id: string;
@@ -68,19 +69,26 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
   const [currentCertJson, setCurrentCertJson] = useState<any>(null);
   const [loadingCurrentJson, setLoadingCurrentJson] = useState(false);
   const [filesToRemove, setFilesToRemove] = useState<string[]>([]);
+  const [isUploadingToMinio, setIsUploadingToMinio] = useState(false);
+  const [minioUploadError, setMinioUploadError] = useState<string | null>(null);
 
-
-
+  const minioService = new MinIOService();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper function to convert IPFS URL to gateway URL
-  const getImageUrl = (ipfsUrl: string): string => {
-    if (ipfsUrl.startsWith('ipfs://')) {
-      const hash = ipfsUrl.replace('ipfs://', '');
+  // Helper function to get image URL (supports both IPFS and MINIO URLs)
+  const getImageUrl = (url: string): string => {
+    if (!url) return '';
+    // If it's already a full URL (MINIO or gateway), return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // If it's an IPFS URL, convert to gateway URL
+    if (url.startsWith('ipfs://')) {
+      const hash = url.replace('ipfs://', '');
       return IPFSUrlService.getGatewayUrl(hash);
     }
-    return ipfsUrl;
+    return url;
   };
 
   // Form state - prioritizza i metadati IPFS
@@ -122,6 +130,15 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         
         const jsonData = await response.json();
         setCurrentCertJson(jsonData);
+        
+        // Update form data with image from JSON (which now contains MINIO URL)
+        if (jsonData.image) {
+          setFormData(prev => ({
+            ...prev,
+            image: getImageUrl(jsonData.image),
+            originalImage: jsonData.image
+          }));
+        }
         
       } catch (error) {
         console.error('❌ Error loading current certification JSON:', error);
@@ -233,7 +250,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             files_metadata: updatedFiles,
             // Update image if we removed the first file (primary image)
             ...(fileIndex === 0 && updatedFiles.length > 0 && {
-              image: updatedFiles[0].ipfsUrl
+              image: (updatedFiles[0] as any).s3StorageUrl || updatedFiles[0].gatewayUrl || updatedFiles[0].ipfsUrl
             })
           }
         };
@@ -323,7 +340,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         throw new Error('Caricamento dati certificazione in corso. Riprova tra qualche secondo.');
       }
 
-      // Collect all files to upload to IPFS
+      // Collect all files to upload to MINIO
       const filesToUpload: File[] = [];
       
       // Add attachment files first (these will be additional files)
@@ -332,6 +349,20 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       // Add image file if present (this will become the primary image)
       if (formData.imageFile) {
         filesToUpload.unshift(formData.imageFile); // Add to beginning to make it primary
+      }
+
+      // Upload new files to MINIO before versioning
+      if (filesToUpload.length > 0) {
+        setIsUploadingToMinio(true);
+        setMinioUploadError(null);
+        try {
+          await minioService.uploadCertificationToMinio(filesToUpload);
+        } catch (error) {
+          setMinioUploadError(error instanceof Error ? error.message : 'Errore durante il caricamento su MINIO');
+          setIsUploadingToMinio(false);
+          throw error;
+        }
+        setIsUploadingToMinio(false);
       }
 
       // Filter out files marked for removal
@@ -701,23 +732,35 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             <div>
               <label className="block text-sm font-medium text-white mb-3">
                 File Certificazione
+                {currentCertJson?.properties?.files_metadata?.[0] && (
+                  <span className="text-xs text-slate-400 ml-2">
+                    (da JSON: {currentCertJson.properties.files_metadata[0].name})
+                  </span>
+                )}
               </label>
               <div 
                 className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {formData.image ? (
+                {formData.image && getImageUrl(formData.image) ? (
                   <div className="space-y-3">
                     <img 
-                      src={getImageUrl(formData.image)} 
+                      src={getImageUrl(formData.image) || undefined} 
                       alt="Preview" 
                       className="mx-auto h-20 w-20 object-cover rounded-lg"
+                      onError={() => {
+                        // Fallback se l'immagine non si carica
+                        console.error('Errore nel caricamento dell\'immagine:', formData.image);
+                      }}
                     />
                     <p className="text-sm text-slate-300">Clicca per cambiare file</p>
                     {formData.imageFile && (
                       <button
                         type="button"
-                        onClick={handleFileRemove}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFileRemove();
+                        }}
                         className="text-sm text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded border border-red-400/30 hover:bg-red-400/10"
                       >
                         Rimuovi
@@ -837,6 +880,23 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             </div>
           </div>
 
+            {/* MINIO Upload State */}
+            {isUploadingToMinio && (
+              <Alert variant="info" title="Caricamento file su MINIO...">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                  <span>Caricamento dei nuovi file su MINIO in corso...</span>
+                </div>
+              </Alert>
+            )}
+
+            {/* MINIO Upload Error */}
+            {minioUploadError && (
+              <Alert variant="error" title="Errore durante il caricamento su MINIO">
+                {minioUploadError}
+              </Alert>
+            )}
+
             {/* Error State */}
             {submitError && (
               <Alert variant="error" title="Errore durante l'aggiornamento">
@@ -898,10 +958,15 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-                disabled={isVersioningProcessing || loadingCurrentJson || !currentCertJson || !formData.description.trim() || !formData.type.trim()}
+                disabled={isVersioningProcessing || loadingCurrentJson || !currentCertJson || !formData.description.trim() || !formData.type.trim() || isUploadingToMinio}
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center gap-2"
             >
-                {isVersioningProcessing ? (
+                {isUploadingToMinio ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Caricamento su MINIO...
+                  </>
+                ) : isVersioningProcessing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                     Creando v{versionInfo.nextVersion}...
