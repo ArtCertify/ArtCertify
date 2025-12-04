@@ -89,6 +89,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isUploadFailed, setIsUploadFailed] = useState(false);
   const [isUploadLocked, setIsUploadLocked] = useState(false);
+  const [isUploadCompleted, setIsUploadCompleted] = useState(false);
 
 
   // Form data state
@@ -438,10 +439,8 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
   const uploadToMinio = async (): Promise<void> => {
     setIsUploadingFile(true);
-    setIsUploadFailed(false);
-
+    setIsUploadLocked(true);
     try {
-      setIsUploadLocked(true);
       await minioService.uploadCertificationToMinio(
         uploadedFile ? [uploadedFile] : []
       );
@@ -450,6 +449,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       setIsUploadLocked(false);
     } finally {
       setIsUploadingFile(false);
+      setIsUploadCompleted(true);
     }
   };
 
@@ -670,7 +670,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
               {/* Allert confirm */}
               <div style={{ marginTop: "10px" }}>
-                {formData.fileCreationDate !== "" && (
+                {formData.fileCreationDate !== "" && !isUploadCompleted && (
                   <Alert
                     variant={isUploadFailed ? "error" : "info"}
                     title={isUploadFailed ? "Caricamento file fallito" : "Conferma caricamento file"}
@@ -945,7 +945,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
               </Button>
               <Button
                 type="submit"
-                disabled={isProcessing}
+                disabled={isProcessing || !isUploadCompleted}
                 className="px-6 py-2 shadow-lg hover:shadow-xl"
               >
                 {isProcessing ? 'Certificando...' : 'Certifica'}
