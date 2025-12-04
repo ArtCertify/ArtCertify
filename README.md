@@ -22,7 +22,9 @@
 ### 🏗️ **Certificazione Blockchain**
 - **Soulbound Tokens (SBT)**: Certificazioni non trasferibili
 - **Standard Compliance**: ARC-3 (Metadata) + ARC-19 (Template URL)
-- **IPFS Storage**: Storage decentralizzato con Pinata
+- **Hybrid Storage**: MINIO per file certificazioni + IPFS per metadata JSON
+- **IPFS Storage**: Storage decentralizzato con Pinata (solo metadata JSON)
+- **MINIO Storage**: Storage centralizzato S3-compatible per file certificazioni
 - **Versioning Avanzato**: Cronologia completa delle modifiche
 - **Smart Retry System**: Ripresa intelligente dai punti di fallimento
 
@@ -54,10 +56,11 @@ Blockchain Integration:
 ├── Algorand SDK 3.3.1               # Core blockchain
 └── Pera Wallet Connect 1.4.2        # Wallet integration
 
-IPFS & Storage:
+Storage & IPFS:
+├── MINIO/S3 Storage                 # File storage per certificazioni
 ├── Multiformats 13.3.7              # CID manipulation
 ├── Uint8arrays 5.1.0                # Binary data handling
-└── Pinata API                       # IPFS pinning service
+└── Pinata API                       # IPFS pinning service (solo metadata JSON)
 
 UI & UX Libraries:
 ├── Headless UI 2.2.4                # Accessible components
@@ -129,7 +132,8 @@ artcertify/
 │   │   ├── peraWalletService.ts     # v1.0 - Servizio Pera Wallet Connect
 │   │   ├── authService.ts          # v2.0 - Servizio autenticazione JWT con backend
 │   │   ├── algorand.ts              # v1.0 - API Algorand + gestione asset
-│   │   ├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS
+│   │   ├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS (solo metadata JSON)
+│   │   ├── minioServices.ts         # v2.0 - Integrazione MINIO/S3 per file certificazioni
 │   │   ├── ipfsUrlService.ts        # v1.0 - Gestione URL IPFS e gateway
 │   │   ├── cidDecoder.ts            # v1.0 - Decodifica CID ARC-19 compliance
 │   │   ├── walletService.ts         # v1.0 - Servizi wallet generici
@@ -206,11 +210,12 @@ graph TD
 
 1. **📋 Form Input**: L'utente compila il form di certificazione
 2. **🔐 Wallet Check**: Verifica connessione Pera Wallet
-3. **📤 IPFS Upload**: Upload file e metadata su IPFS con Pinata
-4. **🔄 CID Conversion**: Conversione CID IPFS in reserve address Algorand
-5. **🏗️ Asset Creation**: Creazione SBT con firma Pera Wallet
-6. **⚙️ Asset Configuration**: Aggiornamento reserve address con firma Pera Wallet
-7. **✅ Success**: Visualizzazione certificazione creata con link esplorativi
+3. **📤 File Upload**: Upload file su MINIO (presigned URL con JWT)
+4. **📄 IPFS Upload**: Upload solo metadata JSON su IPFS con Pinata
+5. **🔄 CID Conversion**: Conversione CID IPFS in reserve address Algorand
+6. **🏗️ Asset Creation**: Creazione SBT con firma Pera Wallet
+7. **⚙️ Asset Configuration**: Aggiornamento reserve address con firma Pera Wallet
+8. **✅ Success**: Visualizzazione certificazione creata con link esplorativi
 
 ### **🔄 Versioning e Modifiche**
 
@@ -218,7 +223,9 @@ Sistema avanzato di versioning per aggiornamenti post-creazione:
 
 1. **🎯 Asset Selection**: Selezione asset esistente dal portfolio
 2. **✏️ Modification**: Modifica metadata o sostituzione allegati
-3. **📤 Smart IPFS Upload**: Upload solo di nuovi contenuti (riutilizzo cache)
+3. **📤 Smart Upload**: 
+   - **Certificazioni**: Upload nuovi file su MINIO, solo metadata JSON su IPFS
+   - **Organizzazioni**: Upload file su IPFS (comportamento legacy)
 4. **🔄 Reserve Update**: Aggiornamento reserve address con nuova versione
 5. **📊 History Tracking**: Tracciamento automatico cronologia versioni
 6. **👁️ Visualization**: Display timeline versioning con link storici
@@ -267,8 +274,12 @@ VITE_PINATA_JWT=your_pinata_jwt_token
 # Configurazione rete (testnet o mainnet)
 VITE_ALGORAND_NETWORK=testnet  # o mainnet per produzione
 
-# Backend API (opzionale - richiesto per autenticazione JWT)
+# Backend API (richiesto per autenticazione JWT e upload MINIO)
 VITE_API_BASE_URL=http://localhost:8088  # URL del backend API
+
+# MINIO/S3 Storage (gestito tramite backend API con presigned URLs)
+# I file vengono caricati su: https://s3.caputmundi.artcertify.com/{userAddress}/{filename}
+# Il backend genera presigned URLs tramite endpoint: /api/v1/presigned/upload
 ```
 
 4. **🚀 Avvio applicazione**
@@ -392,13 +403,15 @@ npm run dev
 
 ### **🛡️ Sicurezza Blockchain**
 - ✅ **Soulbound Tokens**: NFT non trasferibili per certificazioni
-- ✅ **Immutable Metadata**: Hash IPFS immutabili su blockchain
+- ✅ **Immutable Metadata**: Hash IPFS immutabili su blockchain (solo JSON)
 - ✅ **Zero Private Keys**: Nessuna chiave privata nell'applicazione
 - ✅ **Pera Wallet Security**: Firma transazioni controllata dall'utente
 - ✅ **Network Validation**: Validazione automatica parametri rete
 
 ### **🔐 Data Protection**
-- ✅ **IPFS Decentralization**: Storage distribuito resistente alla censura
+- ✅ **Hybrid Storage**: MINIO per file + IPFS per metadata JSON
+- ✅ **Presigned URLs**: Upload sicuro tramite presigned URLs con JWT
+- ✅ **IPFS Decentralization**: Storage distribuito per metadata (solo JSON)
 - ✅ **Client-side Processing**: Elaborazione dati lato client
 - ✅ **Session Management**: Gestione sicura sessioni wallet
 - ✅ **CORS Protection**: Protezione richieste cross-origin

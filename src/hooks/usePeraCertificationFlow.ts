@@ -413,8 +413,6 @@ export const usePeraCertificationFlow = () => {
         }
       
       // Crea link IPFS per versioning (metadata JSON su IPFS, file su MINIO o IPFS a seconda del tipo)
-      const isOrganization = params.isOrganization;
-      const storageTypeText = isOrganization ? 'IPFS' : 'MINIO';
       const versioningIpfsLinks = [
         `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata JSON su IPFS</a>`
       ];
