@@ -1,14 +1,42 @@
-import IPFSService from "./ipfsService";
 import { config } from '../config/environment';
 import { authService } from '../services/authService'
 import axios from "axios";
 
+
+interface composedUploadResponse {
+    parts: Record<number, string>;
+    mergedFilename: string;
+}
+
+
 class MinIOService {
 
-    ipfsService: IPFSService;
-    constructor() {
-        this.ipfsService = new IPFSService();
+    private async chunkFile(file: File, chunkSizeMB = 50): Promise<File[]> {
+        const chunkSize = chunkSizeMB * 1024 * 1024;
+        const chunks = [];
+        let start = 0;
+        let index = 1;
 
+        const lastDotIndex = file.name.lastIndexOf(".");
+        const baseName = file.name.substring(0, lastDotIndex);
+        const extension = file.name.substring(lastDotIndex); 
+
+        while (start < file.size) {
+            const end = Math.min(start + chunkSize, file.size);
+            const blobChunk = file.slice(start, end);
+
+            const chunkFile = new File(
+                [blobChunk],
+                `${baseName}-${index}${extension}`, 
+                { type: file.type }
+            );
+
+            chunks.push(chunkFile);
+            start = end;
+            index++;
+        }
+
+        return chunks;
     }
 
 
@@ -29,7 +57,6 @@ class MinIOService {
                 }
             );
 
-
             return response.data;
 
         } catch (error) {
@@ -42,52 +69,128 @@ class MinIOService {
         }
     }
 
-    private async uploadFile(
-        file: File,
-        onProgress?: (percent: number) => void   // <--- qui viene definito
-    ): Promise<{ url: string; etag: string | undefined }> {
-        const presignedUrl = await this.getPresignedUrl(file.name);
 
-        const etag = await new Promise<string | undefined>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
+    private async uploadFile(file: File, onProgress?: (percent: number) => void): Promise<{ composedUploadResponse: composedUploadResponse | null }> {
 
-            xhr.upload.addEventListener("progress", (event) => {
-                if (event.lengthComputable && onProgress) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
-                    onProgress(percent);
-                }
-            });
+        const uploadSingle = (fileToUpload: File, index?: number, chunkFilesLength?: number): Promise<{ url: string; etag: string | undefined }> => {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const presignedUrl = await this.getPresignedUrl(fileToUpload.name);
+                    const xhr = new XMLHttpRequest();
 
-            xhr.upload.addEventListener("error", () => {
-                reject(new Error("Errore upload"));
-            });
-
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve(xhr.getResponseHeader("ETag") || undefined);
+                    if (index !== undefined && chunkFilesLength !== undefined) {
+                        xhr.upload.addEventListener("progress", (event) => {
+                            if (event.lengthComputable && onProgress) {
+                                const chunkProgress = event.loaded / event.total;
+                                const chunkQuota = 1 / chunkFilesLength;
+                                const percent = Math.round((index * chunkQuota + chunkProgress * chunkQuota) * 100);
+                                onProgress(percent);
+                            }
+                        });
                     } else {
-                        reject(new Error(`Upload fallito: ${xhr.status}`));
+                        xhr.upload.addEventListener("progress", (event) => {
+                            if (event.lengthComputable && onProgress) {
+                                const percent = Math.round((event.loaded / event.total) * 100);
+                                onProgress(percent);
+                            }
+                        });
                     }
+
+
+                    xhr.addEventListener("error", () => reject(new Error("Errore upload")));
+                    xhr.onreadystatechange = () => {
+                        if (xhr.readyState === XMLHttpRequest.DONE) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                resolve({ url: presignedUrl, etag: xhr.getResponseHeader("ETag") || undefined });
+                            } else {
+                                reject(new Error(`Upload fallito: ${xhr.status}`));
+                            }
+                        }
+                    };
+
+                    xhr.open("PUT", presignedUrl);
+                    xhr.setRequestHeader("Content-Type", fileToUpload.type);
+                    xhr.send(fileToUpload);
+                } catch (err) {
+                    reject(err);
                 }
+            });
+        };
+
+        if (file.size > 50 * 1024 * 1024) {
+            const chunkFiles = await this.chunkFile(file);
+
+            let parts: Record<number, string> = {};
+            for (let i = 0; i < chunkFiles.length; i++) {
+                const chunk = chunkFiles[i];
+                parts[i + 1] = chunk.name;
+
+                await uploadSingle(chunk, i, chunkFiles.length);
+            }
+
+            return {
+                composedUploadResponse: {
+                    parts: parts,
+                    mergedFilename: file.name
+                }
+            }
+
+        } else {
+            await uploadSingle(file);
+            return {
+                composedUploadResponse: null
             };
-
-            xhr.open("PUT", presignedUrl);
-            xhr.setRequestHeader("Content-Type", file.type);
-
-            xhr.send(file);
-        });
-
-        return { url: presignedUrl, etag };
+        }
     }
+
+
+    private async composeUploadFiles(composedUploadResponse: composedUploadResponse): Promise<void> {
+        const jwtToken = authService.getToken();
+        if (!jwtToken) throw new Error('Token JWT non trovato');
+        if (!config.api?.baseUrl) throw new Error('Base URL API non configurata');
+        try {
+            await axios.post(
+                `${config.api?.baseUrl}/api/v1/presigned/compose`,
+                {
+                    mergedFilename: composedUploadResponse.mergedFilename,
+                    parts: composedUploadResponse.parts
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${jwtToken}`,
+                        Accept: 'text/plain'
+                    },
+                    timeout: 30000
+                }
+            );
+
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                console.error(`Errore componendo il file:`, error.response?.data || error.message);
+            } else {
+                console.error(`Errore sconosciuto componendo il file:`, error);
+            }
+            throw error;
+        }
+
+    }
+
     public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void): Promise<void> {
-        await Promise.all(
+        const res = await Promise.all(
             files.map(file =>
                 this.uploadFile(file, (p) => {
                     if (onProgress) onProgress(p);
                 })
             )
         );
+        res.forEach(async r => {
+            if (r.composedUploadResponse) {
+                await this.composeUploadFiles(r.composedUploadResponse);
+                console.log('File caricato in modalità composta:', r.composedUploadResponse);
+            } else {
+                console.log('File caricato singolarmente.');
+            }
+        });
     }
 }
 
