@@ -30,12 +30,21 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
     return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
   };
 
-  // Helper function to convert IPFS URL to gateway URL
-  const getImageUrl = (ipfsUrl: string): string => {
+  // Helper function to convert IPFS URL to gateway URL (supports both IPFS and MINIO URLs)
+  const getImageUrl = (ipfsUrl: string | undefined | null): string => {
+    if (!ipfsUrl || ipfsUrl.trim() === '') {
+      return ''; // Return empty string if no URL provided
+    }
+    // If it's already a full URL (MINIO or gateway), use it directly
+    if (ipfsUrl.startsWith('http://') || ipfsUrl.startsWith('https://')) {
+      return ipfsUrl;
+    }
+    // If it's an IPFS URL (ipfs://), convert to gateway URL
     if (ipfsUrl.startsWith('ipfs://')) {
       const hash = ipfsUrl.replace('ipfs://', '');
       return IPFSUrlService.getGatewayUrl(hash);
     }
+    // Otherwise, return as is (might be just a hash or empty)
     return ipfsUrl;
   };
 
@@ -105,17 +114,19 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
                   {organizationData ? (
                     <>
                       <div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                        <img 
-                          src={getImageUrl(organizationData.image)} 
-                          alt={organizationData.name}
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            // Fallback to icon if image fails to load
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                          }}
-                        />
-                        <UserIcon className="h-4 w-4 text-white hidden" />
+                        {getImageUrl(organizationData.image) ? (
+                          <img 
+                            src={getImageUrl(organizationData.image)} 
+                            alt={organizationData.name}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <UserIcon className={`h-4 w-4 text-white ${getImageUrl(organizationData.image) ? 'hidden' : ''}`} />
                       </div>
                       <div className="hidden sm:block text-left">
                         <div className="text-sm font-medium text-white">

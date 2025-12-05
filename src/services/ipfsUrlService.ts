@@ -12,13 +12,22 @@ export interface IPFSUrlResult {
 export class IPFSUrlService {
   /**
    * Converte un hash IPFS in URL gateway usando il gateway configurato
+   * Se l'input è già un URL completo (http/https), lo restituisce direttamente
    */
   static getGatewayUrl(hash: string): string {
-    if (!hash) return '';
+    if (!hash || hash.trim() === '') return '';
+    
+    const trimmedHash = hash.trim();
+    
+    // Se è già un URL completo (MINIO, gateway, etc.), restituiscilo direttamente
+    if (trimmedHash.startsWith('http://') || trimmedHash.startsWith('https://')) {
+      return trimmedHash;
+    }
     
     // Rimuovi il prefisso ipfs:// se presente
-    const cleanHash = hash.replace('ipfs://', '');
+    const cleanHash = trimmedHash.replace('ipfs://', '').trim();
     
+    if (!cleanHash) return '';
     
     // Usa sempre il gateway configurato per consistenza
     const gatewayUrl = config.pinataGateway;

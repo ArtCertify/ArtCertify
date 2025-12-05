@@ -3,8 +3,10 @@ import ResponsiveLayout from './layout/ResponsiveLayout';
 import { LoadingSpinner, ErrorMessage, Button } from './ui';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useWalletSignature } from '../hooks/useWalletSignature';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import ModifyOrganizationModal from './modals/ModifyOrganizationModal';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import { 
   BuildingOfficeIcon, 
   GlobeAltIcon,
@@ -21,8 +23,10 @@ import {
 export const OrganizationProfilePage: React.FC = () => {
   const { organizationData, loading, error: orgError, refreshOrganizationData } = useOrganization();
   const { userAddress } = useAuth();
+  const { hasSigned } = useWalletSignature();
   const [error, setError] = useState<string | null>(null);
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
 
   // Helper function to convert IPFS URL to gateway URL
   const getImageUrl = (ipfsUrl: string): string => {
@@ -94,10 +98,10 @@ export const OrganizationProfilePage: React.FC = () => {
             
             {/* Left: Organization Image */}
             <div className="md:flex-1 lg:col-span-1 bg-slate-900/50 p-6 flex items-center justify-center">
-              {organizationData?.image ? (
+              {organizationData?.image && getImageUrl(organizationData.image) ? (
                 <div className="w-full">
                   <img
-                    src={getImageUrl(organizationData.image)}
+                    src={getImageUrl(organizationData.image) || undefined}
                     alt={organizationData.name}
                     className="w-full aspect-square object-cover rounded-lg shadow-lg"
                     onError={(e) => {
@@ -121,15 +125,27 @@ export const OrganizationProfilePage: React.FC = () => {
               <div className="relative">
                 {/* Edit button in top right */}
                 <div className="absolute top-0 right-0 flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setIsModifyModalOpen(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                    Modifica
-                  </Button>
+                  {hasSigned ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsModifyModalOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                      Modifica
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                      Modifica
+                    </Button>
+                  )}
                 </div>
                 
                 {/* Date below edit button */}
@@ -278,6 +294,15 @@ export const OrganizationProfilePage: React.FC = () => {
         organizationData={organizationData}
         onOrganizationUpdated={refreshOrganizationData}
       />
+
+      {/* Wallet Signature Modal */}
+      {userAddress && (
+        <WalletSignatureModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => setIsSignatureModalOpen(false)}
+          walletAddress={userAddress}
+        />
+      )}
     </ResponsiveLayout>
   );
 }; 

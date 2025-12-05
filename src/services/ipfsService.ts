@@ -219,7 +219,8 @@ class IPFSService {
   async uploadCertificationVersion(
     files: File[],
     customJson: any,
-    formData: Record<string, any>
+    formData: Record<string, any>,
+    userAddress?: string
   ): Promise<{
     metadataHash: string;
     fileHashes: Array<{ name: string; hash: string; type: string; size: number }>;
@@ -227,44 +228,44 @@ class IPFSService {
     individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }>;
   }> {
     try {
-      // Upload new files if any
+      // Build MINIO URLs for new files (files are already uploaded to MINIO)
       const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
       const individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }> = [];
       
+      const lowercaseAddress = userAddress?.toLowerCase() || '';
+      
       for (const file of files) {
-        const uploadResult = await this.uploadFile(file, {
-          name: `CERT_${formData.assetName || 'file'}_${file.name}`,
-          keyvalues: {
-            asset_id: formData.assetName || '',
-            file_type: file.type,
-            file_size: file.size.toString(),
-            upload_timestamp: new Date().toISOString()
-          }
-        });
-
+        // Build MINIO URL: https://s3.caputmundi.artcertify.com/{lowercase addressUser}/{filename.extension}
+        const fileName = encodeURIComponent(file.name);
+        const minioUrl = `https://s3.caputmundi.artcertify.com/${lowercaseAddress}/${fileName}`;
+        
         const fileInfo = {
           name: file.name,
-          hash: uploadResult.IpfsHash,
+          hash: '', // No IPFS hash since file is not uploaded to IPFS
           type: file.type,
           size: file.size
         };
         
         fileHashes.push(fileInfo);
         
+        // Use MINIO URL instead of IPFS URL
         individualFileUrls.push({
           name: file.name,
-          ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
-          gatewayUrl: IPFSUrlService.getGatewayUrl(uploadResult.IpfsHash)
-        });
+          s3StorageUrl: minioUrl, // Store MINIO URL in s3StorageUrl field
+          gatewayUrl: minioUrl // Store MINIO URL in gatewayUrl field (for backward compatibility)
+        } as any); // Type assertion needed because interface still has ipfsUrl
       }
 
-      // Files will be handled in the updatedJson construction
+      // Get the first file URL for the image field (if new file uploaded)
+      const firstFileUrl = formData.imageFile && individualFileUrls.length > 0 
+        ? individualFileUrls[0].gatewayUrl 
+        : customJson.image; // Keep existing image if no new file
 
       const updatedJson = {
         ...customJson, // Keep ALL existing data
         // Image should always be the current primary image from File Certificazione
         // Only update if a new image file is uploaded (formData.imageFile)
-        image: formData.imageFile ? individualFileUrls[0].ipfsUrl : customJson.image,
+        image: firstFileUrl,
         properties: {
           ...customJson.properties, // Keep ALL existing properties
           form_data: {
@@ -282,18 +283,20 @@ class IPFSService {
               ...(customJson.properties?.files_metadata?.slice(0, 1) || []), // Keep existing primary image
               ...individualFileUrls // Add new files
             ],
-          // Update IPFS info
-          ipfs_info: {
+          // Update storage info (MINIO instead of IPFS)
+          storage_info: {
+            ...customJson.properties?.storage_info, // Keep existing storage info
             uploaded_at: new Date().toISOString(),
             total_files: formData.imageFile ? 
               (customJson.properties?.files_metadata?.slice(1)?.length || 0) + individualFileUrls.length :
               (customJson.properties?.files_metadata?.slice(0, 1)?.length || 0) + individualFileUrls.length,
-            gateway: config.pinataGateway
+            storage_type: 'minio',
+            base_url: 'https://s3.caputmundi.artcertify.com'
           }
         }
       };
 
-      // Upload updated JSON
+      // Upload updated JSON to IPFS (only the JSON, not the files)
       const metadataResult = await this.uploadJSON(updatedJson, {
         name: `${formData.assetName || 'CERT'}_metadata.json`,
         keyvalues: {
@@ -367,7 +370,7 @@ class IPFSService {
         ...customJson,
         // Image should always be the current primary image from File Certificazione
         // Only update if a new image file is uploaded (formData.imageFile)
-        image: formData.imageFile ? individualFileUrls[0].ipfsUrl : customJson.image,
+        image: formData.imageFile ? ((individualFileUrls[0] as any).s3StorageUrl || individualFileUrls[0].gatewayUrl || individualFileUrls[0].ipfsUrl) : customJson.image,
         properties: {
           ...customJson.properties,
           form_data: {
@@ -425,7 +428,8 @@ class IPFSService {
   async uploadCertificationAssets(
     files: File[],
     certificationData: IPFSMetadata['certification_data'],
-    formData: Record<string, any>
+    formData: Record<string, any>,
+    userAddress?: string
   ): Promise<{
     metadataHash: string;
     fileHashes: Array<{ name: string; hash: string; type: string; size: number }>;
@@ -433,60 +437,62 @@ class IPFSService {
     individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }>;
   }> {
     try {
-      // Upload all files individually first
+      // Build MINIO URLs for files (files are already uploaded to MINIO)
       const fileHashes: Array<{ name: string; hash: string; type: string; size: number }> = [];
       const individualFileUrls: Array<{ name: string; ipfsUrl: string; gatewayUrl: string }> = [];
       
+      const lowercaseAddress = userAddress?.toLowerCase() || '';
+      
       for (const file of files) {
-        const uploadResult = await this.uploadFile(file, {
-          name: `${certificationData?.unique_id || 'file'}_${file.name}`,
-          keyvalues: {
-            asset_id: certificationData?.unique_id || '',
-            file_type: file.type,
-            file_size: file.size.toString(),
-            upload_timestamp: new Date().toISOString()
-          }
-        });
-
+        // Build MINIO URL: https://s3.caputmundi.artcertify.com/{lowercase addressUser}/{filename.extension}
+        // Encode filename to handle special characters in URL
+        const fileName = encodeURIComponent(file.name);
+        const minioUrl = `https://s3.caputmundi.artcertify.com/${lowercaseAddress}/${fileName}`;
+        
         const fileInfo = {
           name: file.name,
-          hash: uploadResult.IpfsHash,
+          hash: '', // No IPFS hash since file is not uploaded to IPFS
           type: file.type,
           size: file.size
         };
         
         fileHashes.push(fileInfo);
         
+        // Use MINIO URL instead of IPFS URL
         individualFileUrls.push({
           name: file.name,
-          ipfsUrl: `ipfs://${uploadResult.IpfsHash}`,
-          gatewayUrl: IPFSUrlService.getGatewayUrl(uploadResult.IpfsHash)
-        });
+          s3StorageUrl: minioUrl, // Store MINIO URL in s3StorageUrl field
+          gatewayUrl: minioUrl // Store MINIO URL in gatewayUrl field (for backward compatibility)
+        } as any); // Type assertion needed because interface still has ipfsUrl
       }
+
+      // Get the first file URL for the image field
+      const firstFileUrl = individualFileUrls.length > 0 ? individualFileUrls[0].gatewayUrl : '';
 
       // Create simplified metadata with only form data
       const metadata: IPFSMetadata = {
         name: String(formData.fullAssetName || formData.assetName || 'Certified Asset'),
         description: String(formData.description || ''),
-        image: fileHashes.length > 0 ? `ipfs://${fileHashes[0].hash}` : '',
+        image: firstFileUrl, // Use MINIO URL instead of IPFS URL
         properties: {
           // All form data structured
           form_data: {
             ...formData,
             timestamp: new Date().toISOString()
           },
-          // Individual file CIDs and URLs
+          // Individual file URLs (MINIO URLs instead of IPFS)
           files_metadata: individualFileUrls,
-          // IPFS upload info
-          ipfs_info: {
+          // Storage info (MINIO instead of IPFS)
+          storage_info: {
             uploaded_at: new Date().toISOString(),
             total_files: fileHashes.length,
-            gateway: config.pinataGateway
+            storage_type: 'minio',
+            base_url: 'https://s3.caputmundi.artcertify.com'
           }
         }
       };
 
-      // Upload comprehensive metadata JSON
+      // Upload comprehensive metadata JSON to IPFS (only the JSON, not the files)
       const metadataResult = await this.uploadJSON(metadata, {
         name: `${certificationData?.unique_id || 'metadata'}_metadata.json`,
         keyvalues: {
