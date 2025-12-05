@@ -173,6 +173,24 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     }
   }, [formData.projectName, formData.assetName]);
 
+
+
+  useEffect(() => {
+    if (!isUploadingFile) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // obbligatorio per mostrare il popup
+    };
+
+    window.addEventListener("beforeunload", handler);
+
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [isUploadingFile]);
+
+
   // Handle file upload
   const handleFileUpload = (files: File[]) => {
     if (files.length > 0) {
