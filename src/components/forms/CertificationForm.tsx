@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FormLayout } from '../ui';
+import { FormLayout, Modal } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import { useProjectsCache } from '../../hooks/useProjectsCache';
@@ -16,6 +16,8 @@ import {
   PlusIcon
 } from '@heroicons/react/24/outline';
 import MinIOService from '../../services/minioServices';
+import { useNavigate } from 'react-router-dom';
+
 
 
 interface CertificationFormProps {
@@ -53,9 +55,13 @@ const TYPE_OPTIONS = [
 
 export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) => {
   // Auth and cache hooks
-  const { userAddress } = useAuth();
+  const { logout, userAddress } = useAuth();
   const { getCachedProjects } = useProjectsCache();
   const minioService = new MinIOService();
+
+  const navigate = useNavigate();
+
+
 
   // Certification flow hook
   const {
@@ -91,6 +97,9 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [isUploadLocked, setIsUploadLocked] = useState(false);
   const [isUploadCompleted, setIsUploadCompleted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const controllerRef = useRef<AbortController | null>(null);
+  const [nextAction, setNextAction] = useState<"home" | "profile" | "logout" | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState<CertificationFormData>({
@@ -113,6 +122,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'video' | 'audio' | 'document' | 'other'>('other');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
   // const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Load projects from cache
@@ -190,6 +200,15 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     };
   }, [isUploadingFile]);
 
+
+  useEffect(() => {
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   // Handle file upload
   const handleFileUpload = (files: File[]) => {
@@ -461,7 +480,8 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     try {
       await minioService.uploadCertificationToMinio(
         uploadedFile ? [uploadedFile] : [],
-        (progress) => setUploadProgress(progress)
+        (progress) => setUploadProgress(progress),
+        controllerRef.current!.signal
       );
       setIsUploadCompleted(true);
 
@@ -484,9 +504,27 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
 
 
+  useEffect(() => {
+    const handler = () => {
+      setShowExitModal(true);
+    };
+
+    window.addEventListener('openExitModal', handler);
+
+    return () => {
+      window.removeEventListener('openExitModal', handler);
+    };
+  }, []);
+
+
+  const handlePendingAction = (action: "home" | "profile" | "logout") => {
+    setNextAction(action);
+    setShowExitModal(true);
+  };
+
   return (
     <>
-      <FormLayout>
+      <FormLayout isUploadingFile={isUploadingFile}  onRequestExitAction={handlePendingAction}>
         <div className="space-y-4">
           {/* Header */}
           <div className="text-center">
@@ -1006,6 +1044,40 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
           />
         )
       }
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <Modal
+          isOpen={showExitModal}
+          onClose={() => setShowExitModal(false)}
+          title="Stai caricando un file"
+          children={
+            <div className="space-y-4">
+              <p className="text-slate-300">
+                Il caricamento del file è ancora in corso. Se esci adesso, l’upload verrà interrotto e perderai il progresso. </p>
+              <div className="flex justify-end gap-4 pt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowExitModal(false)}
+                >
+                  Resta
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setShowExitModal(false);
+                    if (nextAction === "home") navigate("/");
+                    if (nextAction === "profile") navigate('/profile');;
+                    if (nextAction === "logout") await logout();
+                  }}
+                >
+                  Esci
+                </Button>
+              </div>
+            </div>
+          }
+
+        />
+      )}
     </>
   );
 };

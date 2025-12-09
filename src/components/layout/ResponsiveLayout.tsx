@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  ArrowRightOnRectangleIcon, 
-  ChevronDownIcon, 
+import { useNavigate } from 'react-router-dom';
+import {
+  ArrowRightOnRectangleIcon,
+  ChevronDownIcon,
   BuildingOfficeIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
@@ -13,9 +13,11 @@ import BackgroundLayout from './BackgroundLayout';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
+  isUploadingFile?: boolean;
+  onRequestExitAction?: (action: "home" | "profile" | "logout") => void;
 }
 
-const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
+const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children, isUploadingFile, onRequestExitAction }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -79,8 +81,9 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
     }
   };
 
+
   return (
-    <BackgroundLayout 
+    <BackgroundLayout
       className="min-h-screen bg-slate-900"
       backgroundDensity="medium"
       backgroundOpacity="visible"
@@ -93,13 +96,12 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
             {/* Logo and Navigation */}
             <div className="flex items-center space-x-8">
               {/* Logo */}
-              <Link to="/" className="flex items-center space-x-3">
+              <button className="flex items-center space-x-3" onClick={() => { if (isUploadingFile) onRequestExitAction?.("home"); else navigate('/') }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                   <img src="/logo.png" alt="ArtCertify Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-xl font-bold text-white">ArtCertify</span>
-              </Link>
-
+              </button>
             </div>
 
             {/* User Menu */}
@@ -115,8 +117,8 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
                     <>
                       <div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
                         {getImageUrl(organizationData.image) ? (
-                          <img 
-                            src={getImageUrl(organizationData.image)} 
+                          <img
+                            src={getImageUrl(organizationData.image)}
                             alt={organizationData.name}
                             className="h-full w-full object-cover"
                             onError={(e) => {
@@ -155,14 +157,14 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg bg-slate-700/95 backdrop-blur-sm py-2 shadow-xl ring-1 ring-slate-600/50 focus:outline-none">
                     <button
-                      onClick={handleProfileEdit}
+                      onClick={() => {if (isUploadingFile) onRequestExitAction?.("profile"); else handleProfileEdit()}}
                       className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors"
                     >
                       <BuildingOfficeIcon className="h-4 w-4" />
                       <span>Profilo</span>
                     </button>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => { if (isUploadingFile) onRequestExitAction?.("logout"); else handleLogout()}}
                       className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors"
                     >
                       <ArrowRightOnRectangleIcon className="h-4 w-4" />
@@ -182,7 +184,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
-    </BackgroundLayout>
+    </BackgroundLayout >
   );
 };
 

@@ -19,7 +19,7 @@ class MinIOService {
 
         const lastDotIndex = file.name.lastIndexOf(".");
         const baseName = file.name.substring(0, lastDotIndex);
-        const extension = file.name.substring(lastDotIndex); 
+        const extension = file.name.substring(lastDotIndex);
 
         while (start < file.size) {
             const end = Math.min(start + chunkSize, file.size);
@@ -27,7 +27,7 @@ class MinIOService {
 
             const chunkFile = new File(
                 [blobChunk],
-                `${baseName}-${index}${extension}`, 
+                `${baseName}-${index}${extension}`,
                 { type: file.type }
             );
 
@@ -70,7 +70,7 @@ class MinIOService {
     }
 
 
-    private async uploadFile(file: File, onProgress?: (percent: number) => void): Promise<{ composedUploadResponse: composedUploadResponse | null }> {
+    private async uploadFile(file: File, onProgress?: (percent: number) => void, signal?: AbortSignal): Promise<{ composedUploadResponse: composedUploadResponse | null }> {
 
         const uploadSingle = (fileToUpload: File, index?: number, chunkFilesLength?: number): Promise<{ url: string; etag: string | undefined }> => {
             return new Promise(async (resolve, reject) => {
@@ -78,6 +78,7 @@ class MinIOService {
                     const presignedUrl = await this.getPresignedUrl(fileToUpload.name);
                     const xhr = new XMLHttpRequest();
 
+                    // --- gestione progress ---
                     if (index !== undefined && chunkFilesLength !== undefined) {
                         xhr.upload.addEventListener("progress", (event) => {
                             if (event.lengthComputable && onProgress) {
@@ -96,7 +97,14 @@ class MinIOService {
                         });
                     }
 
+                    // --- gestione abort ---
+                    const onAbort = () => {
+                        xhr.abort();
+                        reject(new DOMException("Upload aborted", "AbortError"));
+                    };
+                    signal?.addEventListener("abort", onAbort);
 
+                    // --- gestione errori ---
                     xhr.addEventListener("error", () => reject(new Error("Errore upload")));
                     xhr.onreadystatechange = () => {
                         if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -111,6 +119,13 @@ class MinIOService {
                     xhr.open("PUT", presignedUrl);
                     xhr.setRequestHeader("Content-Type", fileToUpload.type);
                     xhr.send(fileToUpload);
+
+                    // --- pulizia evento abort quando finisce ---
+                    const cleanup = () => signal?.removeEventListener("abort", onAbort);
+                    xhr.onloadend = cleanup;
+                    xhr.onerror = cleanup;
+                    xhr.onabort = cleanup;
+
                 } catch (err) {
                     reject(err);
                 }
@@ -175,12 +190,12 @@ class MinIOService {
 
     }
 
-    public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void): Promise<void> {
+    public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void,  signal?: AbortSignal): Promise<void> {
         const res = await Promise.all(
             files.map(file =>
                 this.uploadFile(file, (p) => {
                     if (onProgress) onProgress(p);
-                })
+                }, signal)
             )
         );
         res.forEach(async r => {
