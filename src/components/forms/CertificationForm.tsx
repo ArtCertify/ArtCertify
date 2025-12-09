@@ -484,7 +484,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
         controllerRef.current!.signal
       );
       setIsUploadCompleted(true);
-
+      setIsUploadFailed(false);
     } catch (error) {
       setIsUploadFailed(true);
       setIsUploadLocked(false);

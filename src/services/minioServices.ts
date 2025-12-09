@@ -70,6 +70,23 @@ class MinIOService {
     }
 
 
+    private markChunkUploaded(filename: string, chunkIndex: number) {
+        localStorage.setItem(`upload-${filename}-part-${chunkIndex}`, "uploaded");
+    }
+
+
+    private isChunkUploaded(filename: string, chunkIndex: number): boolean {
+        return localStorage.getItem(`upload-${filename}-part-${chunkIndex}`) === "uploaded";
+    }
+
+    private clearUploadState(filename: string, totalChunks: number) {
+        for (let i = 0; i < totalChunks; i++) {
+            localStorage.removeItem(`upload-${filename}-part-${i}`);
+        }
+    }
+
+
+
     private async uploadFile(file: File, onProgress?: (percent: number) => void, signal?: AbortSignal): Promise<{ composedUploadResponse: composedUploadResponse | null }> {
 
         const uploadSingle = (fileToUpload: File, index?: number, chunkFilesLength?: number): Promise<{ url: string; etag: string | undefined }> => {
@@ -105,10 +122,15 @@ class MinIOService {
                     signal?.addEventListener("abort", onAbort);
 
                     // --- gestione errori ---
-                    xhr.addEventListener("error", () => reject(new Error("Errore upload")));
+                    xhr.addEventListener("error", () =>  reject(new Error("Errore upload")));
                     xhr.onreadystatechange = () => {
                         if (xhr.readyState === XMLHttpRequest.DONE) {
                             if (xhr.status >= 200 && xhr.status < 300) {
+                                if (index !== undefined) {
+                                    const originalFilename = file.name;
+                                    this.markChunkUploaded(originalFilename, index);
+
+                                }
                                 resolve({ url: presignedUrl, etag: xhr.getResponseHeader("ETag") || undefined });
                             } else {
                                 reject(new Error(`Upload fallito: ${xhr.status}`));
@@ -140,6 +162,10 @@ class MinIOService {
                 const chunk = chunkFiles[i];
                 parts[i + 1] = chunk.name;
 
+
+                if (this.isChunkUploaded(file.name, i)) {
+                    continue;
+                }
                 await uploadSingle(chunk, i, chunkFiles.length);
             }
 
@@ -190,7 +216,7 @@ class MinIOService {
 
     }
 
-    public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void,  signal?: AbortSignal): Promise<void> {
+    public async uploadCertificationToMinio(files: File[], onProgress?: (progress: number) => void, signal?: AbortSignal): Promise<void> {
         const res = await Promise.all(
             files.map(file =>
                 this.uploadFile(file, (p) => {
@@ -201,9 +227,9 @@ class MinIOService {
         res.forEach(async r => {
             if (r.composedUploadResponse) {
                 await this.composeUploadFiles(r.composedUploadResponse);
-                console.log('File caricato in modalità composta:', r.composedUploadResponse);
-            } else {
-                console.log('File caricato singolarmente.');
+
+                const partsCount = Object.keys(r.composedUploadResponse.parts).length;
+                this.clearUploadState(r.composedUploadResponse.mergedFilename, partsCount);
             }
         });
     }
