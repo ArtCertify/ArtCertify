@@ -45,9 +45,13 @@ class MinIOService {
         if (!jwtToken) throw new Error('Token JWT non trovato');
         if (!config.api?.baseUrl) throw new Error('Base URL API non configurata');
 
+        const requestUrl = `${config.api?.baseUrl}/api/v1/presigned/upload?filename=${encodeURIComponent(fileName)}`;
+        console.log(`[MinIO Service] Richiesta presigned URL per file: ${fileName}`);
+        console.log(`[MinIO Service] URL richiesta: ${requestUrl}`);
+
         try {
             const response = await axios.get(
-                `${config.api?.baseUrl}/api/v1/presigned/upload?filename=${encodeURIComponent(fileName)}`,
+                requestUrl,
                 {
                     headers: {
                         'Authorization': `Bearer ${jwtToken}`,
@@ -57,13 +61,15 @@ class MinIOService {
                 }
             );
 
-            return response.data;
+            const presignedUrl = response.data;
+            console.log(`[MinIO Service] ✅ Presigned URL ricevuto: ${presignedUrl}`);
+            return presignedUrl;
 
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                console.error(`Errore ottenendo presigned URL per ${fileName}:`, error.response?.data || error.message);
+                console.error(`[MinIO Service] ❌ Errore ottenendo presigned URL per ${fileName}:`, error.response?.data || error.message);
             } else {
-                console.error(`Errore sconosciuto ottenendo presigned URL per ${fileName}:`, error);
+                console.error(`[MinIO Service] ❌ Errore sconosciuto ottenendo presigned URL per ${fileName}:`, error);
             }
             throw error;
         }
