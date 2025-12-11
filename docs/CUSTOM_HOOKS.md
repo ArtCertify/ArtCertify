@@ -5,6 +5,10 @@ Documentazione completa dei custom hooks sviluppati per ArtCertify, che fornisco
 ## 📋 Panoramica
 
 I custom hooks implementati sono:
+- **usePeraCertificationFlow**: Hook principale per certificazioni con smart retry
+- **usePeraWallet**: Hook integrazione Pera Wallet Connect
+- **useTransactionSigning**: Hook firma transazioni con error handling
+- **useWalletSignature**: Hook gestione firma Terms & Conditions e stato autenticazione
 - **useAsyncState**: Gestione stati asincroni con loading/error
 - **useDebounce**: Debounce per input e ricerche
 - **useLocalStorage**: Persistenza dati nel localStorage
@@ -446,6 +450,164 @@ const useCachedAssets = () => {
 - **Type-safe**: Completamente tipizzato
 - **Error handling**: Gestione errori localStorage
 - **API familiare**: Simile a useState
+
+## 🔐 useWalletSignature
+
+Hook per verificare se l'utente ha firmato i Terms & Conditions tramite transazione blockchain e gestire lo stato dell'autenticazione.
+
+### Implementazione
+
+```typescript
+// src/hooks/useWalletSignature.ts
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+
+export const useWalletSignature = () => {
+  const { userAddress } = useAuth();
+  const [hasSigned, setHasSigned] = useState(false);
+  const [signedTxBase64, setSignedTxBase64] = useState<string | null>(null);
+  const [signedTxId, setSignedTxId] = useState<string | null>(null);
+
+  const checkSignature = useCallback(() => {
+    if (!userAddress) {
+      setHasSigned(false);
+      setSignedTxBase64(null);
+      setSignedTxId(null);
+      return;
+    }
+
+    // Check if user has signed for this wallet address
+    const signatureStatus = localStorage.getItem(`wallet_signature_${userAddress}`);
+    const base64 = localStorage.getItem(`wallet_signature_base64_${userAddress}`);
+    const txId = localStorage.getItem(`wallet_signature_tx_${userAddress}`);
+
+    setHasSigned(signatureStatus === 'true');
+    setSignedTxBase64(base64);
+    setSignedTxId(txId);
+  }, [userAddress]);
+
+  useEffect(() => {
+    checkSignature();
+
+    // Listen for storage changes (cross-tab synchronization)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `wallet_signature_${userAddress}` || 
+          e.key === `wallet_signature_base64_${userAddress}` ||
+          e.key === `wallet_signature_tx_${userAddress}`) {
+        checkSignature();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Listen for custom event (same-tab updates)
+    const handleSignatureUpdate = () => {
+      checkSignature();
+    };
+
+    window.addEventListener('walletSignatureUpdated', handleSignatureUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('walletSignatureUpdated', handleSignatureUpdate);
+    };
+  }, [userAddress, checkSignature]);
+
+  return {
+    hasSigned,
+    signedTxBase64,
+    signedTxId,
+    refresh: checkSignature
+  };
+};
+```
+
+### Utilizzo
+
+#### Verifica Firma Terms & Conditions
+
+```tsx
+import { useWalletSignature } from '../hooks/useWalletSignature';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
+
+const DashboardPage: React.FC = () => {
+  const { hasSigned } = useWalletSignature();
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+
+  return (
+    <div>
+      {hasSigned ? (
+        <Link to="/certificates">
+          Crea Certificazione
+        </Link>
+      ) : (
+        <button onClick={() => setIsSignatureModalOpen(true)}>
+          Crea Certificazione
+        </button>
+      )}
+
+      <WalletSignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        walletAddress={userAddress}
+      />
+    </div>
+  );
+};
+```
+
+#### Accesso a Dati Firma
+
+```tsx
+const OrganizationOnboarding: React.FC = () => {
+  const { hasSigned, signedTxBase64, signedTxId } = useWalletSignature();
+
+  const handleSubmit = async () => {
+    if (!hasSigned) {
+      // Mostra modal per firma Terms & Conditions
+      setIsSignatureModalOpen(true);
+      return;
+    }
+
+    // Procedi con la creazione organizzazione
+    // Il JWT token è già disponibile tramite authService.getToken()
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+};
+```
+
+#### Refresh Manuale
+
+```tsx
+const SomeComponent: React.FC = () => {
+  const { hasSigned, refresh } = useWalletSignature();
+
+  const handleRefresh = () => {
+    // Forza refresh dello stato firma
+    refresh();
+  };
+
+  return (
+    <div>
+      <p>Firma: {hasSigned ? 'Completata' : 'Non completata'}</p>
+      <button onClick={handleRefresh}>Aggiorna Stato</button>
+    </div>
+  );
+};
+```
+
+### Vantaggi
+
+- **Sincronizzazione Cross-Tab**: Aggiornamento automatico tra tab/window
+- **Reattività**: Stato reattivo che si aggiorna automaticamente
+- **Type-Safe**: Completamente tipizzato con TypeScript
+- **Persistenza**: Dati salvati in localStorage per persistenza
+- **Event-Driven**: Aggiornamento tramite eventi custom per same-tab
 
 ## 🔄 Composizione Hooks
 

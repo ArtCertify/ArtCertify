@@ -362,10 +362,10 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
                           onDrop={handleDrop}
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          {formData.image ? (
+                          {formData.image && (formData.image.startsWith('ipfs://') ? getImageUrl(formData.image) : formData.image) ? (
                             <div className="space-y-4">
                               <img
-                                src={formData.image.startsWith('ipfs://') ? getImageUrl(formData.image) : formData.image}
+                                src={formData.image.startsWith('ipfs://') ? (getImageUrl(formData.image) || undefined) : (formData.image || undefined)}
                                 alt="Organization logo"
                                 className="mx-auto h-32 w-32 object-cover rounded-lg"
                                 onError={(e) => {

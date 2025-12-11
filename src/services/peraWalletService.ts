@@ -1,6 +1,7 @@
 import { PeraWalletConnect } from '@perawallet/connect';
 import algosdk from 'algosdk';
 import { getAddressExplorerUrl, config } from '../config/environment';
+import { authService } from './authService';
 
 // Types from the documentation
 export interface SignerTransaction {
@@ -44,9 +45,20 @@ class PeraWalletService {
    */
   async connect(): Promise<string[]> {
     try {
+      // Get previous account before connecting (if any)
+      const previousAccount = this.connectedAccount || localStorage.getItem('pera_wallet_account');
+      
       const accounts = await this.peraWallet.connect();
       
       if (accounts.length > 0) {
+        // If connecting a different wallet, clear all previous authentication data
+        if (previousAccount && previousAccount !== accounts[0]) {
+          authService.clearAllAuthData(previousAccount);
+        } else if (!previousAccount) {
+          // First connection - clear any existing data
+          authService.clearAllAuthData();
+        }
+        
         this.connectedAccount = accounts[0];
         this.setupEventListeners();
         this.emitEvent('connect', accounts[0]);
@@ -73,9 +85,17 @@ class PeraWalletService {
    */
   async reconnectSession(): Promise<string[]> {
     try {
+      // Get previous account before reconnecting (if any)
+      const previousAccount = this.connectedAccount || localStorage.getItem('pera_wallet_account');
+      
       const accounts = await this.peraWallet.reconnectSession();
       
       if (accounts.length > 0) {
+        // If reconnecting a different wallet, clear all previous authentication data
+        if (previousAccount && previousAccount !== accounts[0]) {
+          authService.clearAllAuthData(previousAccount);
+        }
+        
         this.connectedAccount = accounts[0];
         this.setupEventListeners();
         this.emitEvent('reconnect', accounts[0]);

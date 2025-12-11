@@ -9,18 +9,22 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.17-blue?logo=tailwindcss)
 ![Pera Wallet](https://img.shields.io/badge/Pera%20Wallet-1.4.2-orange)
 
-## 🚀 Caratteristiche Principali
+## 🚀 Caratteristiche Principali 
 
 ### ✨ **Autenticazione Sicura**
-- **Pera Wallet Connect**: Unico metodo di autenticazione supportato
-- **Session Persistence**: Riconnessione automatica tra sessioni
-- **Multi-Platform**: Supporto mobile (QR Code) e desktop
-- **Zero Private Keys**: Nessuna chiave privata memorizzata nell'applicazione
+- **Pera Wallet Connect** (v1.0): Metodo di autenticazione principale
+- **JWT Backend Integration** (v2.0): Autenticazione con backend tramite firma transazione Algorand
+- **Terms & Conditions** (v2.0): Accettazione esplicita termini con firma blockchain
+- **Session Persistence** (v1.0): Riconnessione automatica tra sessioni
+- **Multi-Platform** (v1.0): Supporto mobile (QR Code) e desktop
+- **Zero Private Keys** (v1.0): Nessuna chiave privata memorizzata nell'applicazione
 
 ### 🏗️ **Certificazione Blockchain**
 - **Soulbound Tokens (SBT)**: Certificazioni non trasferibili
 - **Standard Compliance**: ARC-3 (Metadata) + ARC-19 (Template URL)
-- **IPFS Storage**: Storage decentralizzato con Pinata
+- **Hybrid Storage**: MINIO per file certificazioni + IPFS per metadata JSON
+- **IPFS Storage**: Storage decentralizzato con Pinata (solo metadata JSON)
+- **MINIO Storage**: Storage centralizzato S3-compatible per file certificazioni
 - **Versioning Avanzato**: Cronologia completa delle modifiche
 - **Smart Retry System**: Ripresa intelligente dai punti di fallimento
 
@@ -52,10 +56,11 @@ Blockchain Integration:
 ├── Algorand SDK 3.3.1               # Core blockchain
 └── Pera Wallet Connect 1.4.2        # Wallet integration
 
-IPFS & Storage:
+Storage & IPFS:
+├── MINIO/S3 Storage                 # File storage per certificazioni
 ├── Multiformats 13.3.7              # CID manipulation
 ├── Uint8arrays 5.1.0                # Binary data handling
-└── Pinata API                       # IPFS pinning service
+└── Pinata API                       # IPFS pinning service (solo metadata JSON)
 
 UI & UX Libraries:
 ├── Headless UI 2.2.4                # Accessible components
@@ -84,9 +89,12 @@ artcertify/
 │   │   │   ├── DocumentForm.tsx     # Form certificazione documenti
 │   │   │   └── BaseCertificationForm.tsx # Form base condiviso
 │   │   │
-│   │   ├── modals/                  # 🪟 Dialog e modal
-│   │   │   ├── CertificationModal.tsx      # Modal processo certificazione
-│   │   │   └── ModifyAttachmentsModal.tsx  # Modal modifica allegati
+│   │   ├── modals/                  # 🪟 Dialog e modal (v2.0)
+│   │   │   ├── CertificationModal.tsx      # v1.0 - Modal processo certificazione
+│   │   │   ├── WalletSignatureModal.tsx   # v2.0 - Modal firma Terms & Conditions
+│   │   │   ├── TermsAndConditions.tsx     # v2.0 - Componente Termini e Condizioni
+│   │   │   ├── ModifyAttachmentsModal.tsx  # v1.0 - Modal modifica allegati
+│   │   │   └── ModifyOrganizationModal.tsx # v1.0 - Modal modifica organizzazione
 │   │   │
 │   │   ├── asset/                   # 🏛️ Componenti gestione asset
 │   │   │   ├── AssetHeader.tsx      # Header dettagli asset
@@ -108,22 +116,29 @@ artcertify/
 │   │   ├── CertificateCard.tsx      # 🎫 Card certificato singolo
 │   │   └── VersioningSection.tsx    # 🔄 Sezione versioning asset
 │   │
-│   ├── hooks/                       # 🪝 Custom Hooks React
-│   │   ├── usePeraCertificationFlow.ts # Hook flusso certificazione completo
-│   │   ├── usePeraWallet.ts         # Hook integrazione Pera Wallet
-│   │   ├── useTransactionSigning.ts # Hook firma transazioni
-│   │   ├── useAsyncState.ts         # Hook gestione stati asincroni
-│   │   ├── useDebounce.ts           # Hook debounce per ricerche
-│   │   └── useLocalStorage.ts       # Hook persistenza localStorage
+│   ├── hooks/                       # 🪝 Custom Hooks React (v2.0)
+│   │   ├── usePeraCertificationFlow.ts # v1.0 - Hook flusso certificazione completo
+│   │   ├── usePeraWallet.ts         # v1.0 - Hook integrazione Pera Wallet
+│   │   ├── useTransactionSigning.ts # v2.0 - Hook firma transazioni + auth
+│   │   ├── useWalletSignature.ts    # v2.0 - Hook gestione firma Terms & Conditions
+│   │   ├── useAsyncState.ts         # v1.0 - Hook gestione stati asincroni
+│   │   ├── useDebounce.ts           # v1.0 - Hook debounce per ricerche
+│   │   ├── useLocalStorage.ts       # v1.0 - Hook persistenza localStorage
+│   │   ├── useIPFSMetadata.ts       # v1.0 - Hook gestione metadata IPFS
+│   │   ├── useProjectsCache.ts      # v1.0 - Hook cache progetti
+│   │   └── useWalletValidation.ts   # v1.0 - Hook validazione wallet
 │   │
-│   ├── services/                    # 🔧 Servizi Core Business Logic
-│   │   ├── peraWalletService.ts     # Servizio Pera Wallet Connect
-│   │   ├── algorand.ts              # API Algorand + gestione asset
-│   │   ├── ipfsService.ts           # Integrazione Pinata IPFS
-│   │   ├── cidDecoder.ts            # Decodifica CID ARC-19 compliance
-│   │   ├── walletService.ts         # Servizi wallet generici
-│   │   ├── nftService.ts            # Gestione NFT e portfolio
-│   │   └── spidService.ts           # Integrazione SPID (placeholder)
+│   ├── services/                    # 🔧 Servizi Core Business Logic (v2.0)
+│   │   ├── peraWalletService.ts     # v1.0 - Servizio Pera Wallet Connect
+│   │   ├── authService.ts          # v2.0 - Servizio autenticazione JWT con backend
+│   │   ├── algorand.ts              # v1.0 - API Algorand + gestione asset
+│   │   ├── ipfsService.ts           # v1.0 - Integrazione Pinata IPFS (solo metadata JSON)
+│   │   ├── minioServices.ts         # v2.0 - Integrazione MINIO/S3 per file certificazioni
+│   │   ├── ipfsUrlService.ts        # v1.0 - Gestione URL IPFS e gateway
+│   │   ├── cidDecoder.ts            # v1.0 - Decodifica CID ARC-19 compliance
+│   │   ├── walletService.ts         # v1.0 - Servizi wallet generici
+│   │   ├── nftService.ts            # v1.0 - Gestione NFT e portfolio
+│   │   └── spidService.ts           # v1.0 - Integrazione SPID (placeholder)
 │   │
 │   ├── contexts/                    # 🌐 Context React per stato globale
 │   │   └── AuthContext.tsx          # Context autenticazione Pera Wallet
@@ -144,14 +159,17 @@ artcertify/
 │
 ├── docs/                           # 📚 Documentazione completa
 │   ├── ARCHITECTURE.md             # Architettura software
-│   ├── ALGORAND_INTEGRATION.md     # Integrazione blockchain
-│   ├── IPFS_INTEGRATION.md         # Integrazione IPFS e storage
-│   ├── PERA_CONNECT_INTEGRATION.md # Integrazione Pera Wallet
-│   ├── CID_DECODER.md              # Decodifica CID e ARC-19
-│   ├── CUSTOM_HOOKS.md             # Documentazione custom hooks
-│   ├── DESIGN_SYSTEM.md            # Sistema di design e UI
-│   ├── NETWORK_CONFIGURATION.md    # Configurazione rete Algorand
-│   └── README.md                   # Indice documentazione
+│   ├── ALGORAND_INTEGRATION.md     # v1.0 - Integrazione blockchain
+│   ├── IPFS_INTEGRATION.md         # v1.0 - Integrazione IPFS e storage
+│   ├── PERA_CONNECT_INTEGRATION.md # v1.0 - Integrazione Pera Wallet
+│   ├── AUTH_JWT_INTEGRATION.md    # v2.0 - Autenticazione JWT con backend
+│   ├── CID_DECODER.md              # v1.0 - Decodifica CID e ARC-19
+│   ├── CUSTOM_HOOKS.md             # v2.0 - Documentazione custom hooks
+│   ├── DESIGN_SYSTEM.md            # v1.0 - Sistema di design e UI
+│   ├── NETWORK_CONFIGURATION.md    # v1.0 - Configurazione rete Algorand
+│   ├── ARCHITECTURE.md             # v2.0 - Architettura applicazione
+│   ├── DESCRIZIONE_FUNZIONALE.md   # v1.0 - Descrizione funzionale servizi
+│   └── README.md                   # v2.0 - Indice documentazione
 │
 ├── public/                         # 🌐 File statici pubblici
 │   ├── manifest.json               # PWA manifest
@@ -192,11 +210,12 @@ graph TD
 
 1. **📋 Form Input**: L'utente compila il form di certificazione
 2. **🔐 Wallet Check**: Verifica connessione Pera Wallet
-3. **📤 IPFS Upload**: Upload file e metadata su IPFS con Pinata
-4. **🔄 CID Conversion**: Conversione CID IPFS in reserve address Algorand
-5. **🏗️ Asset Creation**: Creazione SBT con firma Pera Wallet
-6. **⚙️ Asset Configuration**: Aggiornamento reserve address con firma Pera Wallet
-7. **✅ Success**: Visualizzazione certificazione creata con link esplorativi
+3. **📤 File Upload**: Upload file su MINIO (presigned URL con JWT)
+4. **📄 IPFS Upload**: Upload solo metadata JSON su IPFS con Pinata
+5. **🔄 CID Conversion**: Conversione CID IPFS in reserve address Algorand
+6. **🏗️ Asset Creation**: Creazione SBT con firma Pera Wallet
+7. **⚙️ Asset Configuration**: Aggiornamento reserve address con firma Pera Wallet
+8. **✅ Success**: Visualizzazione certificazione creata con link esplorativi
 
 ### **🔄 Versioning e Modifiche**
 
@@ -204,7 +223,9 @@ Sistema avanzato di versioning per aggiornamenti post-creazione:
 
 1. **🎯 Asset Selection**: Selezione asset esistente dal portfolio
 2. **✏️ Modification**: Modifica metadata o sostituzione allegati
-3. **📤 Smart IPFS Upload**: Upload solo di nuovi contenuti (riutilizzo cache)
+3. **📤 Smart Upload**: 
+   - **Certificazioni**: Upload nuovi file su MINIO, solo metadata JSON su IPFS
+   - **Organizzazioni**: Upload file su IPFS (comportamento legacy)
 4. **🔄 Reserve Update**: Aggiornamento reserve address con nuova versione
 5. **📊 History Tracking**: Tracciamento automatico cronologia versioni
 6. **👁️ Visualization**: Display timeline versioning con link storici
@@ -252,6 +273,13 @@ VITE_PINATA_JWT=your_pinata_jwt_token
 
 # Configurazione rete (testnet o mainnet)
 VITE_ALGORAND_NETWORK=testnet  # o mainnet per produzione
+
+# Backend API (richiesto per autenticazione JWT e upload MINIO)
+VITE_API_BASE_URL=http://localhost:8088  # URL del backend API
+
+# MINIO/S3 Storage (gestito tramite backend API con presigned URLs)
+# I file vengono caricati su: https://s3.caputmundi.artcertify.com/{userAddress}/{filename}
+# Il backend genera presigned URLs tramite endpoint: /api/v1/presigned/upload
 ```
 
 4. **🚀 Avvio applicazione**
@@ -332,7 +360,7 @@ Il progetto utilizza un design system completo basato su TailwindCSS:
 1. **Test Connessione Pera Wallet**
 ```bash
 # Avvia app in dev mode
-npm run dev
+npm run dev 
 
 # Nel browser:
 # 1. Vai su http://localhost:5173/login
@@ -375,13 +403,15 @@ npm run dev
 
 ### **🛡️ Sicurezza Blockchain**
 - ✅ **Soulbound Tokens**: NFT non trasferibili per certificazioni
-- ✅ **Immutable Metadata**: Hash IPFS immutabili su blockchain
+- ✅ **Immutable Metadata**: Hash IPFS immutabili su blockchain (solo JSON)
 - ✅ **Zero Private Keys**: Nessuna chiave privata nell'applicazione
 - ✅ **Pera Wallet Security**: Firma transazioni controllata dall'utente
 - ✅ **Network Validation**: Validazione automatica parametri rete
 
 ### **🔐 Data Protection**
-- ✅ **IPFS Decentralization**: Storage distribuito resistente alla censura
+- ✅ **Hybrid Storage**: MINIO per file + IPFS per metadata JSON
+- ✅ **Presigned URLs**: Upload sicuro tramite presigned URLs con JWT
+- ✅ **IPFS Decentralization**: Storage distribuito per metadata (solo JSON)
 - ✅ **Client-side Processing**: Elaborazione dati lato client
 - ✅ **Session Management**: Gestione sicura sessioni wallet
 - ✅ **CORS Protection**: Protezione richieste cross-origin
@@ -399,13 +429,16 @@ La documentazione completa è disponibile nella cartella `/docs/`:
 | File | Descrizione |
 |------|-------------|
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Architettura software e pattern utilizzati |
-| **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** | Integrazione blockchain Algorand dettagliata |
-| **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** | Integrazione IPFS e servizi Pinata |
-| **[PERA_CONNECT_INTEGRATION.md](docs/PERA_CONNECT_INTEGRATION.md)** | Integrazione Pera Wallet Connect |
-| **[CID_DECODER.md](docs/CID_DECODER.md)** | Decodifica CID e compliance ARC-19 |
-| **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** | Documentazione custom hooks React |
-| **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** | Sistema di design e componenti UI |
-| **[NETWORK_CONFIGURATION.md](docs/NETWORK_CONFIGURATION.md)** | Configurazione rete e ambiente |
+| **[ALGORAND_INTEGRATION.md](docs/ALGORAND_INTEGRATION.md)** | v1.0 - Integrazione blockchain Algorand dettagliata |
+| **[IPFS_INTEGRATION.md](docs/IPFS_INTEGRATION.md)** | v1.0 - Integrazione IPFS e servizi Pinata |
+| **[PERA_CONNECT_INTEGRATION.md](docs/PERA_CONNECT_INTEGRATION.md)** | v1.0 - Integrazione Pera Wallet Connect |
+| **[AUTH_JWT_INTEGRATION.md](docs/AUTH_JWT_INTEGRATION.md)** | v2.0 - Autenticazione JWT con backend API |
+| **[CID_DECODER.md](docs/CID_DECODER.md)** | v1.0 - Decodifica CID e compliance ARC-19 |
+| **[CUSTOM_HOOKS.md](docs/CUSTOM_HOOKS.md)** | v2.0 - Documentazione custom hooks React |
+| **[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** | v1.0 - Sistema di design e componenti UI |
+| **[NETWORK_CONFIGURATION.md](docs/NETWORK_CONFIGURATION.md)** | v1.0 - Configurazione rete e ambiente |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | v2.0 - Architettura applicazione e pattern |
+| **[DESCRIZIONE_FUNZIONALE.md](docs/DESCRIZIONE_FUNZIONALE.md)** | v1.0 - Descrizione funzionale servizi |
 
 ## 🚀 Deployment
 
