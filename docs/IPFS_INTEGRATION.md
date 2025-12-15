@@ -423,7 +423,7 @@ async function fetchWithFallback(hash: string) {
       const response = await fetch(url, { timeout: 5000 });
       if (response.ok) return response.json();
     } catch (error) {
-      console.warn(`Gateway ${gateway} failed for ${hash}`);
+      // Gateway failed
     }
   }
   throw new Error('All gateways failed');
@@ -527,7 +527,7 @@ const verifyUpload = async (hash: string, originalFile: File): Promise<boolean> 
     // Compare file sizes (basic check)
     return arrayBuffer.byteLength === originalFile.size;
   } catch (error) {
-    console.error('Upload verification failed:', error);
+    // Upload verification failed
     return false;
   }
 };
@@ -550,7 +550,7 @@ async testConnection(): Promise<boolean> {
 
     return response.status === 200 && response.data.message === 'Congratulations! You are communicating with the Pinata API!';
   } catch (error) {
-    console.error('Pinata connection test failed:', error);
+    // Pinata connection test failed
     return false;
   }
 }
@@ -570,7 +570,7 @@ const testCertificationUploadWorkflow = async () => {
   
   // 2. Costruisci URL MINIO
   const minioUrl = `https://s3.caputmundi.artcertify.com/${userAddress.toLowerCase()}/${encodeURIComponent(testFile.name)}`;
-  console.log('MINIO URL:', minioUrl);
+  // MINIO URL available: minioUrl
   
   // 3. Test JSON upload su IPFS (solo metadata)
   const testMetadata = { 
@@ -586,12 +586,12 @@ const testCertificationUploadWorkflow = async () => {
     }
   };
   const jsonResult = await ipfsService.uploadJSON(testMetadata);
-  console.log('JSON upload test (IPFS):', jsonResult.IpfsHash);
+  // JSON upload test (IPFS): jsonResult.IpfsHash
   
   // 4. Test URL generation
   const ipfsUrl = ipfsService.getIPFSUrl(jsonResult.IpfsHash);
   const gatewayUrl = ipfsService.getCustomGatewayUrl(jsonResult.IpfsHash);
-  console.log('URLs generated:', { ipfsUrl, gatewayUrl, minioUrl });
+  // URLs generated: ipfsUrl, gatewayUrl, minioUrl
 };
 
 // Test upload workflow (Organizzazioni - IPFS legacy)
@@ -599,12 +599,12 @@ const testOrganizationUploadWorkflow = async () => {
   // 1. Test file upload su IPFS
   const testFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
   const fileResult = await ipfsService.uploadFile(testFile);
-  console.log('File upload test (IPFS):', fileResult.IpfsHash);
+  // File upload test (IPFS): fileResult.IpfsHash
   
   // 2. Test JSON upload
   const testMetadata = { name: 'Test', description: 'Test metadata' };
   const jsonResult = await ipfsService.uploadJSON(testMetadata);
-  console.log('JSON upload test (IPFS):', jsonResult.IpfsHash);
+  // JSON upload test (IPFS): jsonResult.IpfsHash
 };
 ```
 
@@ -672,7 +672,7 @@ const getCachedMetadata = async (hash: string): Promise<IPFSMetadata | null> => 
     metadataCache.set(hash, metadata);
     return metadata;
   } catch (error) {
-    console.error('Metadata fetch failed:', error);
+    // Metadata fetch failed
     return null;
   }
 };

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FormLayout, Modal } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
+import { WalletSignatureModal } from '../modals/WalletSignatureModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import { useProjectsCache } from '../../hooks/useProjectsCache';
 import { useAuth } from '../../contexts/AuthContext';
-import { Input, Button, Alert, FileUpload, ReusableDropdown } from '../ui';
+import { Input, Button, Alert, FileUpload, ReusableDropdown, Tooltip } from '../ui';
 import {
   TrashIcon,
   ArrowPathIcon,
@@ -98,8 +99,11 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [isUploadCompleted, setIsUploadCompleted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [jwtExpiredError, setJwtExpiredError] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
-  const [nextAction, setNextAction] = useState<"home" | "profile" | "logout" | null>(null);
+  const [nextAction, setNextAction] = useState<"home" | "profile" | "logout" | "back" | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState<CertificationFormData>({
@@ -477,6 +481,23 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const uploadToMinio = async (): Promise<void> => {
     setIsUploadingFile(true);
     setIsUploadLocked(true);
+    setJwtExpiredError(false);
+    setIsUploadFailed(false);
+    
+    // Check token validity before starting upload
+    const { authService } = await import('../../services/authService');
+    if (!authService.isTokenValid()) {
+      setJwtExpiredError(true);
+      setIsUploadFailed(true);
+      setIsUploadLocked(false);
+      setIsUploadingFile(false);
+      // Abort the upload
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+      return;
+    }
+    
     try {
       await minioService.uploadCertificationToMinio(
         uploadedFile ? [uploadedFile] : [],
@@ -485,8 +506,21 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       );
       setIsUploadCompleted(true);
       setIsUploadFailed(false);
-    } catch (error) {
-      setIsUploadFailed(true);
+    } catch (error: any) {
+      // Check if error is due to expired JWT or if upload was aborted
+      if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+        // Upload was aborted, don't show error
+        setIsUploadFailed(false);
+      } else if (error?.isJWTExpired || error?.message?.includes('JWT token non valido') || error?.response?.status === 401) {
+        setJwtExpiredError(true);
+        setIsUploadFailed(true);
+        // Abort the upload
+        if (controllerRef.current) {
+          controllerRef.current.abort();
+        }
+      } else {
+        setIsUploadFailed(true);
+      }
       setIsUploadLocked(false);
     } finally {
       setIsUploadingFile(false);
@@ -501,6 +535,43 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       }
     };
   }, [filePreview]);
+
+  // Listen for JWT token updates to clear expired error
+  useEffect(() => {
+    const handleJWTUpdated = () => {
+      if (jwtExpiredError) {
+        setJwtExpiredError(false);
+        setIsSignatureModalOpen(false);
+      }
+    };
+
+    window.addEventListener('jwtTokenUpdated', handleJWTUpdated);
+    return () => {
+      window.removeEventListener('jwtTokenUpdated', handleJWTUpdated);
+    };
+  }, [jwtExpiredError]);
+
+  // Monitor token expiration during upload
+  useEffect(() => {
+    if (!isUploadingFile) return;
+
+    const checkTokenInterval = setInterval(async () => {
+      const { authService } = await import('../../services/authService');
+      if (!authService.isTokenValid()) {
+        // Token expired during upload - abort and show error
+        setJwtExpiredError(true);
+        setIsUploadFailed(true);
+        setIsUploadLocked(false);
+        if (controllerRef.current) {
+          controllerRef.current.abort();
+        }
+      }
+    }, 5000); // Check every 5 seconds during upload
+
+    return () => {
+      clearInterval(checkTokenInterval);
+    };
+  }, [isUploadingFile]);
 
 
 
@@ -519,13 +590,31 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
   const handlePendingAction = (action: "home" | "profile" | "logout") => {
     setNextAction(action);
+    setConfirmExit(false); // Reset checkbox when opening modal
     setShowExitModal(true);
+  };
+
+  // Reset confirmExit when modal closes
+  const handleCloseExitModal = () => {
+    setShowExitModal(false);
+    setConfirmExit(false);
+  };
+
+  // Handle cancel button click - check if upload is in progress
+  const handleCancel = () => {
+    if (isUploadingFile) {
+      setNextAction("back");
+      setConfirmExit(false); // Reset checkbox when opening modal
+      setShowExitModal(true);
+    } else {
+      onBack();
+    }
   };
 
   return (
     <>
       <FormLayout isUploadingFile={isUploadingFile}  onRequestExitAction={handlePendingAction}>
-        <div className="space-y-4">
+        <div className="space-y-4 pb-32">
           {/* Header */}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-1">Nuova Certificazione</h1>
@@ -731,44 +820,60 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                 {formData.fileCreationDate !== "" && (
                   <Alert
                     variant={
-                      isUploadFailed
+                      jwtExpiredError
                         ? "error"
-                        : isUploadCompleted
-                          ? "success"
-                          : "info"
+                        : isUploadFailed
+                          ? "error"
+                          : isUploadCompleted
+                            ? "success"
+                            : "info"
                     }
                     title={
-                      isUploadFailed
-                        ? "Caricamento file fallito"
-                        : isUploadCompleted
-                          ? "Upload completato"
-                          : "Conferma caricamento file"
+                      jwtExpiredError
+                        ? "Autorizzazione wallet scaduta"
+                        : isUploadFailed
+                          ? "Caricamento file fallito"
+                          : isUploadCompleted
+                            ? "Upload completato"
+                            : "Conferma caricamento file"
                     }
                     className="space-y-4"
                   >
                     <div className="flex flex-col gap-4 self-center">
                       <p>
-                        {isUploadFailed
-                          ? "Clicca sul pulsante qui sotto per riprovare il caricamento del file."
-                          : isUploadCompleted
-                            ? "Il file è stato caricato correttamente."
-                            : "Sei sicuro di voler caricare questo file? Clicca sul pulsante qui sotto per procedere."}
+                        {jwtExpiredError
+                          ? "Il token di autorizzazione è scaduto durante il caricamento del file. L'upload è stato interrotto. Per continuare, devi autenticarti nuovamente con il wallet."
+                          : isUploadFailed
+                            ? "Clicca sul pulsante qui sotto per riprovare il caricamento del file."
+                            : isUploadCompleted
+                              ? "Il file è stato caricato correttamente."
+                              : "Sei sicuro di voler caricare questo file? Clicca sul pulsante qui sotto per procedere."}
                       </p>
 
-                      {/* Mostra il bottone solo se l’upload non è completato */}
+                      {/* Mostra il bottone solo se l'upload non è completato */}
                       {!isUploadCompleted && (
                         <div className="w-2/5 mx-auto">
-                          <Button
-                            disabled={isUploadingFile}
-                            className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
-                            onClick={uploadToMinio}
-                          >
-                            {isUploadingFile
-                              ? `Upload in corso... ${uploadProgress}%`
-                              : isUploadFailed
-                                ? "Ritenta upload"
-                                : "Upload file"}
-                          </Button>
+                          {jwtExpiredError ? (
+                            <Button
+                              disabled={isUploadingFile}
+                              className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
+                              onClick={() => setIsSignatureModalOpen(true)}
+                            >
+                              Autentica con Wallet
+                            </Button>
+                          ) : (
+                            <Button
+                              disabled={isUploadingFile}
+                              className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
+                              onClick={uploadToMinio}
+                            >
+                              {isUploadingFile
+                                ? `Upload in corso... ${uploadProgress}%`
+                                : isUploadFailed
+                                  ? "Ritenta upload"
+                                  : "Upload file"}
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1008,23 +1113,47 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
               </Alert>
             )}
 
-            {/* Submit Button */}
-            <div className="flex justify-center gap-4 pt-4">
-              <Button
+
+            {/* Submit Button - Fixed at bottom */}
+            <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex gap-4">
+              <button
                 type="button"
-                variant="secondary"
-                onClick={onBack}
-                className="px-6 py-2"
+                onClick={handleCancel}
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-600 hover:bg-slate-500 text-slate-300 font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                }}
               >
                 Annulla
-              </Button>
-              <Button
-                type="submit"
-                disabled={isProcessing || !isUploadCompleted}
-                className="px-6 py-2 shadow-lg hover:shadow-xl"
-              >
-                {isProcessing ? 'Certificando...' : 'Certifica'}
-              </Button>
+              </button>
+              {(isProcessing || !isUploadCompleted) ? (
+                <Tooltip 
+                  content="Attendi il completamento dell'upload del file"
+                  position="top"
+                >
+                  <button
+                    type="submit"
+                    disabled={isProcessing || !isUploadCompleted}
+                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                    }}
+                  >
+                    {isProcessing ? 'Certificando...' : 'Certifica'}
+                  </button>
+                </Tooltip>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isProcessing || !isUploadCompleted}
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  {isProcessing ? 'Certificando...' : 'Certifica'}
+                </button>
+              )}
             </div>
           </form>
         </div >
@@ -1049,26 +1178,48 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       {showExitModal && (
         <Modal
           isOpen={showExitModal}
-          onClose={() => setShowExitModal(false)}
+          onClose={handleCloseExitModal}
           title="Stai caricando un file"
           children={
             <div className="space-y-4">
               <p className="text-slate-300">
-                Il caricamento del file è ancora in corso. Se esci adesso, l’upload verrà interrotto e perderai il progresso. </p>
+                Il caricamento del file è ancora in corso. Se esci adesso, l'upload verrà interrotto e perderai il progresso.
+              </p>
+              
+              {/* Confirmation Checkbox */}
+              <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                <input
+                  type="checkbox"
+                  id="confirm-exit"
+                  checked={confirmExit}
+                  onChange={(e) => setConfirmExit(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <label 
+                  htmlFor="confirm-exit" 
+                  className="text-sm text-slate-300 cursor-pointer flex-1"
+                >
+                  Ho compreso che l'upload verrà interrotto e perderò il progresso
+                </label>
+              </div>
+
               <div className="flex justify-end gap-4 pt-4">
                 <Button
                   variant="secondary"
-                  onClick={() => setShowExitModal(false)}
+                  onClick={handleCloseExitModal}
                 >
                   Resta
                 </Button>
                 <Button
                   onClick={async () => {
                     setShowExitModal(false);
+                    setConfirmExit(false);
                     if (nextAction === "home") navigate("/");
-                    if (nextAction === "profile") navigate('/profile');;
+                    if (nextAction === "profile") navigate('/profile');
                     if (nextAction === "logout") await logout();
+                    if (nextAction === "back") onBack();
                   }}
+                  disabled={!confirmExit}
                 >
                   Esci
                 </Button>
@@ -1076,6 +1227,18 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
           }
 
+        />
+      )}
+
+      {/* Wallet Signature Modal for JWT expiration */}
+      {walletAddress && (
+        <WalletSignatureModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => {
+            setIsSignatureModalOpen(false);
+            setJwtExpiredError(false);
+          }}
+          walletAddress={walletAddress}
         />
       )}
     </>

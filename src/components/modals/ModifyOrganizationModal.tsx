@@ -130,7 +130,7 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
         setCurrentOrgJson(jsonData);
         
       } catch (error) {
-        console.error('❌ Error loading current organization JSON:', error);
+        // Error loading organization JSON
         setSubmitError('Errore nel caricamento dei dati attuali dell\'organizzazione');
       } finally {
         setLoadingCurrentJson(false);
@@ -284,7 +284,7 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
       });
 
     } catch (error) {
-      console.error('Errore durante la modifica dell\'organizzazione:', error);
+      // Error modifying organization
       setSubmitError(error instanceof Error ? error.message : 'Errore sconosciuto');
     }
   };

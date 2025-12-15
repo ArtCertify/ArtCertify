@@ -6,6 +6,7 @@ import Textarea from '../ui/Textarea';
 import { Alert, FilePreviewDisplay } from '../ui';
 import type { AssetInfo } from '../../services/algorand';
 import { CertificationModal } from './CertificationModal';
+import { WalletSignatureModal } from './WalletSignatureModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import type { IPFSMetadata } from '../../hooks/useIPFSMetadata';
 import { IPFSUrlService } from '../../services/ipfsUrlService';
@@ -71,6 +72,8 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
   const [filesToRemove, setFilesToRemove] = useState<string[]>([]);
   const [isUploadingToMinio, setIsUploadingToMinio] = useState(false);
   const [minioUploadError, setMinioUploadError] = useState<string | null>(null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [jwtExpiredError, setJwtExpiredError] = useState(false);
 
   const minioService = new MinIOService();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,7 +144,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
         }
         
       } catch (error) {
-        console.error('❌ Error loading current certification JSON:', error);
+        // Error loading certification JSON
         setSubmitError('Errore nel caricamento dei dati attuali della certificazione');
       } finally {
         setLoadingCurrentJson(false);
@@ -204,6 +207,21 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       }
     });
   }, [asset]);
+
+  // Listen for JWT token updates to clear expired error
+  useEffect(() => {
+    const handleJWTUpdated = () => {
+      if (jwtExpiredError) {
+        setJwtExpiredError(false);
+        setIsSignatureModalOpen(false);
+      }
+    };
+
+    window.addEventListener('jwtTokenUpdated', handleJWTUpdated);
+    return () => {
+      window.removeEventListener('jwtTokenUpdated', handleJWTUpdated);
+    };
+  }, [jwtExpiredError]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -355,10 +373,19 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       if (filesToUpload.length > 0) {
         setIsUploadingToMinio(true);
         setMinioUploadError(null);
+        setJwtExpiredError(false);
         try {
           await minioService.uploadCertificationToMinio(filesToUpload);
-        } catch (error) {
-          setMinioUploadError(error instanceof Error ? error.message : 'Errore durante il caricamento su MINIO');
+        } catch (error: any) {
+          // Check if error is due to expired JWT
+          if (error?.isJWTExpired || error?.message?.includes('JWT token non valido')) {
+            setJwtExpiredError(true);
+            setMinioUploadError('Autorizzazione wallet scaduta');
+            // NON aprire il modale automaticamente - solo mostrare l'Alert
+            // Il modale si aprirà quando l'utente clicca sul pulsante nell'Alert
+          } else {
+            setMinioUploadError(error instanceof Error ? error.message : 'Errore durante il caricamento su MINIO');
+          }
           setIsUploadingToMinio(false);
           throw error;
         }
@@ -750,7 +777,7 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
                       className="mx-auto h-20 w-20 object-cover rounded-lg"
                       onError={() => {
                         // Fallback se l'immagine non si carica
-                        console.error('Errore nel caricamento dell\'immagine:', formData.image);
+                        // Image load error - ignore
                       }}
                     />
                     <p className="text-sm text-slate-300">Clicca per cambiare file</p>
@@ -891,7 +918,24 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
             )}
 
             {/* MINIO Upload Error */}
-            {minioUploadError && (
+            {jwtExpiredError && (
+              <Alert variant="error" title="Autorizzazione wallet scaduta">
+                <div className="flex flex-col gap-4">
+                  <p>
+                    La tua autorizzazione wallet è scaduta. Rigenerala cliccando sul pulsante qui sotto per aprire il modale di firma.
+                  </p>
+                  <div className="w-2/5 mx-auto">
+                    <button
+                      className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                    >
+                      Rigenera autorizzazione wallet
+                    </button>
+                  </div>
+                </div>
+              </Alert>
+            )}
+            {minioUploadError && !jwtExpiredError && (
               <Alert variant="error" title="Errore durante il caricamento su MINIO">
                 {minioUploadError}
               </Alert>
@@ -1003,6 +1047,15 @@ const ModifyAttachmentsModal: React.FC<ModifyAttachmentsModalProps> = ({
       isProcessing={isVersioningProcessing}
       result={versioningResult}
       onSuccess={handleVersioningSuccess}
+    />
+
+    {/* Wallet Signature Modal for JWT expiration */}
+    <WalletSignatureModal
+      isOpen={isSignatureModalOpen}
+      onClose={() => {
+        setIsSignatureModalOpen(false);
+        setJwtExpiredError(false);
+      }}
     />
    </Fragment>
   );

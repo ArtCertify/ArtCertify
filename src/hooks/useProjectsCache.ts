@@ -27,7 +27,7 @@ export const useProjectsCache = () => {
         }
       }
     } catch (error) {
-      console.warn('Error reading projects cache:', error);
+      // Error reading projects cache
     }
     return [];
   }, []);
@@ -41,7 +41,7 @@ export const useProjectsCache = () => {
       };
       localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(cacheData));
     } catch (error) {
-      console.warn('Error saving projects cache:', error);
+      // Error saving projects cache
     }
   }, []);
 
@@ -49,7 +49,7 @@ export const useProjectsCache = () => {
     try {
       localStorage.removeItem(PROJECTS_CACHE_KEY);
     } catch (error) {
-      console.warn('Error clearing projects cache:', error);
+      // Error clearing projects cache
     }
   }, []);
 
@@ -62,7 +62,7 @@ export const useProjectsCache = () => {
         return cacheData.userAddress === userAddress && !isExpired;
       }
     } catch (error) {
-      console.warn('Error checking cache validity:', error);
+      // Error checking cache validity
     }
     return false;
   }, []);

@@ -78,7 +78,7 @@ class NFTService {
         if (result.status === 'fulfilled') {
           results.push(result.value);
         } else {
-          console.warn(`Failed to process item ${chunk[index]}:`, result.reason);
+          // Failed to process item
         }
       });
 
@@ -137,7 +137,7 @@ class NFTService {
         totalAssets: assets.length
       };
     } catch (error) {
-      console.error('Error fetching owned assets:', error);
+      // Error fetching owned assets
       throw new Error(`Failed to fetch assets for address ${address}`);
     }
   }
@@ -243,7 +243,7 @@ class NFTService {
       return nftDetails;
       
     } catch (error) {
-      console.error('Error fetching owned NFTs:', error);
+      // Error fetching owned NFTs
       throw new Error(`Failed to fetch NFTs for address ${address}`);
     }
   }
@@ -256,7 +256,7 @@ class NFTService {
       const ownedAssets = await this.getOwnedAssets(address);
       return ownedAssets.assets.some(asset => asset.assetId === assetId);
     } catch (error) {
-      console.error('Error checking asset ownership:', error);
+      // Error checking asset ownership
       return false;
     }
   }
@@ -284,7 +284,7 @@ class NFTService {
 
       return certificates;
     } catch (error) {
-      console.error('Error fetching owned certificates:', error);
+      // Error fetching owned certificates
       throw new Error(`Failed to fetch certificates for address ${address}`);
     }
   }
@@ -316,7 +316,7 @@ class NFTService {
         status: account.status
       };
     } catch (error) {
-      console.error('Error fetching account info:', error);
+      // Error fetching account info
       throw new Error(`Failed to fetch account info for address ${address}`);
     }
   }

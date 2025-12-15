@@ -487,7 +487,7 @@ const updateAssetWithCID = async (assetId: number, metadataCID: string) => {
   
   // 3. Verifica conversione inversa
   const convertedCID = CidDecoder.fromAddressToCid(reserveAddress);
-  console.log(`✓ CID conversion verified: ${convertedCID === metadataCID}`);
+  // CID conversion verified: convertedCID === metadataCID
   
   return result;
 };
@@ -845,13 +845,8 @@ const getCachedMetadata = async (cid: string): Promise<any | null> => {
 
 ```typescript
 const logMintingOperation = (operation: string, data: any, duration?: number) => {
-  console.log(`[NFT Minting] ${operation}:`, {
-    timestamp: new Date().toISOString(),
-    duration: duration ? `${duration}ms` : undefined,
-    network: import.meta.env.VITE_ALGORAND_NETWORK,
-    gateway: import.meta.env.VITE_PINATA_GATEWAY,
-    ...data
-  });
+  // Logging disabled - use monitoring service in production
+  // Data available: timestamp, duration, network, gateway, ...data
 };
 ```
 

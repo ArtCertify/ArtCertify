@@ -28,7 +28,7 @@ const InfoCard: React.FC<InfoCardProps> = ({
     try {
       await navigator.clipboard.writeText(text);
     } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
+      // Failed to copy to clipboard
     }
   };
 

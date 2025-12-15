@@ -46,8 +46,6 @@ class MinIOService {
         if (!config.api?.baseUrl) throw new Error('Base URL API non configurata');
 
         const requestUrl = `${config.api?.baseUrl}/api/v1/presigned/upload?filename=${encodeURIComponent(fileName)}`;
-        console.log(`[MinIO Service] Richiesta presigned URL per file: ${fileName}`);
-        console.log(`[MinIO Service] URL richiesta: ${requestUrl}`);
 
         try {
             const response = await axios.get(
@@ -62,15 +60,9 @@ class MinIOService {
             );
 
             const presignedUrl = response.data;
-            console.log(`[MinIO Service] ✅ Presigned URL ricevuto: ${presignedUrl}`);
             return presignedUrl;
 
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                console.error(`[MinIO Service] ❌ Errore ottenendo presigned URL per ${fileName}:`, error.response?.data || error.message);
-            } else {
-                console.error(`[MinIO Service] ❌ Errore sconosciuto ottenendo presigned URL per ${fileName}:`, error);
-            }
             throw error;
         }
     }
@@ -213,9 +205,9 @@ class MinIOService {
 
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                console.error(`Errore componendo il file:`, error.response?.data || error.message);
+                // Error composing file
             } else {
-                console.error(`Errore sconosciuto componendo il file:`, error);
+                // Unknown error composing file
             }
             throw error;
         }

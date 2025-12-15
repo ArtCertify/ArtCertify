@@ -576,7 +576,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log errore a servizio monitoring
-    console.error('Error boundary caught an error:', error, errorInfo);
+    // Error boundary caught an error
   }
 
   render() {

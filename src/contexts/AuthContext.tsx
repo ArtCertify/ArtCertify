@@ -5,6 +5,7 @@ import { authService } from '../services/authService';
 interface AuthContextType {
   userAddress: string | null;
   isAuthenticated: boolean;
+  hasValidToken: boolean;
   login: (address: string) => void;
   logout: () => Promise<void>;
 }
@@ -18,51 +19,42 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasValidToken, setHasValidToken] = useState(false);
   const logoutInProgress = useRef(false);
   const initializationComplete = useRef(false);
 
   const logout = useCallback(async () => {
     // Prevent multiple concurrent logout calls
     if (logoutInProgress.current) {
-      console.log('[AuthContext] ⏸️ Logout già in corso, ignoro richiesta');
       return;
     }
 
-    console.log('[AuthContext] 🚪 Inizio processo di logout');
     logoutInProgress.current = true;
 
     try {
       // Get current address before clearing
       const currentAddress = userAddress;
-      console.log(`[AuthContext] Logout per indirizzo: ${currentAddress || 'N/A'}`);
       
       // Disconnect from Pera Wallet if connected
       if (peraWalletService.isConnected()) {
-        console.log('[AuthContext] Disconnessione da Pera Wallet...');
         await peraWalletService.disconnect();
-        console.log('[AuthContext] ✅ Disconnesso da Pera Wallet');
       }
       
       // Clear authentication state
-      console.log('[AuthContext] Pulizia stato autenticazione...');
       setUserAddress(null);
       setIsAuthenticated(false);
       
       // Clear ALL authentication data (JWT, base64, signature, cache, cookies, sessionStorage)
       authService.clearAllAuthData(currentAddress);
-      console.log('[AuthContext] ✅ Dati autenticazione cancellati');
     } catch (error) {
-      console.error('[AuthContext] ❌ Errore durante logout:', error);
       // Force clear state even if there's an error
       const currentAddress = userAddress;
       setUserAddress(null);
       setIsAuthenticated(false);
       authService.clearAllAuthData(currentAddress);
-      console.log('[AuthContext] ✅ Stato forzato a cleared nonostante errore');
     } finally {
       // Reset logout flag
       logoutInProgress.current = false;
-      console.log('[AuthContext] 🚪 Logout completato, redirect a login page');
 
       // Navigate to login page using React Router
       setTimeout(() => {
@@ -83,20 +75,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const peraConnected = localStorage.getItem('pera_wallet_connected') === 'true';
 
     // Check if JWT token is valid before restoring session
-    console.log('[AuthContext] Verifica validità token durante inizializzazione...');
     const isTokenValid = authService.isTokenValid();
     if (!isTokenValid && savedAddress) {
-      console.warn('[AuthContext] ❌ Token non valido durante inizializzazione, pulizia dati autenticazione');
-      // Token is invalid, clear authentication data
-      authService.clearAllAuthData(savedAddress);
-      localStorage.removeItem('algorand_address');
-      localStorage.removeItem('pera_wallet_connected');
-      localStorage.removeItem('pera_wallet_account');
-      initializationComplete.current = true;
-      return;
+      // Don't clear data, just mark token as invalid
+      // User can still see the UI but buttons will be disabled
+      setHasValidToken(false);
     }
     if (isTokenValid && savedAddress) {
-      console.log('[AuthContext] ✅ Token valido durante inizializzazione');
+      setHasValidToken(true);
     }
 
     // Only restore session if both localStorage and Pera indicate connection
@@ -106,19 +92,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .then((accounts) => {
           if (accounts.length > 0 && accounts[0] === savedAddress) {
             // Verify token is still valid before setting authenticated state
-            console.log('[AuthContext] Verifica token dopo riconnessione Pera Wallet...');
             const tokenStillValid = authService.isTokenValid();
+            setUserAddress(savedAddress);
+            setIsAuthenticated(true);
             if (tokenStillValid) {
-              console.log('[AuthContext] ✅ Token valido, ripristino sessione autenticata');
-      setUserAddress(savedAddress);
-      setIsAuthenticated(true);
+              setHasValidToken(true);
             } else {
-              console.warn('[AuthContext] ❌ Token scaduto dopo riconnessione, pulizia dati');
-              // Token expired, clear data
-              authService.clearAllAuthData(savedAddress);
-              localStorage.removeItem('algorand_address');
-              localStorage.removeItem('pera_wallet_connected');
-              localStorage.removeItem('pera_wallet_account');
+              setHasValidToken(false);
             }
           } else {
             // Clear inconsistent data
@@ -169,12 +149,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for JWT token invalid events from axios interceptor
     const handleJWTInvalid = () => {
-      console.log('[AuthContext] 📢 Ricevuto evento jwtTokenInvalid da axios interceptor');
       if (!logoutInProgress.current) {
-        console.log('[AuthContext] Trigger logout per token non valido');
-        logout();
-      } else {
-        console.log('[AuthContext] ⏸️ Logout già in corso, ignoro evento');
+        setHasValidToken(false);
+        // Don't logout, just mark token as invalid
+        // User can still see the UI but buttons will be disabled
       }
     };
 
@@ -187,6 +165,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [logout]);
 
+  // Separate useEffect for jwtTokenUpdated listener - always active
+  useEffect(() => {
+    // Listen for JWT token updated events (when new token is saved)
+    const handleJWTUpdated = () => {
+      // Small delay to ensure token is saved in localStorage
+      setTimeout(() => {
+        // Always verify token validity, even if detail says it's valid
+        // This ensures we have the most up-to-date state
+        const isValid = authService.isTokenValid();
+        setHasValidToken(isValid);
+      }, 100);
+    };
+
+    window.addEventListener('jwtTokenUpdated', handleJWTUpdated);
+
+    return () => {
+      window.removeEventListener('jwtTokenUpdated', handleJWTUpdated);
+    };
+  }, []); // Empty dependency array - listener always active
+
   // Periodic token validation check
   useEffect(() => {
     // Only check if user is authenticated
@@ -194,34 +192,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    // Check token validity every 2 minutes
+    // Check token validity every 15 seconds (uniform across all pages)
     // Read exp field from JWT payload (86400 seconds = 1 day, set by backend)
     const tokenCheckInterval = setInterval(() => {
       if (!logoutInProgress.current) {
-        console.log('[AuthContext] 🔄 Controllo periodico validità token (ogni 2 minuti)');
-        console.log('[AuthContext] 📋 Verifica campo exp dal JWT (durata: 86400 secondi = 1 giorno)');
-        
         // Check token validity by reading exp field from JWT payload
         const isValid = authService.isTokenValid();
-        if (!isValid) {
-          console.warn('[AuthContext] ❌ Token scaduto (campo exp nel JWT), trigger logout');
-          logout();
-        } else {
-          console.log('[AuthContext] ✅ Token ancora valido (campo exp nel JWT)');
-        }
+        setHasValidToken(isValid);
       }
-    }, 120000); // Check every 2 minutes (120000 milliseconds)
+    }, 15000); // Check every 15 seconds (15000 milliseconds) - uniform across all pages
 
     // Also check immediately when component mounts or authentication state changes
-    console.log('[AuthContext] 🔄 Controllo immediato validità token al cambio stato autenticazione');
-    console.log('[AuthContext] 📋 Verifica campo exp dal JWT (durata: 86400 secondi = 1 giorno)');
     const isValid = authService.isTokenValid();
-    if (!isValid && !logoutInProgress.current) {
-      console.warn('[AuthContext] ❌ Token scaduto (campo exp nel JWT), trigger logout');
-      logout();
-    } else if (isValid) {
-      console.log('[AuthContext] ✅ Token ancora valido (campo exp nel JWT)');
-    }
+    setHasValidToken(isValid);
 
     return () => {
       clearInterval(tokenCheckInterval);
@@ -232,11 +215,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUserAddress(address);
     setIsAuthenticated(true);
     localStorage.setItem('algorand_address', address);
+    // Check token validity after login
+    const isValid = authService.isTokenValid();
+    setHasValidToken(isValid);
   };
 
   const value = {
     userAddress,
     isAuthenticated,
+    hasValidToken,
     login,
     logout
   };

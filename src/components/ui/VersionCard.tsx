@@ -51,7 +51,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
     try {
       await navigator.clipboard.writeText(text);
     } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
+      // Failed to copy to clipboard
     }
   };
 

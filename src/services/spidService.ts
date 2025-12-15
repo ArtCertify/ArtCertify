@@ -122,7 +122,7 @@ class SPIDService {
       };
 
     } catch (error) {
-      console.error('SPID callback error:', error);
+      // SPID callback error
       return {
         success: false,
         error: 'Authentication failed'
@@ -270,7 +270,7 @@ class SPIDService {
       
       return true;
     } catch (error) {
-      console.error('Error linking addresses:', error);
+      // Error linking addresses
       return false;
     }
   }

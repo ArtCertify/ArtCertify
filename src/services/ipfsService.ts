@@ -111,7 +111,7 @@ class IPFSService {
 
       return response.data;
     } catch (error) {
-      console.error('Error uploading file to IPFS:', error);
+      // Error uploading file
       throw new Error(`Failed to upload file to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -181,7 +181,7 @@ class IPFSService {
 
       return response.data;
     } catch (error) {
-      console.error('Error uploading JSON to IPFS:', error);
+      // Error uploading JSON
       throw new Error(`Failed to upload JSON to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -314,7 +314,7 @@ class IPFSService {
         individualFileUrls
       };
     } catch (error) {
-      console.error('❌ Error uploading certification version:', error);
+      // Error uploading certification version
       throw new Error(`Failed to upload certification version: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -417,7 +417,7 @@ class IPFSService {
         individualFileUrls
       };
     } catch (error) {
-      console.error('❌ Error uploading organization version:', error);
+      // Error uploading organization version
       throw new Error(`Failed to upload organization version: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -512,7 +512,7 @@ class IPFSService {
         individualFileUrls
       };
     } catch (error) {
-      console.error('Error uploading certification assets:', error);
+      // Error uploading certification assets
       throw new Error(`Failed to upload certification assets: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -548,7 +548,7 @@ class IPFSService {
       });
       return response.status === 200;
     } catch (error) {
-      console.error('Pinata connection test failed:', error);
+      // Pinata connection test failed
       return false;
     }
   }

@@ -144,11 +144,10 @@ const reserveAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 const result = CidDecoder.decodeReserveAddressToCid(reserveAddress);
 
 if (result.success) {
-  console.log('CID:', result.cid);
-  console.log('Gateway URL:', result.gatewayUrl);
-  console.log('Dettagli:', result.details);
+  // CID decoded successfully
+  // result.cid, result.gatewayUrl, result.details available
 } else {
-  console.error('Errore:', result.error);
+  // Error: result.error
 }
 ```
 
@@ -174,7 +173,7 @@ const MetadataDisplay: React.FC<{ reserveAddress: string }> = ({ reserveAddress 
           const data = await response.json();
           setMetadata(data);
         } catch (error) {
-          console.error('Errore caricamento metadati:', error);
+          // Error loading metadata
         }
       }
       
@@ -204,9 +203,9 @@ const MetadataDisplay: React.FC<{ reserveAddress: string }> = ({ reserveAddress 
 // Analizza tipo di contenuto nel reserve address
 const analysis = CidDecoder.analyzeReserveAddress(reserveAddress);
 
-console.log('Tipo:', analysis.type);        // 'ipfs', 'url', 'template', etc.
-console.log('Contenuto:', analysis.content); // CID o URL estratto
-console.log('Dettagli:', analysis.details);  // Array di informazioni aggiuntive
+// analysis.type: 'ipfs', 'url', 'template', etc.
+// analysis.content: CID o URL estratto
+// analysis.details: Array di informazioni aggiuntive
 ```
 
 ## 🔄 Gestione Versioning
@@ -221,11 +220,7 @@ const versionHistory = await CidDecoder.extractVersioningFromReserves(
 );
 
 versionHistory.forEach((version, index) => {
-  console.log(`Versione ${index + 1}:`, {
-    timestamp: version.timestamp,
-    cid: version.cid,
-    changes: version.changes
-  });
+  // Version data available: version.timestamp, version.cid, version.changes
 });
 ```
 
@@ -236,7 +231,7 @@ versionHistory.forEach((version, index) => {
 const changes = CidDecoder.detectReserveChanges(reserves, currentIndex);
 
 changes.forEach(change => {
-  console.log('Modifica rilevata:', change);
+  // Change detected: change
 });
 ```
 
@@ -248,13 +243,8 @@ changes.forEach(change => {
 // Testa conversione bidirezionale address ↔ CID
 const testResult = CidDecoder.testConversion(reserveAddress);
 
-console.log('Test risultato:', {
-  success: testResult.success,
-  originalAddress: testResult.originalAddress,
-  generatedCid: testResult.generatedCid,
-  reconstructedAddress: testResult.reconstructedAddress,
-  matches: testResult.matches
-});
+// Test result available: testResult.success, testResult.originalAddress, 
+// testResult.generatedCid, testResult.reconstructedAddress, testResult.matches
 ```
 
 ### Validazione Indirizzo
@@ -566,7 +556,7 @@ const DEBUG_CID_DECODER = process.env.NODE_ENV === 'development';
 
 static debugLog(message: string, data?: any) {
   if (DEBUG_CID_DECODER) {
-    console.log(`[CidDecoder] ${message}`, data);
+    // Debug logging disabled
   }
 }
 ```

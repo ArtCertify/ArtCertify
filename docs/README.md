@@ -417,7 +417,7 @@ npm run build
 ### ❌ Transaction Failures
 - Controlla saldo account per fee
 - Verifica network congestion
-- Controlla logs console per dettagli specifici
+- Controlla i dettagli specifici nell'interfaccia
 
 ---
 

@@ -117,6 +117,7 @@ class AuthService {
   /**
    * Decode JWT token payload (without verification)
    * JWT format: header.payload.signature
+   * Base64URL decoding: replace - with +, _ with /, add padding, then decode
    */
   private decodeTokenPayload(token: string): any | null {
     try {
@@ -127,21 +128,24 @@ class AuthService {
       }
 
       // Decode payload (second part)
-      const payload = parts[1];
+      const payloadBase64Url = parts[1];
       
       // Replace URL-safe base64 characters
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      // Base64URL uses - instead of + and _ instead of /
+      const base64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
       
-      // Add padding if needed
-      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      // Add padding if needed (Base64 requires length to be multiple of 4)
+      const paddingNeeded = (4 - (base64.length % 4)) % 4;
+      const padded = base64 + '='.repeat(paddingNeeded);
       
       // Decode base64
       const decoded = atob(padded);
       
       // Parse JSON
-      return JSON.parse(decoded);
+      const parsed = JSON.parse(decoded);
+      
+      return parsed;
     } catch (error) {
-      console.error('Error decoding JWT token:', error);
       return null;
     }
   }
@@ -156,19 +160,15 @@ class AuthService {
     const baseUrl = this.getBaseUrl();
     
     if (!token) {
-      console.warn('[JWT Server Validation] ❌ Token non trovato');
       return false;
     }
 
     if (!baseUrl) {
-      console.warn('[JWT Server Validation] ❌ Base URL non configurata, impossibile validare con server');
       return false;
     }
 
     try {
       const validationUrl = `${baseUrl}/api/v1/presigned/upload?filename=__token_validation_check__`;
-      console.log('[JWT Server Validation] Verifica token con server (GET presigned URL)...');
-      console.log(`[JWT Server Validation] URL richiesta: ${validationUrl}`);
       
       // Make a lightweight request to presigned URL endpoint to validate token
       // Using a dummy filename that won't actually be used
@@ -190,29 +190,21 @@ class AuthService {
 
       // If we get 401, token is invalid
       if (response.status === 401) {
-        console.warn('[JWT Server Validation] ❌ Server ha rifiutato il token (401 Unauthorized)');
         return false;
       }
 
       // If we get 200 or 400 (bad request but token validated), token is valid
-      const presignedUrl = response.data;
-      console.log(`[JWT Server Validation] ✅ Token valido (status: ${response.status})`);
-      console.log(`[JWT Server Validation] 📋 Presigned URL ricevuto: ${presignedUrl}`);
       return true;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          console.warn('[JWT Server Validation] ❌ Token non valido (401 Unauthorized)');
           return false;
         }
         // Network error or other error - don't invalidate token based on network issues
-        console.warn('[JWT Server Validation] ⚠️ Errore durante validazione server:', error.message);
-        console.log('[JWT Server Validation] ⚠️ Considero token valido (errore di rete, non di autenticazione)');
         // Return true to avoid false positives from network errors
         return true;
       }
       
-      console.warn('[JWT Server Validation] ⚠️ Errore sconosciuto durante validazione:', error);
       // Return true to avoid false positives
       return true;
     }
@@ -224,84 +216,36 @@ class AuthService {
    * @returns true if token is valid (not expired), false otherwise
    */
   isTokenValid(): boolean {
-    console.log('[JWT Validation] Inizio verifica validità token JWT (lettura campo exp)');
     const token = this.getToken();
     
     // Check if token exists
     if (!token) {
-      console.warn('[JWT Validation] ❌ Token non trovato in localStorage');
       return false;
     }
-
-    console.log('[JWT Validation] Token trovato, decodifica payload per leggere campo exp...');
 
     // Decode token payload
     const payload = this.decodeTokenPayload(token);
     if (!payload) {
-      console.error('[JWT Validation] ❌ Impossibile decodificare il payload del token (formato non valido)');
       return false;
     }
 
-    console.log('[JWT Validation] Payload decodificato con successo');
-
     // Check expiration (exp is in seconds since epoch)
     // IMPORTANTE: La scadenza viene inserita dal backend quando genera il JWT durante il login
-    // Durata token: 86400 secondi = 1 giorno (impostata dal backend)
     // Il campo 'exp' è un timestamp Unix (in secondi) che indica quando il token scade
+    // Leggiamo semplicemente il campo exp dal JWT senza fare assunzioni sulla durata
     if (payload.exp) {
-      const expirationTime = payload.exp * 1000; // Convert to milliseconds
+      // USO IL CAMPO EXP PER LA SCADENZA, NON IAT
+      const expirationTime = payload.exp * 1000; // Convert to milliseconds (da campo EXP)
       const currentTime = Date.now();
-      const timeUntilExpiration = expirationTime - currentTime;
       
-      // Calculate time remaining in different units
-      const daysUntilExpiration = Math.floor(timeUntilExpiration / (1000 * 60 * 60 * 24));
-      const hoursUntilExpiration = Math.floor((timeUntilExpiration % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutesUntilExpiration = Math.floor((timeUntilExpiration % (1000 * 60 * 60)) / (1000 * 60));
-      const secondsUntilExpiration = Math.floor((timeUntilExpiration % (1000 * 60)) / 1000);
-      
-      // Format expire time
-      const expireDate = new Date(expirationTime);
-      const expireTimeFormatted = expireDate.toLocaleString('it-IT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short'
-      });
-      
-      // Format time remaining
-      let timeRemainingFormatted = '';
-      if (daysUntilExpiration > 0) {
-        timeRemainingFormatted = `${daysUntilExpiration} giorno/i, ${hoursUntilExpiration} ora/e, ${minutesUntilExpiration} minuto/i`;
-      } else if (hoursUntilExpiration > 0) {
-        timeRemainingFormatted = `${hoursUntilExpiration} ora/e, ${minutesUntilExpiration} minuto/i, ${secondsUntilExpiration} secondo/i`;
-      } else if (minutesUntilExpiration > 0) {
-        timeRemainingFormatted = `${minutesUntilExpiration} minuto/i, ${secondsUntilExpiration} secondo/i`;
-      } else {
-        timeRemainingFormatted = `${secondsUntilExpiration} secondo/i`;
-      }
-      
-      console.log(`[JWT Validation] 📅 Campo exp (timestamp Unix): ${payload.exp}`);
-      console.log(`[JWT Validation] ⏰ Expire time: ${expireTimeFormatted}`);
-      console.log(`[JWT Validation] ⏳ Tempo rimanente: ${timeRemainingFormatted}`);
-      console.log(`[JWT Validation] 📊 Durata token impostata dal backend: 86400 secondi (1 giorno)`);
-      
-      // Token is expired if current time is greater than expiration time
-      // Add a small buffer (5 seconds) to account for clock skew
-      if (currentTime >= expirationTime - 5000) {
-        console.warn(`[JWT Validation] ❌ Token scaduto!`);
-        console.warn(`[JWT Validation] ❌ Expire time era: ${expireTimeFormatted}`);
-        console.warn(`[JWT Validation] ❌ Ora corrente: ${new Date(currentTime).toLocaleString('it-IT')}`);
+      // VALIDAZIONE SEMPLICE: se currentTime >= expirationTime, token è scaduto
+      // Nessuna forzatura, nessun clock skew, solo il campo exp decide
+      if (currentTime >= expirationTime) {
         return false;
       }
-    } else {
-      console.warn('[JWT Validation] ⚠️ Token senza campo exp (expiration), considerato valido ma potrebbe essere un problema');
     }
 
     // Token is valid (not expired according to exp field)
-    console.log('[JWT Validation] ✅ Token valido (campo exp nel JWT indica che non è scaduto)');
     return true;
   }
 
@@ -363,7 +307,6 @@ class AuthService {
         }
       });
     } catch (error) {
-      console.error('Error clearing authentication data:', error);
       // Continue anyway - try to clear as much as possible
     }
   }

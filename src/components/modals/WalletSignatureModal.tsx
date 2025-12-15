@@ -9,7 +9,7 @@ import { CheckCircleIcon, ExclamationCircleIcon, ClipboardIcon, ClipboardDocumen
 interface WalletSignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  walletAddress: string;
+  walletAddress?: string;
 }
 
 export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
@@ -84,13 +84,18 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
         setSignedTxBase64(result.signedTxBase64);
         
         // Salva in localStorage che l'utente ha firmato
-        localStorage.setItem(`wallet_signature_${walletAddress}`, 'true');
-        localStorage.setItem(`wallet_signature_tx_${walletAddress}`, result.txId);
-        localStorage.setItem(`wallet_signature_base64_${walletAddress}`, result.signedTxBase64);
+        if (walletAddress) {
+          localStorage.setItem(`wallet_signature_${walletAddress}`, 'true');
+          localStorage.setItem(`wallet_signature_tx_${walletAddress}`, result.txId);
+          localStorage.setItem(`wallet_signature_base64_${walletAddress}`, result.signedTxBase64);
+        }
         
         // Try to authenticate with backend to get JWT token
         setIsAuthenticating(true);
         try {
+          if (!walletAddress) {
+            throw new Error('Wallet address non disponibile');
+          }
           const jwtToken = await authService.authenticateWithAlgorand(
             walletAddress,
             result.signedTxBase64
@@ -99,6 +104,14 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           // Save JWT token to localStorage (overwrites previous token if exists)
           authService.saveToken(jwtToken);
           
+          // Verify token is valid after saving
+          const isTokenValid = authService.isTokenValid();
+          
+          // Dispatch event to notify AuthContext that token is now valid
+          window.dispatchEvent(new CustomEvent('jwtTokenUpdated', {
+            detail: { isValid: isTokenValid, token: jwtToken }
+          }));
+          
           setIsSigned(true);
         } catch (authError) {
           // If authentication fails, still mark as signed (message is signed)
@@ -106,7 +119,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
           setIsSigned(true);
           const authErrorMessage = authError instanceof Error ? authError.message : 'Errore durante l\'autenticazione con il server';
           setError(`Transazione firmata con successo, ma l'autenticazione con il server è fallita: ${authErrorMessage}`);
-          console.error('Authentication error:', authError);
+          // Authentication error - handled by error state
         } finally {
           setIsAuthenticating(false);
         }
@@ -138,7 +151,7 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('Failed to copy to clipboard:', err);
+        // Failed to copy - ignore
       }
     }
   };
@@ -158,19 +171,18 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               <p className="text-slate-300 text-sm mb-4">
                 Per completare la connessione, conferma di essere il proprietario del wallet firmando una transazione di autenticazione.
               </p>
-              <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-                <p className="text-xs text-slate-400 mb-2">Indirizzo Wallet:</p>
-                <p className="text-sm font-mono text-slate-200 break-all">
-                  {walletAddress}
-                </p>
-              </div>
-              <p className="text-xs text-slate-400 mb-4">
-                La transazione di autenticazione è <span className="font-semibold text-green-400">gratuita</span> (0 Algo, self transaction) e non richiede alcuna fee.
-              </p>
+              {walletAddress && (
+                <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                  <p className="text-xs text-slate-400 mb-2">Indirizzo Wallet:</p>
+                  <p className="text-sm font-mono text-slate-200 break-all">
+                    {walletAddress}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Terms and Conditions */}
-            <TermsAndConditions walletAddress={walletAddress} />
+            {walletAddress && <TermsAndConditions walletAddress={walletAddress} />}
 
             {/* Checkbox accettazione T&C */}
             <div className="flex items-start gap-2 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
@@ -185,7 +197,9 @@ export const WalletSignatureModal: React.FC<WalletSignatureModalProps> = ({
               <label htmlFor="accept-terms" className="text-xs text-slate-300 cursor-pointer flex-1">
                 Dichiaro di aver letto, compreso e accettato integralmente i <span className="font-semibold text-white">Termini e Condizioni</span> sopra indicati. 
                 Accetto che i dati vengano pubblicati on-chain e su IPFS pubblicamente, e che i metadati dei file vengano archiviati su database centralizzato. 
-                Confermo di essere il legittimo proprietario del wallet {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 8)}.
+                {walletAddress && (
+                  <>Confermo di essere il legittimo proprietario del wallet {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 8)}.</>
+                )}
               </label>
             </div>
 

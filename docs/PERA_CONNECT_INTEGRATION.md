@@ -542,20 +542,16 @@ npm run dev
 ```typescript
 // Console logging per development
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔄 Pera Wallet Connect:', {
-    isConnected: peraWallet.isConnected,
-    platform: peraWallet.platform,
-    accounts: connectedAccounts
-  });
+  // Pera Wallet Connect: isConnected, platform, accounts
 }
 
 // Network diagnostic
 const testNetworkConnection = async () => {
   try {
     const status = await algodClient.status().do();
-    console.log('✅ Network status:', status);
+    // Network status: status
   } catch (error) {
-    console.error('❌ Network error:', error);
+    // Network error
   }
 };
 ```
@@ -573,7 +569,7 @@ const logTransactionAttempt = (txType: string, assetId?: number) => {
     userAddress: accountAddress?.slice(0, 8) + '...', // Truncated
   };
   
-  // Invia a monitoring service (non console.log in production)
+  // Invia a monitoring service
   analytics.track('transaction_attempt', logData);
 };
 ```

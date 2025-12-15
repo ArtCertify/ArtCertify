@@ -31,7 +31,6 @@ import { algorandService } from '../services/algorand';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import { useAsyncState } from '../hooks/useAsyncState';
 import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
-import { useWalletSignature } from '../hooks/useWalletSignature';
 import { useAuth } from '../contexts/AuthContext';
 import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import { FilePreviewDisplay } from './ui';
@@ -41,8 +40,7 @@ const AssetDetailsPage: React.FC = () => {
   const { assetId } = useParams<{ assetId: string }>();
   const navigate = useNavigate();
   const { data: asset, loading, error, execute } = useAsyncState<AssetInfo>();
-  const { userAddress } = useAuth();
-  const { hasSigned } = useWalletSignature();
+  const { userAddress, hasValidToken } = useAuth();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('certificate');
@@ -105,7 +103,7 @@ const AssetDetailsPage: React.FC = () => {
             }));
           }
         } catch (error) {
-          console.error('Error fetching block timestamp:', error);
+          // Error fetching block timestamp - using fallback
           // Fallback calculation
           const algorandGenesis = 1622505600;
           const avgBlockTime = 4.5;
@@ -329,7 +327,7 @@ const AssetDetailsPage: React.FC = () => {
             </div>
           </div>
           
-          {hasSigned ? (
+          {hasValidToken ? (
             <button 
               onClick={() => setIsModifyModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"

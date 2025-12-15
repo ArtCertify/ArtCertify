@@ -559,17 +559,15 @@ npm run dev
 ```typescript
 // Verifica stato firma
 const { hasSigned, signedTxBase64, signedTxId } = useWalletSignature();
-console.log('Has Signed:', hasSigned);
-console.log('Transaction ID:', signedTxId);
+// Has Signed: hasSigned
+// Transaction ID: signedTxId
 
 // Verifica JWT token
 const token = authService.getToken();
-console.log('JWT Token:', token ? 'Present' : 'Missing');
+// JWT Token: token ? 'Present' : 'Missing'
 
 // Verifica localStorage
-console.log('All signature keys:', 
-  Object.keys(localStorage).filter(k => k.startsWith('wallet_signature_'))
-);
+// All signature keys: Object.keys(localStorage).filter(k => k.startsWith('wallet_signature_'))
 ```
 
 ### **Common Issues**

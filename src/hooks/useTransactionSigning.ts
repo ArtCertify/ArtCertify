@@ -240,7 +240,7 @@ export const useTransactionSigning = () => {
         txId = result.txid;
       } catch (sendError) {
         // If sending fails, generate a signature ID (transaction is still valid for auth)
-        console.warn('Failed to send auth transaction to blockchain, using generated ID:', sendError);
+        // Failed to send auth transaction - using generated ID
         txId = `sig_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
       }
       

@@ -3,7 +3,6 @@ import ResponsiveLayout from './layout/ResponsiveLayout';
 import { LoadingSpinner, ErrorMessage, Button } from './ui';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useWalletSignature } from '../hooks/useWalletSignature';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import ModifyOrganizationModal from './modals/ModifyOrganizationModal';
 import { WalletSignatureModal } from './modals/WalletSignatureModal';
@@ -22,8 +21,7 @@ import {
 
 export const OrganizationProfilePage: React.FC = () => {
   const { organizationData, loading, error: orgError, refreshOrganizationData } = useOrganization();
-  const { userAddress } = useAuth();
-  const { hasSigned } = useWalletSignature();
+  const { userAddress, hasValidToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
@@ -125,7 +123,7 @@ export const OrganizationProfilePage: React.FC = () => {
               <div className="relative">
                 {/* Edit button in top right */}
                 <div className="absolute top-0 right-0 flex items-center gap-3">
-                  {hasSigned ? (
+                  {hasValidToken ? (
                     <Button
                       variant="secondary"
                       size="sm"

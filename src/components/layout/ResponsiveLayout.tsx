@@ -75,7 +75,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children, isUploadi
     try {
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout failed
       // Force navigation to login page even if logout failed
       window.location.href = '/login';
     }

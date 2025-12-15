@@ -9,7 +9,6 @@ import { RolesPage } from './components/RolesPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { validateConfig } from './config/environment';
-import { setupAxiosInterceptor } from './services/axiosInterceptor';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -91,9 +90,6 @@ function App() {
   useEffect(() => {
     // Validate configuration on app startup
     validateConfig();
-    
-    // Setup axios interceptor for JWT token validation
-    setupAxiosInterceptor();
   }, []);
 
   return (

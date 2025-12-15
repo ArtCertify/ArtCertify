@@ -87,7 +87,7 @@ export class IPFSUrlService {
   static getReserveAddressUrl(reserveAddress: string): IPFSUrlResult {
     try {
       if (!reserveAddress) {
-        console.error('❌ Reserve address is empty');
+        // Reserve address is empty
         return {
           success: false,
           error: 'Reserve address vuoto'
@@ -107,7 +107,7 @@ export class IPFSUrlService {
         };
       }
 
-      console.error('❌ CID decode failed:', result.error);
+      // CID decode failed
       return {
         success: false,
         error: result.error || 'Errore nella decodifica del reserve address'

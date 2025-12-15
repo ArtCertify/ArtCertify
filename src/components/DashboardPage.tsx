@@ -7,7 +7,6 @@ import { ErrorMessage, SearchAndFilter, EmptyState } from './ui';
 import { nftService } from '../services/nftService';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectsCache } from '../hooks/useProjectsCache';
-import { useWalletSignature } from '../hooks/useWalletSignature';
 import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import OrganizationOnboarding from './OrganizationOnboarding';
 import type { AssetInfo } from '../services/algorand';
@@ -76,8 +75,7 @@ interface CertificationsPageState {
 }
 
 export const DashboardPage: React.FC = () => {
-  const { userAddress, isAuthenticated } = useAuth();
-  const { hasSigned } = useWalletSignature();
+  const { userAddress, isAuthenticated, hasValidToken } = useAuth();
   const { getCachedProjects, setCachedProjects, clearProjectsCache } = useProjectsCache();
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [state, setState] = useState<CertificationsPageState>({
@@ -124,7 +122,7 @@ export const DashboardPage: React.FC = () => {
         loading: false 
       }));
     } catch (error) {
-      console.error('Error fetching certificates:', error);
+      // Error fetching certificates
       setState(prev => ({ 
         ...prev, 
         loading: false, 
@@ -164,7 +162,7 @@ export const DashboardPage: React.FC = () => {
           loading: false
         }));
       } catch (error) {
-        console.error('Error fetching certificates:', error);
+        // Error fetching certificates
         setState(prev => ({
           ...prev,
           error: error instanceof Error ? error.message : 'Failed to fetch certificates',
@@ -492,7 +490,7 @@ export const DashboardPage: React.FC = () => {
             
             {/* Bottone per creare prima certificazione */}
             <div className="flex justify-center">
-              {hasSigned ? (
+              {hasValidToken ? (
                 <Link
                   to="/certificates"
                   className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 min-w-[280px] justify-center shadow-2xl"
@@ -657,7 +655,7 @@ export const DashboardPage: React.FC = () => {
               title="Nessun progetto trovato"
               description="Non hai ancora creato certificazioni con progetti associati."
               action={
-                hasSigned ? (
+                hasValidToken ? (
                   <Link
                     to="/certificates"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -682,7 +680,7 @@ export const DashboardPage: React.FC = () => {
         {/* Create New Certification Button - Fixed at bottom when there are certificates */}
         {!hasNoFilteredCertificates && (
           <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-            {hasSigned ? (
+            {hasValidToken ? (
               <Link
                 to="/certificates"
                 className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 min-w-[280px] justify-center"

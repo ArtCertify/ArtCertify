@@ -87,7 +87,7 @@ class WalletService {
         isEmptyAccount: false
       };
     } catch (error) {
-      console.error('❌ Error fetching wallet info:', error);
+      // Error fetching wallet info
       throw new Error(`Failed to fetch wallet information for address ${address}`);
     }
   }
@@ -183,7 +183,7 @@ class WalletService {
                 : assetInfo.params.total
             } as WalletAsset;
           } catch (error) {
-            console.warn(`⚠️ Failed to fetch details for asset ${asset.assetId}:`, error);
+            // Failed to fetch asset details
             return {
               assetId: asset.assetId,
               amount: asset.amount,
@@ -199,7 +199,7 @@ class WalletService {
         )
         .map(result => result.value);
     } catch (error) {
-      console.warn(`⚠️ Error fetching account assets for ${address}:`, error);
+      // Error fetching account assets
       return [];
     }
   }
@@ -276,7 +276,7 @@ class WalletService {
         return [];
       }
       
-      console.warn(`⚠️ Error fetching transactions for ${address}:`, error);
+      // Error fetching transactions
       return [];
     }
   }
@@ -321,7 +321,7 @@ class WalletService {
       this.algoToEurRate = data.algorand?.eur || 0;
       return this.algoToEurRate;
     } catch (error) {
-      console.warn('Failed to fetch ALGO/EUR rate:', error);
+      // Failed to fetch ALGO/EUR rate
       return 0;
     }
   }
@@ -374,7 +374,7 @@ class WalletService {
         lastSeen: accountInfo.lastProposed ? new Date(accountInfo.lastProposed * 1000) : undefined
       };
     } catch (error) {
-      console.error('Error fetching wallet status:', error);
+      // Error fetching wallet status
       return {
         isOnline: false,
         participatingInConsensus: false

@@ -128,7 +128,7 @@ export const validateConfig = () => {
     // Servers are always set from defaults, so no need to validate
     return true;
   } catch (error) {
-    console.error('❌ Configuration validation failed:', error);
+    // Configuration validation failed
     return false;
   }
 };
