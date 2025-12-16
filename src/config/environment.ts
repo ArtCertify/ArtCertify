@@ -1,7 +1,7 @@
 // Helper function to safely access environment variables (NO FALLBACKS)
 const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
   let value: string | undefined;
-  
+
   // Check if we're in a Vite environment
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     value = import.meta.env[key];
@@ -10,10 +10,11 @@ const getEnvVar = (key: string, allowEmpty: boolean = false): string => {
     value = process.env[key];
   }
   
-  if (value === undefined || (!allowEmpty && value === '')) {
+  // If allowEmpty is true, undefined and empty string are allowed
+  if (!allowEmpty && (value === undefined || value === '')) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
-  
+
   return value || '';
 };
 
@@ -32,7 +33,7 @@ const getNetworkConfig = (network: NetworkType) => {
           port: 443
         },
         indexerDefault: {
-          server: 'https://mainnet-idx.algonode.cloud', 
+          server: 'https://mainnet-idx.algonode.cloud',
           port: 443
         }
       };
@@ -66,12 +67,18 @@ const networkConfig = getNetworkConfig(algorandNetwork);
 
 // Environment configuration - Flexible for deployment
 export const config = {
+  
   // Pinata IPFS Gateway (optional for basic functionality)
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
   
+  // Backend API Base URL (optional - required for authentication)
+  api: {
+    baseUrl: getEnvVar('VITE_API_BASE_URL', true)
+  },
+  
   // Algorand Network
   algorandNetwork,
-  
+
   // Network-specific configuration
   network: {
     chainId: networkConfig.chainId,
@@ -79,14 +86,14 @@ export const config = {
     isMainnet: algorandNetwork === 'mainnet',
     isTestnet: algorandNetwork === 'testnet'
   },
-  
+
   // Algorand API endpoints - ALWAYS use network-specific defaults (automatic switching)
   algod: {
     token: '', // Force empty for public services (no token needed)
     server: networkConfig.algodDefault.server, // Always use network-based default
     port: networkConfig.algodDefault.port // Always use network-based default
   },
-  
+
   indexer: {
     token: '', // Force empty for public services (no token needed)
     server: networkConfig.indexerDefault.server, // Always use network-based default
@@ -97,13 +104,13 @@ export const config = {
 // Helper functions for network-specific URLs
 export const getExplorerUrl = () => config.network.explorerUrl;
 
-export const getAssetExplorerUrl = (assetId: number | string) => 
+export const getAssetExplorerUrl = (assetId: number | string) =>
   `${config.network.explorerUrl}/asset/${assetId}`;
 
-export const getTransactionExplorerUrl = (txId: string) => 
+export const getTransactionExplorerUrl = (txId: string) =>
   `${config.network.explorerUrl}/tx/${txId}`;
 
-export const getAddressExplorerUrl = (address: string) => 
+export const getAddressExplorerUrl = (address: string) =>
   `${config.network.explorerUrl}/address/${address}`;
 
 // Validation function to ensure required config is present
@@ -113,17 +120,16 @@ export const validateConfig = () => {
     if (!config.algorandNetwork) {
       throw new Error('VITE_ALGORAND_NETWORK is required');
     }
-    
+
     if (!config.network.chainId) {
       throw new Error('Network configuration invalid');
     }
-    
+
     // Servers are always set from defaults, so no need to validate
     return true;
   } catch (error) {
-    console.error('❌ Configuration validation failed:', error);
+    // Configuration validation failed
     return false;
   }
 };
 
- 

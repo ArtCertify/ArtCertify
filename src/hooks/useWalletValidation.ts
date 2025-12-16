@@ -57,7 +57,7 @@ export const useWalletValidation = (requiredBalance: number = 0.1) => {
       });
 
     } catch (error) {
-      console.error('❌ Wallet validation failed:', error);
+      // Wallet validation failed
       setValidation(prev => ({
         ...prev,
         isLoading: false,

@@ -32,7 +32,7 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
     try {
       await logout();
     } catch (error) {
-      console.error('🔴 LogoutButton: Logout failed:', error);
+      // Logout failed
       // Force navigation even if logout fails
       alert('Errore durante il logout. Reindirizzamento alla pagina di login...');
       window.location.href = '/login';

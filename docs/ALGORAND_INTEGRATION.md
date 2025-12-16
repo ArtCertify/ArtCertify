@@ -372,13 +372,13 @@ const txUrl = algorandService.getTransactionExplorerUrl(txId);
 ```typescript
 // NFT Minting Service Test
 const testResult = await nftMintingService.testService();
-console.log('IPFS Connection:', testResult.ipfs);
-console.log('Algorand Connection:', testResult.algorand);
+// IPFS Connection: testResult.ipfs
+// Algorand Connection: testResult.algorand
 
 // Environment Validation
 import { validateConfig } from '../config/environment';
 const isValid = validateConfig();
-console.log('Configuration valid:', isValid);
+// Configuration valid: isValid
 ```
 
 ### Error Handling
@@ -386,7 +386,7 @@ console.log('Configuration valid:', isValid);
 ```typescript
 try {
   const result = await nftMintingService.mintCertificationSBT(params);
-  console.log('✅ SBT minted:', result.assetId);
+  // SBT minted: result.assetId
   } catch (error) {
   if (error.message.includes('insufficient funds')) {
     // Handle low balance

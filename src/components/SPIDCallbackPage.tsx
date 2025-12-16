@@ -58,7 +58,7 @@ export const SPIDCallbackPage: React.FC = () => {
         setError(result.error || 'Autenticazione SPID fallita');
       }
     } catch (err) {
-      console.error('SPID callback error:', err);
+      // SPID callback error
       setError('Errore durante l\'elaborazione della risposta SPID');
     } finally {
       setIsProcessing(false);
@@ -92,7 +92,7 @@ export const SPIDCallbackPage: React.FC = () => {
         setError('Errore durante il collegamento dell\'indirizzo');
       }
     } catch (err) {
-      console.error('Address linking error:', err);
+      // Address linking error
       setError('Errore durante il collegamento dell\'indirizzo');
     }
   };

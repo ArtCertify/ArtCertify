@@ -130,7 +130,7 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
         setCurrentOrgJson(jsonData);
         
       } catch (error) {
-        console.error('❌ Error loading current organization JSON:', error);
+        // Error loading organization JSON
         setSubmitError('Errore nel caricamento dei dati attuali dell\'organizzazione');
       } finally {
         setLoadingCurrentJson(false);
@@ -284,7 +284,7 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
       });
 
     } catch (error) {
-      console.error('Errore durante la modifica dell\'organizzazione:', error);
+      // Error modifying organization
       setSubmitError(error instanceof Error ? error.message : 'Errore sconosciuto');
     }
   };
@@ -362,10 +362,10 @@ const ModifyOrganizationModal: React.FC<ModifyOrganizationModalProps> = ({
                           onDrop={handleDrop}
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          {formData.image ? (
+                          {formData.image && (formData.image.startsWith('ipfs://') ? getImageUrl(formData.image) : formData.image) ? (
                             <div className="space-y-4">
                               <img
-                                src={formData.image.startsWith('ipfs://') ? getImageUrl(formData.image) : formData.image}
+                                src={formData.image.startsWith('ipfs://') ? (getImageUrl(formData.image) || undefined) : (formData.image || undefined)}
                                 alt="Organization logo"
                                 className="mx-auto h-32 w-32 object-cover rounded-lg"
                                 onError={(e) => {

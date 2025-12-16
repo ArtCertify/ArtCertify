@@ -103,7 +103,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
 
     } catch (err) {
-      console.error('❌ Error fetching organization data:', err);
+      // Error fetching organization data
       setError(err instanceof Error ? err.message : 'Errore nel caricamento dei dati organizzazione');
       setOrganizationData(null);
     } finally {
