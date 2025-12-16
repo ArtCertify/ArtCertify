@@ -6,6 +6,7 @@ import { CertificationsPage } from './components/CertificationsPage';
 import { LoginPage } from './components/LoginPage';
 import { OrganizationProfilePage } from './components/OrganizationProfilePage';
 import { RolesPage } from './components/RolesPage';
+import { AdminPage } from './components/AdminPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { validateConfig } from './config/environment';
@@ -71,6 +72,10 @@ const AppRoutes: React.FC = () => {
               <RolesPage />
             </ProtectedRoute>
           } 
+        />
+        <Route 
+          path="/admin" 
+          element={<AdminPage />} 
         />
         {/* Redirect any unknown routes to home or login based on auth */}
         <Route 
