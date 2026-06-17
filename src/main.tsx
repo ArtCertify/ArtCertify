@@ -8,9 +8,7 @@ import App from './App.tsx'
 import { validateConfig } from './config/environment'
 
 // Validate configuration silently
-if (!validateConfig()) {
-  console.error('❌ Invalid configuration - check your .env file');
-}
+validateConfig();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

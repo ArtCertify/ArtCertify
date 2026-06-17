@@ -119,7 +119,7 @@ export const validateConfig = (): Config => {
   try {
     return configSchema.parse(rawConfig);
   } catch (error) {
-    console.error('❌ Configuration validation failed:', error);
+    // Configuration validation failed
     throw new Error('Invalid environment configuration');
   }
 };
@@ -191,13 +191,9 @@ class AlgorandService {
   private async validateConnection(): Promise<void> {
     try {
       const status = await this.algodClient.status().do();
-      console.log(`✅ Connected to Algorand ${config.network.name}:`, {
-        lastRound: status.lastRound,
-        chainId: config.network.chainId,
-        realMoney: config.network.realMoney
-      });
+      // Connected to Algorand: status.lastRound, config.network.chainId, config.network.realMoney
     } catch (error) {
-      console.error(`❌ Failed to connect to ${config.network.name}:`, error);
+      // Failed to connect to network
       throw new Error(`Network connection failed: ${config.network.name}`);
     }
   }
@@ -259,7 +255,7 @@ class PeraWalletService {
       compactMode: false
     });
 
-    console.log(`🔌 Pera Wallet configured for ${config.network.name} (Chain ID: ${config.network.chainId})`);
+    // Pera Wallet configured for network
   }
 
   // Metodi wallet con network awareness
@@ -270,17 +266,13 @@ class PeraWalletService {
   // Warning per MainNet
   async connect(): Promise<string[]> {
     if (config.network.realMoney) {
-      console.warn('⚠️ Connecting to MainNet - Real money transactions!');
+      // Connecting to MainNet - Real money transactions
     }
 
     const accounts = await this.peraWallet.connect();
     
     if (accounts.length > 0) {
-      console.log(`✅ Connected to ${config.network.name}:`, {
-        address: accounts[0].slice(0, 8) + '...',
-        network: config.network.name,
-        explorerUrl: this.getExplorerUrl(accounts[0])
-      });
+      // Connected to network: accounts[0], config.network.name
     }
 
     return accounts;
@@ -356,7 +348,7 @@ export const performSafetyChecks = () => {
   }
 
   // Log warnings
-  warnings.forEach(warning => console.warn(`⚠️ ${warning}`));
+  // warnings.forEach(warning => { /* handle warning */ });
   
   // Throw on errors
   if (errors.length > 0) {
@@ -621,7 +613,7 @@ export const logNetworkConfiguration = () => {
     timestamp: new Date().toISOString()
   };
 
-  console.log('🌐 Network Configuration:', info);
+  // Network Configuration: info
   
   // In production, invia a monitoring service
   if (import.meta.env.PROD) {

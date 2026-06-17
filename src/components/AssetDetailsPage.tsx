@@ -31,6 +31,8 @@ import { algorandService } from '../services/algorand';
 import { IPFSUrlService } from '../services/ipfsUrlService';
 import { useAsyncState } from '../hooks/useAsyncState';
 import { useIPFSMetadata } from '../hooks/useIPFSMetadata';
+import { useAuth } from '../contexts/AuthContext';
+import { WalletSignatureModal } from './modals/WalletSignatureModal';
 import { FilePreviewDisplay } from './ui';
 import type { AssetInfo } from '../services/algorand';
 
@@ -38,7 +40,9 @@ const AssetDetailsPage: React.FC = () => {
   const { assetId } = useParams<{ assetId: string }>();
   const navigate = useNavigate();
   const { data: asset, loading, error, execute } = useAsyncState<AssetInfo>();
+  const { userAddress, hasValidToken } = useAuth();
   const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('certificate');
   const [expandedVersions, setExpandedVersions] = useState<Set<number>>(new Set());
   const [creationDate, setCreationDate] = useState<string>('');
@@ -99,7 +103,7 @@ const AssetDetailsPage: React.FC = () => {
             }));
           }
         } catch (error) {
-          console.error('Error fetching block timestamp:', error);
+          // Error fetching block timestamp - using fallback
           // Fallback calculation
           const algorandGenesis = 1622505600;
           const avgBlockTime = 4.5;
@@ -209,14 +213,53 @@ const AssetDetailsPage: React.FC = () => {
            '';
   };
 
-  // Get main image URL from IPFS metadata
+  // Get main image URL from IPFS metadata (supports both IPFS and MINIO URLs)
   const getMainImageUrl = () => {
-    if (ipfsMetadata?.image) {
-      const hash = ipfsMetadata.image.replace('ipfs://', '');
-      return IPFSUrlService.getGatewayUrl(hash);
+    // First priority: use image field from JSON (now contains MINIO URL or IPFS URL)
+    if (ipfsMetadata?.image && ipfsMetadata.image.trim() !== '') {
+      const imageUrl = ipfsMetadata.image.trim();
+      // If it's already a full URL (MINIO or gateway), use it directly
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return imageUrl;
+      }
+      // If it's an IPFS URL (ipfs://), convert to gateway URL
+      if (imageUrl.startsWith('ipfs://')) {
+        const hash = imageUrl.replace('ipfs://', '').trim();
+        if (hash) {
+          return IPFSUrlService.getGatewayUrl(hash);
+        }
+      }
+      // Otherwise, if it's a valid hash (not empty and looks like a hash), try to use it
+      if (imageUrl && imageUrl.length > 0 && !imageUrl.includes('://')) {
+        return IPFSUrlService.getGatewayUrl(imageUrl);
+      }
     }
+    // Fallback: use first file from files_metadata (supports MINIO URLs)
     if (ipfsMetadata?.properties?.files_metadata?.[0]?.gatewayUrl) {
-      return ipfsMetadata.properties.files_metadata[0].gatewayUrl;
+      const gatewayUrl = ipfsMetadata.properties.files_metadata[0].gatewayUrl;
+      if (gatewayUrl && gatewayUrl.trim() !== '') {
+        return gatewayUrl.trim();
+      }
+    }
+    // Last fallback: try s3StorageUrl or ipfsUrl from files_metadata (for backward compatibility)
+    const firstFile = ipfsMetadata?.properties?.files_metadata?.[0];
+    if (firstFile) {
+      // Priority: s3StorageUrl (for MINIO files) > ipfsUrl (for IPFS files or backward compatibility)
+      const fileUrl = (firstFile as any).s3StorageUrl || firstFile.ipfsUrl;
+      if (fileUrl && fileUrl.trim() !== '') {
+        const trimmedUrl = fileUrl.trim();
+        // If it's already a full URL (MINIO), use it directly
+        if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+          return trimmedUrl;
+        }
+        // If it's an IPFS URL, convert it
+        if (trimmedUrl.startsWith('ipfs://')) {
+          const hash = trimmedUrl.replace('ipfs://', '').trim();
+          if (hash) {
+            return IPFSUrlService.getGatewayUrl(hash);
+          }
+        }
+      }
     }
     return null;
   };
@@ -284,13 +327,23 @@ const AssetDetailsPage: React.FC = () => {
             </div>
           </div>
           
-          <button 
-            onClick={() => setIsModifyModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
-          >
-            <PencilIcon className="h-4 w-4" />
-            Modifica Allegati
-          </button>
+          {hasValidToken ? (
+            <button 
+              onClick={() => setIsModifyModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Modifica Allegati
+            </button>
+          ) : (
+            <button 
+              onClick={() => setIsSignatureModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Modifica Allegati
+            </button>
+          )}
         </div>
 
         {/* Modern Asset Card with Image - IPFS Powered */}
@@ -309,7 +362,7 @@ const AssetDetailsPage: React.FC = () => {
               ) : getMainImageUrl() && !imageError ? (
                 <div className="w-full">
                   <img
-                    src={getMainImageUrl()!}
+                    src={getMainImageUrl() || undefined}
                     alt={getDisplayName()}
                     className="w-full aspect-square object-cover rounded-lg shadow-lg"
                     onError={() => setImageError(true)}
@@ -626,16 +679,16 @@ const AssetDetailsPage: React.FC = () => {
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {ipfsMetadata.properties.files_metadata.map((file, index) => (
+                            {ipfsMetadata.properties.files_metadata.map((file: any, index) => (
                               <FilePreviewDisplay
-                                key={`${file.ipfsUrl}-${index}`}
+                                key={`${file.s3StorageUrl || file.ipfsUrl || file.gatewayUrl || index}-${index}`}
                                 file={{
                                   name: file.name,
                                   type: 'application/octet-stream',
                                   size: 0,
-                                  url: file.gatewayUrl
+                                  url: file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl
                                 }}
-                                url={file.gatewayUrl}
+                                url={file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl}
                                 showPreview={true}
                                 showDownload={true}
                               />
@@ -799,6 +852,14 @@ const AssetDetailsPage: React.FC = () => {
           />
         )}
 
+        {/* Wallet Signature Modal */}
+        {userAddress && (
+          <WalletSignatureModal
+            isOpen={isSignatureModalOpen}
+            onClose={() => setIsSignatureModalOpen(false)}
+            walletAddress={userAddress}
+          />
+        )}
       </div>
     </ResponsiveLayout>
   );

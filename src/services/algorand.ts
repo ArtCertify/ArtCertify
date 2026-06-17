@@ -181,7 +181,7 @@ class AlgorandService {
 
       return assetData;
     } catch (error) {
-      console.error('Error fetching asset info:', error);
+      // Error fetching asset info
       throw new Error(`Failed to fetch asset information: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -231,7 +231,7 @@ class AlgorandService {
       const firstTxn = response.transactions[0];
       return firstTxn;
     } catch (error) {
-      console.error('Error fetching creation transaction:', error);
+      // Error fetching creation transaction
       return null;
     }
   }
@@ -249,7 +249,7 @@ class AlgorandService {
       
       return sortedTransactions;
     } catch (error) {
-      console.error('Error fetching config history:', error);
+      // Error fetching config history
       return [];
     }
   }
@@ -276,12 +276,12 @@ class AlgorandService {
         .map((txn: any) => txn.assetConfigTransaction?.params?.reserve)
         .filter((reserve: string | undefined) => reserve !== undefined);
 
-      // Disabled to reduce console noise during development
+      // Logging disabled
 
       
       return reserves;
     } catch (error) {
-      console.error('Error fetching reserve history:', error);
+      // Error fetching reserve history
       return [];
     }
   }
@@ -296,7 +296,7 @@ class AlgorandService {
 
       return response.transactions || [];
     } catch (error) {
-      console.error('Error fetching asset transactions:', error);
+      // Error fetching asset transactions
       return [];
     }
   }
@@ -336,7 +336,7 @@ class AlgorandService {
       
       return null;
     } catch (error) {
-      console.error('Error fetching block timestamp:', error);
+      // Error fetching block timestamp
       return null;
     }
   }

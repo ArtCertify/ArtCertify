@@ -40,7 +40,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({ asset, loading
             setCreationDate(algorandGenesis + (roundNumber * avgBlockTime));
           }
         } catch (error) {
-          console.error('Error fetching creation date:', error);
+          // Error fetching creation date - using fallback
           // Fallback to approximate calculation
           const algorandGenesis = 1622505600;
           const avgBlockTime = 4.5;

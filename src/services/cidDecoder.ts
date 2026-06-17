@@ -95,7 +95,7 @@ export class CidDecoder {
       }
       
     } catch (error) {
-      console.error('Error decoding reserve address to CID:', error);
+      // Error decoding reserve address
       return {
         success: false,
         error: `Errore nella decodifica: ${error}`

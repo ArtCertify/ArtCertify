@@ -180,25 +180,34 @@ export const usePeraCertificationFlow = () => {
           return currentData;
 
         case 'ipfs-upload': {
-          updateStepState(stepId, 'active', undefined, undefined, `Caricamento ${params.files?.length || 0} file su IPFS...`);
+          updateStepState(stepId, 'active', undefined, undefined, `Caricamento metadata JSON su IPFS...`);
+          
+          // Get user address (lowercase) for MINIO URL construction
+          const userAddress = accountAddress?.toLowerCase() || '';
           
           const ipfsResult = await ipfsService.uploadCertificationAssets(
-            params.files,
+            params.files || [],
             params.certificationData,
-            params.formData
+            params.formData,
+            userAddress
           );
           
           const updatedData = { ...currentData, ipfsResult };
           setIntermediateData(updatedData);
           
-          // Crea link IPFS per i details
+          // Crea link IPFS per i details (solo metadata JSON, i file sono su MINIO)
           const ipfsLinks = [
-            `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata IPFS</a>`
+            `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata JSON su IPFS</a>`
           ];
           
-          if (ipfsResult.fileHashes && ipfsResult.fileHashes.length > 0) {
-            ipfsResult.fileHashes.forEach((file: any) => {
-              ipfsLinks.push(`📎 <a href="https://${config.pinataGateway}/ipfs/${file.hash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name}</a>`);
+          // Aggiungi link ai file (MINIO per certificazioni, IPFS per organizzazioni)
+          if (ipfsResult.individualFileUrls && ipfsResult.individualFileUrls.length > 0) {
+            ipfsResult.individualFileUrls.forEach((file: any) => {
+              // Determine storage type: MINIO if s3StorageUrl exists or URL contains s3.caputmundi, otherwise IPFS
+              const isMinio = file.s3StorageUrl || (file.gatewayUrl && file.gatewayUrl.includes('s3.caputmundi.artcertify.com'));
+              const storageType = isMinio ? 'MINIO' : 'IPFS';
+              const fileUrl = file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl;
+              ipfsLinks.push(`📎 <a href="${fileUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name} (${storageType})</a>`);
             });
           }
           
@@ -368,11 +377,13 @@ export const usePeraCertificationFlow = () => {
         throw new Error('Pera Wallet non connesso. Effettua il login prima di procedere.');
       }
       updateStepState('wallet-check', 'success', undefined, undefined, `Wallet connesso: ${accountAddress?.slice(0, 8)}...`);
-      updateStepState('ipfs-upload', 'active', undefined, undefined, `Caricamento ${params.newFiles?.length || 0} file su IPFS...`);
+      updateStepState('ipfs-upload', 'active', undefined, undefined, `Caricamento metadata JSON su IPFS...`);
 
         // Step 2: Upload IPFS - Usa dati intermedi se disponibili
         let ipfsResult = intermediateData.ipfsResult;
         if (!ipfsResult) {
+          const userAddress = accountAddress?.toLowerCase() || '';
+          
           if (params.isOrganization && params.customJson) {
             // Use organization-specific upload method
             ipfsResult = await ipfsService.uploadOrganizationVersion(
@@ -382,30 +393,38 @@ export const usePeraCertificationFlow = () => {
             );
           } else if (params.customJson) {
             // Use certification-specific upload method with custom JSON
+            const userAddress = accountAddress?.toLowerCase() || '';
             ipfsResult = await ipfsService.uploadCertificationVersion(
               params.newFiles,
               params.customJson,
-              params.formData
+              params.formData,
+              userAddress
             );
           } else {
             // Use standard certification upload method
             ipfsResult = await ipfsService.uploadCertificationAssets(
               params.newFiles,
               params.newCertificationData,
-              params.formData
+              params.formData,
+              userAddress
             );
           }
           setIntermediateData(prev => ({ ...prev, ipfsResult }));
         }
       
-      // Crea link IPFS per versioning
+      // Crea link IPFS per versioning (metadata JSON su IPFS, file su MINIO o IPFS a seconda del tipo)
       const versioningIpfsLinks = [
-        `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata IPFS</a>`
+        `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata JSON su IPFS</a>`
       ];
       
-      if (ipfsResult.fileHashes && ipfsResult.fileHashes.length > 0) {
-        ipfsResult.fileHashes.forEach((file: any) => {
-          versioningIpfsLinks.push(`📎 <a href="https://${config.pinataGateway}/ipfs/${file.hash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name}</a>`);
+      // Aggiungi link ai file (MINIO per certificazioni, IPFS per organizzazioni)
+      if (ipfsResult.individualFileUrls && ipfsResult.individualFileUrls.length > 0) {
+        ipfsResult.individualFileUrls.forEach((file: any) => {
+          // Determine storage type: MINIO if s3StorageUrl exists or URL contains s3.caputmundi, otherwise IPFS
+          const isMinio = file.s3StorageUrl || (file.gatewayUrl && file.gatewayUrl.includes('s3.caputmundi.artcertify.com'));
+          const fileStorageType = isMinio ? 'MINIO' : 'IPFS';
+          const fileUrl = file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl;
+          versioningIpfsLinks.push(`📎 <a href="${fileUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name} (${fileStorageType})</a>`);
         });
       }
       
@@ -516,7 +535,12 @@ export const usePeraCertificationFlow = () => {
             throw new Error('Pera Wallet non connesso. Effettua il login prima di procedere.');
           }
           updateStepState('wallet-check', 'success', undefined, undefined, `Wallet connesso: ${accountAddress?.slice(0, 8)}...`);
-          updateStepState('ipfs-upload', 'active', undefined, undefined, `Caricamento ${params.newFiles?.length || 0} file su IPFS...`);
+          // Determine message based on organization type
+          const isOrg = params.isOrganization;
+          const uploadMessage = isOrg 
+            ? `Caricamento ${params.newFiles?.length || 0} file su IPFS...`
+            : `Caricamento metadata JSON su IPFS...`;
+          updateStepState('ipfs-upload', 'active', undefined, undefined, uploadMessage);
           // Prosegue automaticamente con il prossimo step
           await retryVersioningFromStep('ipfs-upload', params);
           break;
@@ -526,12 +550,21 @@ export const usePeraCertificationFlow = () => {
           if (intermediateData.ipfsResult) {
             // Usa i dati IPFS già caricati - crea link
             const existingIpfsLinks = [
-              `📄 <a href="https://${config.pinataGateway}/ipfs/${intermediateData.ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata IPFS</a>`
+              `📄 <a href="https://${config.pinataGateway}/ipfs/${intermediateData.ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata JSON su IPFS</a>`
             ];
             
-            if (intermediateData.ipfsResult.fileHashes && intermediateData.ipfsResult.fileHashes.length > 0) {
+            // Mostra link ai file (MINIO se disponibili, altrimenti IPFS per retrocompatibilità)
+            if (intermediateData.ipfsResult.individualFileUrls && intermediateData.ipfsResult.individualFileUrls.length > 0) {
+              intermediateData.ipfsResult.individualFileUrls.forEach((file: any) => {
+                // Priority: s3StorageUrl (MINIO) > gatewayUrl > ipfsUrl (backward compatibility)
+                const fileUrl = file.s3StorageUrl || file.gatewayUrl || (file.ipfsUrl && file.ipfsUrl.startsWith('https://') ? file.ipfsUrl : `https://${config.pinataGateway}/ipfs/${file.hash}`);
+                const storageType = (file.s3StorageUrl || file.gatewayUrl) && (file.s3StorageUrl || file.gatewayUrl).includes('s3.caputmundi.artcertify.com') ? 'MINIO' : 'IPFS';
+                existingIpfsLinks.push(`📎 <a href="${fileUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name} (${storageType})</a>`);
+              });
+            } else if (intermediateData.ipfsResult.fileHashes && intermediateData.ipfsResult.fileHashes.length > 0) {
+              // Fallback per retrocompatibilità con vecchi dati
               intermediateData.ipfsResult.fileHashes.forEach((file: any) => {
-                existingIpfsLinks.push(`📎 <a href="https://${config.pinataGateway}/ipfs/${file.hash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name}</a>`);
+                existingIpfsLinks.push(`📎 <a href="https://${config.pinataGateway}/ipfs/${file.hash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name} (IPFS)</a>`);
               });
             }
             
@@ -539,23 +572,30 @@ export const usePeraCertificationFlow = () => {
             updateStepState('cid-conversion', 'active', undefined, undefined, 'Conversione CID in indirizzo Algorand...');
             await retryVersioningFromStep('cid-conversion', params);
           } else {
-            // Ricarica su IPFS solo se necessario
-            updateStepState(stepId, 'active', undefined, undefined, `Caricamento ${params.newFiles?.length || 0} file su IPFS...`);
+            // Ricarica su IPFS solo se necessario (solo metadata JSON, i file sono su MINIO)
+            updateStepState(stepId, 'active', undefined, undefined, `Caricamento metadata JSON su IPFS...`);
+            const userAddress = accountAddress?.toLowerCase() || '';
             const ipfsResult = await ipfsService.uploadCertificationAssets(
               params.newFiles,
               params.newCertificationData,
-              params.formData
+              params.formData,
+              userAddress
             );
             setIntermediateData(prev => ({ ...prev, ipfsResult }));
             
-            // Crea link per nuovo upload
+            // Crea link per nuovo upload (metadata JSON su IPFS, file su MINIO o IPFS a seconda del tipo)
             const newIpfsLinks = [
-              `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata IPFS</a>`
+              `📄 <a href="https://${config.pinataGateway}/ipfs/${ipfsResult.metadataHash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">Metadata JSON su IPFS</a>`
             ];
             
-            if (ipfsResult.fileHashes && ipfsResult.fileHashes.length > 0) {
-              ipfsResult.fileHashes.forEach((file: any) => {
-                newIpfsLinks.push(`📎 <a href="https://${config.pinataGateway}/ipfs/${file.hash}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name}</a>`);
+            // Aggiungi link ai file (MINIO per certificazioni, IPFS per organizzazioni)
+            if (ipfsResult.individualFileUrls && ipfsResult.individualFileUrls.length > 0) {
+              ipfsResult.individualFileUrls.forEach((file: any) => {
+                // Determine storage type: MINIO if s3StorageUrl exists or URL contains s3.caputmundi, otherwise IPFS
+                const isMinio = file.s3StorageUrl || (file.gatewayUrl && file.gatewayUrl.includes('s3.caputmundi.artcertify.com'));
+                const fileStorageType = isMinio ? 'MINIO' : 'IPFS';
+                const fileUrl = file.s3StorageUrl || file.gatewayUrl || file.ipfsUrl;
+                newIpfsLinks.push(`📎 <a href="${fileUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${file.name} (${fileStorageType})</a>`);
               });
             }
             

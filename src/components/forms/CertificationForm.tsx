@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FormLayout } from '../ui';
+import { FormLayout, Modal } from '../ui';
 import { CertificationModal } from '../modals/CertificationModal';
+import { WalletSignatureModal } from '../modals/WalletSignatureModal';
 import { usePeraCertificationFlow } from '../../hooks/usePeraCertificationFlow';
 import { useProjectsCache } from '../../hooks/useProjectsCache';
 import { useAuth } from '../../contexts/AuthContext';
-import { Input, Button, Alert, FileUpload, ReusableDropdown } from '../ui';
-import { 
-  TrashIcon, 
-  ArrowPathIcon, 
-  DocumentIcon, 
+import { Input, Button, Alert, FileUpload, ReusableDropdown, Tooltip } from '../ui';
+import {
+  TrashIcon,
+  ArrowPathIcon,
+  DocumentIcon,
   FolderIcon,
   VideoCameraIcon,
   SpeakerWaveIcon,
   ChevronDownIcon,
   PlusIcon
 } from '@heroicons/react/24/outline';
+import MinIOService from '../../services/minioServices';
+import { useNavigate } from 'react-router-dom';
+
 
 
 interface CertificationFormProps {
@@ -28,7 +32,7 @@ interface CertificationFormData {
   fileType: string;
   fileExtension: string;
   fileCreationDate: string;
-  
+
   // User input fields
   projectName: string;           // Max 10 caratteri
   assetName: string;            // Max 19 caratteri
@@ -52,9 +56,14 @@ const TYPE_OPTIONS = [
 
 export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) => {
   // Auth and cache hooks
-  const { userAddress } = useAuth();
+  const { logout, userAddress } = useAuth();
   const { getCachedProjects } = useProjectsCache();
-  
+  const minioService = new MinIOService();
+
+  const navigate = useNavigate();
+
+
+
   // Certification flow hook
   const {
     isModalOpen,
@@ -78,12 +87,23 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
   // Projects cache state
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
-  
+
   // Project dropdown state
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<string[]>([]);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isUploadFailed, setIsUploadFailed] = useState(false);
+  const [isUploadLocked, setIsUploadLocked] = useState(false);
+  const [isUploadCompleted, setIsUploadCompleted] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [jwtExpiredError, setJwtExpiredError] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
+  const controllerRef = useRef<AbortController | null>(null);
+  const [nextAction, setNextAction] = useState<"home" | "profile" | "logout" | "back" | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState<CertificationFormData>({
@@ -106,6 +126,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'video' | 'audio' | 'document' | 'other'>('other');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
   // const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Load projects from cache
@@ -151,13 +172,13 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
       const projectShort = formData.projectName.substring(0, 3).toUpperCase();
       const assetShort = formData.assetName.substring(0, 4).toUpperCase();
       const unitName = `${projectShort}-${assetShort}`.substring(0, 8);
-      
+
       // Generate full asset name (max 32 chars): "ProjectName / AssetName"
       // Remove any special characters that might cause issues
       const cleanProjectName = formData.projectName.replace(/[^a-zA-Z0-9\s]/g, '');
       const cleanAssetName = formData.assetName.replace(/[^a-zA-Z0-9\s]/g, '');
       const fullAssetName = `${cleanProjectName} / ${cleanAssetName}`.substring(0, 32);
-      
+
       setFormData(prev => ({
         ...prev,
         unitName,
@@ -166,35 +187,56 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     }
   }, [formData.projectName, formData.assetName]);
 
+
+
+  useEffect(() => {
+    if (!isUploadingFile) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // obbligatorio per mostrare il popup
+    };
+
+    window.addEventListener("beforeunload", handler);
+
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [isUploadingFile]);
+
+
+  useEffect(() => {
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
   // Handle file upload
   const handleFileUpload = (files: File[]) => {
     if (files.length > 0) {
       const file = files[0];
-      
-      // Check file size (20MB max)
-      if (file.size > 20 * 1024 * 1024) {
-        setSubmitError('Il file deve essere inferiore a 20MB');
-        return;
-      }
-      
+
       // Extract file metadata
       const fileName = file.name;
       const fileSize = file.size;
       const fileType = file.type;
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
       const fileCreationDate = new Date(file.lastModified).toISOString().split('T')[0];
-      
+
       // Determine preview type and generate preview
       const previewType = getPreviewType(fileType, fileExtension);
       setPreviewType(previewType);
-      
+
       // Generate preview URL
       const previewUrl = URL.createObjectURL(file);
       setFilePreview(previewUrl);
-      
+
       // Store the actual file
       setUploadedFile(file);
-      
+
       setFormData(prev => ({
         ...prev,
         fileName,
@@ -203,7 +245,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
         fileExtension,
         fileCreationDate
       }));
-      
+
       setSubmitError(null);
     }
   };
@@ -214,23 +256,23 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExtension)) {
       return 'image';
     }
-    
+
     // Video types
     if (fileType.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(fileExtension)) {
       return 'video';
     }
-    
+
     // Audio types
     if (fileType.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(fileExtension)) {
       return 'audio';
     }
-    
+
     // Document types
-    if (fileType.includes('pdf') || fileType.includes('document') || fileType.includes('text') || 
-        ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(fileExtension)) {
+    if (fileType.includes('pdf') || fileType.includes('document') || fileType.includes('text') ||
+      ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(fileExtension)) {
       return 'document';
     }
-    
+
     return 'other';
   };
 
@@ -286,7 +328,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   // Validate form
   const validateForm = (): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
-    
+
     if (!uploadedFile) errors.push('File è obbligatorio');
     if (!formData.projectName.trim()) errors.push('Nome Progetto è obbligatorio');
     if (formData.projectName.length > 10) errors.push('Nome Progetto deve essere massimo 10 caratteri');
@@ -299,7 +341,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     if (!formData.type) errors.push('Tipo è obbligatorio');
     if (formData.type === 'altro' && !formData.customType.trim()) errors.push('Specifica il tipo personalizzato');
     if (formData.fileOrigin.length > 100) errors.push('Origine del file deve essere massimo 100 caratteri');
-    
+
     if (!isWalletConnected || !walletAddress) {
       errors.push('Pera Wallet non connesso. Effettua il login prima di procedere.');
     }
@@ -310,7 +352,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   // Prepare certification data for IPFS
   const prepareCertificationData = () => {
     const finalType = formData.type === 'altro' ? formData.customType : formData.type;
-    
+
     return {
       asset_type: finalType,
       unique_id: `${formData.projectName}_${formData.assetName}_${Date.now()}`,
@@ -343,7 +385,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
 
     try {
       const certificationData = prepareCertificationData();
-      
+
       await startCertificationFlow({
         certificationData,
         files: uploadedFile ? [uploadedFile] : [],
@@ -371,12 +413,12 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
   const generateFileThumbnail = (fileType: string, fileName: string, fileSize: number): string => {
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
     const sizeText = formatFileSize(fileSize);
-    
+
     // Determine file category and icon
     let iconSvg = '';
     let categoryColor = '#6b7280';
     let categoryText = 'File';
-    
+
     if (fileType.includes('pdf') || extension === 'pdf') {
       iconSvg = `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#ef4444"/><polyline points="14,2 14,8 20,8" fill="none" stroke="#ffffff" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="#ffffff" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="#ffffff" stroke-width="2"/><polyline points="10,9 9,9 8,9" fill="none" stroke="#ffffff" stroke-width="2"/>`;
       categoryColor = '#ef4444';
@@ -435,6 +477,56 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   };
 
+
+  const uploadToMinio = async (): Promise<void> => {
+    setIsUploadingFile(true);
+    setIsUploadLocked(true);
+    setJwtExpiredError(false);
+    setIsUploadFailed(false);
+    
+    // Check token validity before starting upload
+    const { authService } = await import('../../services/authService');
+    if (!authService.isTokenValid()) {
+      setJwtExpiredError(true);
+      setIsUploadFailed(true);
+      setIsUploadLocked(false);
+      setIsUploadingFile(false);
+      // Abort the upload
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+      return;
+    }
+    
+    try {
+      await minioService.uploadCertificationToMinio(
+        uploadedFile ? [uploadedFile] : [],
+        (progress) => setUploadProgress(progress),
+        controllerRef.current!.signal
+      );
+      setIsUploadCompleted(true);
+      setIsUploadFailed(false);
+    } catch (error: any) {
+      // Check if error is due to expired JWT or if upload was aborted
+      if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+        // Upload was aborted, don't show error
+        setIsUploadFailed(false);
+      } else if (error?.isJWTExpired || error?.message?.includes('JWT token non valido') || error?.response?.status === 401) {
+        setJwtExpiredError(true);
+        setIsUploadFailed(true);
+        // Abort the upload
+        if (controllerRef.current) {
+          controllerRef.current.abort();
+        }
+      } else {
+        setIsUploadFailed(true);
+      }
+      setIsUploadLocked(false);
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
   // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
@@ -444,16 +536,91 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
     };
   }, [filePreview]);
 
+  // Listen for JWT token updates to clear expired error
+  useEffect(() => {
+    const handleJWTUpdated = () => {
+      if (jwtExpiredError) {
+        setJwtExpiredError(false);
+        setIsSignatureModalOpen(false);
+      }
+    };
+
+    window.addEventListener('jwtTokenUpdated', handleJWTUpdated);
+    return () => {
+      window.removeEventListener('jwtTokenUpdated', handleJWTUpdated);
+    };
+  }, [jwtExpiredError]);
+
+  // Monitor token expiration during upload
+  useEffect(() => {
+    if (!isUploadingFile) return;
+
+    const checkTokenInterval = setInterval(async () => {
+      const { authService } = await import('../../services/authService');
+      if (!authService.isTokenValid()) {
+        // Token expired during upload - abort and show error
+        setJwtExpiredError(true);
+        setIsUploadFailed(true);
+        setIsUploadLocked(false);
+        if (controllerRef.current) {
+          controllerRef.current.abort();
+        }
+      }
+    }, 5000); // Check every 5 seconds during upload
+
+    return () => {
+      clearInterval(checkTokenInterval);
+    };
+  }, [isUploadingFile]);
+
+
+
+  useEffect(() => {
+    const handler = () => {
+      setShowExitModal(true);
+    };
+
+    window.addEventListener('openExitModal', handler);
+
+    return () => {
+      window.removeEventListener('openExitModal', handler);
+    };
+  }, []);
+
+
+  const handlePendingAction = (action: "home" | "profile" | "logout") => {
+    setNextAction(action);
+    setConfirmExit(false); // Reset checkbox when opening modal
+    setShowExitModal(true);
+  };
+
+  // Reset confirmExit when modal closes
+  const handleCloseExitModal = () => {
+    setShowExitModal(false);
+    setConfirmExit(false);
+  };
+
+  // Handle cancel button click - check if upload is in progress
+  const handleCancel = () => {
+    if (isUploadingFile) {
+      setNextAction("back");
+      setConfirmExit(false); // Reset checkbox when opening modal
+      setShowExitModal(true);
+    } else {
+      onBack();
+    }
+  };
+
   return (
     <>
-      <FormLayout>
-        <div className="space-y-4">
+      <FormLayout isUploadingFile={isUploadingFile}  onRequestExitAction={handlePendingAction}>
+        <div className="space-y-4 pb-32">
           {/* Header */}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-1">Nuova Certificazione</h1>
             <p className="text-slate-400 text-sm">Certifica un file e crea un asset digitale sulla blockchain Algorand</p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* File Upload Section */}
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
@@ -466,142 +633,145 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <p className="text-slate-400 text-xs">Carica il file che vuoi certificare</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* File Upload Box */}
                 <div className="space-y-4">
                   {/* Enhanced File Upload with Preview */}
                   <div className="relative">
-                {!filePreview ? (
-                  <FileUpload
-                    files={[]}
-                    onFileUpload={handleFileUpload}
-                    accept="*/*"
-                    multiple={false}
-                    label="Carica File *"
-                    description="Massimo 20MB, tutti i formati supportati"
-                    id="file-upload"
-                  />
-                ) : (
-                  <div className="relative group">
-                    {/* File Preview in Upload Area */}
-                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 bg-slate-800 hover:border-blue-500 transition-colors">
-                      <div className="flex items-center justify-center min-h-[180px]">
-                        {previewType === 'image' && (
-                          <img
-                            src={filePreview}
-                            alt="Preview"
-                            className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
-                            onError={() => setFilePreview(null)}
-                          />
-                        )}
-                        {previewType === 'video' && (
-                          <div className="relative">
-                            <video
-                              src={filePreview}
-                              className="max-w-full max-h-32 rounded-lg shadow-lg"
-                              controls
-                              preload="metadata"
-                            />
-                            <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                              <VideoCameraIcon className="w-3 h-3" />
-                              Video
+                    {!filePreview ? (
+                      <FileUpload
+                        files={[]}
+                        onFileUpload={handleFileUpload}
+                        accept="*/*"
+                        multiple={false}
+                        label="Carica File *"
+                        description="Tutti i formati sono supportati"
+                        id="file-upload"
+                      />
+                    ) : (
+                      <div className="relative group">
+                        {/* File Preview in Upload Area */}
+                        <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 bg-slate-800 hover:border-blue-500 transition-colors">
+                          <div className="flex items-center justify-center min-h-[180px]">
+                            {previewType === 'image' && (
+                              <img
+                                src={filePreview}
+                                alt="Preview"
+                                className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
+                                onError={() => setFilePreview(null)}
+                              />
+                            )}
+                            {previewType === 'video' && (
+                              <div className="relative">
+                                <video
+                                  src={filePreview}
+                                  className="max-w-full max-h-32 rounded-lg shadow-lg"
+                                  controls
+                                  preload="metadata"
+                                />
+                                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                  <VideoCameraIcon className="w-3 h-3" />
+                                  Video
+                                </div>
+                              </div>
+                            )}
+                            {previewType === 'audio' && (
+                              <div className="w-full max-w-md">
+                                <audio
+                                  src={filePreview}
+                                  controls
+                                  className="w-full"
+                                />
+                                <div className="text-center mt-2 text-slate-300 text-sm flex items-center justify-center gap-1">
+                                  <SpeakerWaveIcon className="w-4 h-4" />
+                                  File Audio
+                                </div>
+                              </div>
+                            )}
+                            {previewType === 'document' && (
+                              <div className="flex items-center justify-center">
+                                <img
+                                  src={generateFileThumbnail(formData.fileType, formData.fileName, formData.fileSize)}
+                                  alt="Document Thumbnail"
+                                  className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
+                                />
+                              </div>
+                            )}
+                            {previewType === 'other' && (
+                              <div className="flex items-center justify-center">
+                                <img
+                                  src={generateFileThumbnail(formData.fileType, formData.fileName, formData.fileSize)}
+                                  alt="File Thumbnail"
+                                  className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+
+                        {/* Hover Overlay with Actions */}
+                        {!isUploadLocked ?
+                          < div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="flex space-x-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Clear current file
+                                  setFilePreview(null);
+                                  setPreviewType('other');
+                                  setUploadedFile(null);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    fileName: '',
+                                    fileSize: 0,
+                                    fileType: '',
+                                    fileExtension: '',
+                                    fileCreationDate: ''
+                                  }));
+                                }}
+                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 border border-slate-600 hover:border-slate-500"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                                Rimuovi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Trigger file input
+                                  const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                                  if (fileInput) {
+                                    fileInput.click();
+                                  }
+                                }}
+                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 border border-slate-600 hover:border-slate-500"
+                              >
+                                <ArrowPathIcon className="w-4 h-4" />
+                                Sostituisci
+                              </button>
                             </div>
                           </div>
-                        )}
-                        {previewType === 'audio' && (
-                          <div className="w-full max-w-md">
-                            <audio
-                              src={filePreview}
-                              controls
-                              className="w-full"
-                            />
-                            <div className="text-center mt-2 text-slate-300 text-sm flex items-center justify-center gap-1">
-                              <SpeakerWaveIcon className="w-4 h-4" />
-                              File Audio
-                            </div>
-                          </div>
-                        )}
-                        {previewType === 'document' && (
-                          <div className="flex items-center justify-center">
-                            <img
-                              src={generateFileThumbnail(formData.fileType, formData.fileName, formData.fileSize)}
-                              alt="Document Thumbnail"
-                              className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
-                            />
-                          </div>
-                        )}
-                        {previewType === 'other' && (
-                          <div className="flex items-center justify-center">
-                            <img
-                              src={generateFileThumbnail(formData.fileType, formData.fileName, formData.fileSize)}
-                              alt="File Thumbnail"
-                              className="max-w-full max-h-32 rounded-lg shadow-lg object-contain"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                    </div>
-                    
-                    {/* Hover Overlay with Actions */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="flex space-x-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Clear current file
-                            setFilePreview(null);
-                            setPreviewType('other');
-                            setUploadedFile(null);
-                            setFormData(prev => ({
-                              ...prev,
-                              fileName: '',
-                              fileSize: 0,
-                              fileType: '',
-                              fileExtension: '',
-                              fileCreationDate: ''
-                            }));
-                          }}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 border border-slate-600 hover:border-slate-500"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                          Rimuovi
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Trigger file input
-                            const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-                            if (fileInput) {
-                              fileInput.click();
+                          : null}
+
+
+                        {/* Hidden File Input for Replace */}
+                        <input
+                          type="file"
+                          id="file-upload"
+                          accept="*/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                              handleFileUpload(Array.from(e.target.files));
                             }
                           }}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 border border-slate-600 hover:border-slate-500"
-                        >
-                          <ArrowPathIcon className="w-4 h-4" />
-                          Sostituisci
-                        </button>
+                          className="hidden"
+                        />
                       </div>
-                    </div>
-                    
-                    {/* Hidden File Input for Replace */}
-                    <input
-                      type="file"
-                      id="file-upload"
-                      accept="*/*"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          handleFileUpload(Array.from(e.target.files));
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </div>
-                )}
+                    )}
                   </div>
                 </div>
-                
+
                 {/* File Information */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-white mb-3">Informazioni File</h4>
@@ -612,28 +782,28 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                         {formData.fileName || 'Nessun file selezionato'}
                       </span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-slate-400">Dimensione:</span>
                       <span className="text-sm text-white font-medium">
                         {formData.fileSize ? formatFileSize(formData.fileSize) : 'N/A'}
                       </span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-slate-400">Tipo:</span>
                       <span className="text-sm text-white font-medium">
                         {formData.fileType || 'N/A'}
                       </span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-slate-400">Estensione:</span>
                       <span className="text-sm text-white font-medium">
                         {formData.fileExtension || 'N/A'}
                       </span>
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-slate-400">Data Creazione:</span>
                       <span className="text-sm text-white font-medium">
@@ -644,10 +814,76 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                 </div>
               </div>
 
+
+              {/* Allert confirm */}
+              <div style={{ marginTop: "10px" }}>
+                {formData.fileCreationDate !== "" && (
+                  <Alert
+                    variant={
+                      jwtExpiredError
+                        ? "error"
+                        : isUploadFailed
+                          ? "error"
+                          : isUploadCompleted
+                            ? "success"
+                            : "info"
+                    }
+                    title={
+                      jwtExpiredError
+                        ? "Autorizzazione wallet scaduta"
+                        : isUploadFailed
+                          ? "Caricamento file fallito"
+                          : isUploadCompleted
+                            ? "Upload completato"
+                            : "Conferma caricamento file"
+                    }
+                    className="space-y-4"
+                  >
+                    <div className="flex flex-col gap-4 self-center">
+                      <p>
+                        {jwtExpiredError
+                          ? "Il token di autorizzazione è scaduto durante il caricamento del file. L'upload è stato interrotto. Per continuare, devi autenticarti nuovamente con il wallet."
+                          : isUploadFailed
+                            ? "Clicca sul pulsante qui sotto per riprovare il caricamento del file."
+                            : isUploadCompleted
+                              ? "Il file è stato caricato correttamente."
+                              : "Sei sicuro di voler caricare questo file? Clicca sul pulsante qui sotto per procedere."}
+                      </p>
+
+                      {/* Mostra il bottone solo se l'upload non è completato */}
+                      {!isUploadCompleted && (
+                        <div className="w-2/5 mx-auto">
+                          {jwtExpiredError ? (
+                            <Button
+                              disabled={isUploadingFile}
+                              className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
+                              onClick={() => setIsSignatureModalOpen(true)}
+                            >
+                              Autentica con Wallet
+                            </Button>
+                          ) : (
+                            <Button
+                              disabled={isUploadingFile}
+                              className="w-full px-6 py-2 shadow-lg hover:shadow-xl"
+                              onClick={uploadToMinio}
+                            >
+                              {isUploadingFile
+                                ? `Upload in corso... ${uploadProgress}%`
+                                : isUploadFailed
+                                  ? "Ritenta upload"
+                                  : "Upload file"}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </Alert>
+                )}
+              </div>
             </div>
 
             {/* Project and Asset Information */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -657,14 +893,14 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <p className="text-slate-400 text-xs">Definisci i dettagli del progetto e dell'asset</p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="relative" ref={projectDropdownRef}>
                     <label className="block text-sm font-medium text-white mb-3">
                       Nome Progetto *
                     </label>
-                    
+
                     {/* Custom dropdown input */}
                     <div className="relative">
                       <input
@@ -686,7 +922,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                         <ChevronDownIcon className={`w-5 h-5 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
-                    
+
                     {/* Dropdown menu */}
                     {isProjectDropdownOpen && (
                       <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -702,7 +938,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                             {project}
                           </button>
                         ))}
-                        
+
                         {/* Always show create new project button if there's a search term */}
                         {projectSearchTerm.trim() && (
                           <div className={`${filteredProjects.length > 0 ? 'border-t border-slate-600' : ''}`}>
@@ -716,27 +952,27 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                             </button>
                           </div>
                         )}
-                        
+
                         {/* Show message when no projects and no search term */}
                         {filteredProjects.length === 0 && !projectSearchTerm.trim() && (
                           <div className="px-4 py-3 text-slate-400 text-center">
-                            {availableProjects.length === 0 
-                              ? 'Nessun progetto in cache' 
+                            {availableProjects.length === 0
+                              ? 'Nessun progetto in cache'
                               : 'Inizia a scrivere per cercare o creare un progetto'
                             }
                           </div>
                         )}
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-slate-500 mt-1">
-                      {availableProjects.length > 0 
-                        ? `${availableProjects.length} progetti disponibili` 
+                      {availableProjects.length > 0
+                        ? `${availableProjects.length} progetti disponibili`
                         : 'Nessun progetto in cache'
                       }
                     </p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-white mb-3">
                       Nome Asset *
@@ -755,7 +991,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Auto-generated fields (Read-only) - Same row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
@@ -773,7 +1009,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Generato da: Nome Progetto + Nome Asset</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
                       <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
@@ -794,7 +1030,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
 
             {/* Type Selection */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -804,7 +1040,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <p className="text-slate-400 text-xs">Specifica il tipo e la descrizione della certificazione</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -817,7 +1053,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                       required
                     />
                   </div>
-                  
+
                   {formData.type === 'altro' && (
                     <Input
                       label="Specifica Tipo Personalizzato *"
@@ -828,7 +1064,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                     />
                   )}
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-white mb-3">
@@ -849,7 +1085,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
             </div>
 
             {/* File Origin (Optional) */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div className={`bg-slate-800 rounded-xl border border-slate-700 p-4 ${!isUploadLocked ? "blur-sm pointer-events-none" : ""}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
                   <DocumentIcon className="w-4 h-4 text-white" />
@@ -859,7 +1095,7 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
                   <p className="text-slate-400 text-xs">Informazioni aggiuntive sulla fonte (opzionale)</p>
                 </div>
               </div>
-              
+
               <Input
                 label="Origine del File"
                 placeholder="Informazioni sulla fonte del file (opzionale)"
@@ -877,38 +1113,132 @@ export const CertificationForm: React.FC<CertificationFormProps> = ({ onBack }) 
               </Alert>
             )}
 
-            {/* Submit Button */}
-            <div className="flex justify-center gap-4 pt-4">
-              <Button
+
+            {/* Submit Button - Fixed at bottom */}
+            <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex gap-4">
+              <button
                 type="button"
-                variant="secondary"
-                onClick={onBack}
-                className="px-6 py-2"
+                onClick={handleCancel}
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-slate-600 hover:bg-slate-500 text-slate-300 font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                }}
               >
                 Annulla
-              </Button>
-              <Button
-                type="submit"
-                disabled={isProcessing}
-                className="px-6 py-2 shadow-lg hover:shadow-xl"
-              >
-                {isProcessing ? 'Certificando...' : 'Certifica'}
-              </Button>
+              </button>
+              {(isProcessing || !isUploadCompleted) ? (
+                <Tooltip 
+                  content="Attendi il completamento dell'upload del file"
+                  position="top"
+                >
+                  <button
+                    type="submit"
+                    disabled={isProcessing || !isUploadCompleted}
+                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                    }}
+                  >
+                    {isProcessing ? 'Certificando...' : 'Certifica'}
+                  </button>
+                </Tooltip>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isProcessing || !isUploadCompleted}
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  {isProcessing ? 'Certificando...' : 'Certifica'}
+                </button>
+              )}
             </div>
           </form>
-        </div>
-      </FormLayout>
+        </div >
+      </FormLayout >
 
       {/* Certification Modal */}
-      {isModalOpen && (
-        <CertificationModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          title="Certificazione"
-          steps={steps}
-          isProcessing={isProcessing}
-          result={mintResult}
-          onRetryStep={retryStep}
+      {
+        isModalOpen && (
+          <CertificationModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            title="Certificazione"
+            steps={steps}
+            isProcessing={isProcessing}
+            result={mintResult}
+            onRetryStep={retryStep}
+          />
+        )
+      }
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <Modal
+          isOpen={showExitModal}
+          onClose={handleCloseExitModal}
+          title="Stai caricando un file"
+          children={
+            <div className="space-y-4">
+              <p className="text-slate-300">
+                Il caricamento del file è ancora in corso. Se esci adesso, l'upload verrà interrotto e perderai il progresso.
+              </p>
+              
+              {/* Confirmation Checkbox */}
+              <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                <input
+                  type="checkbox"
+                  id="confirm-exit"
+                  checked={confirmExit}
+                  onChange={(e) => setConfirmExit(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <label 
+                  htmlFor="confirm-exit" 
+                  className="text-sm text-slate-300 cursor-pointer flex-1"
+                >
+                  Ho compreso che l'upload verrà interrotto e perderò il progresso
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4">
+                <Button
+                  variant="secondary"
+                  onClick={handleCloseExitModal}
+                >
+                  Resta
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setShowExitModal(false);
+                    setConfirmExit(false);
+                    if (nextAction === "home") navigate("/");
+                    if (nextAction === "profile") navigate('/profile');
+                    if (nextAction === "logout") await logout();
+                    if (nextAction === "back") onBack();
+                  }}
+                  disabled={!confirmExit}
+                >
+                  Esci
+                </Button>
+              </div>
+            </div>
+          }
+
+        />
+      )}
+
+      {/* Wallet Signature Modal for JWT expiration */}
+      {walletAddress && (
+        <WalletSignatureModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => {
+            setIsSignatureModalOpen(false);
+            setJwtExpiredError(false);
+          }}
+          walletAddress={walletAddress}
         />
       )}
     </>

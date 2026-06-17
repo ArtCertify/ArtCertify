@@ -1,34 +1,52 @@
 # 🎨 NFT Minting Service
 
-Documentazione completa del servizio di minting NFT per ArtCertify, che implementa la creazione di certificazioni digitali soulbound su blockchain Algorand con storage IPFS.
+Documentazione completa del servizio di minting NFT per ArtCertify, che implementa la creazione di certificazioni digitali soulbound su blockchain Algorand con storage ibrido MINIO + IPFS.
 
 ## 📋 Panoramica
 
 Il NFT Minting Service fornisce:
 - **Creazione NFT soulbound** non trasferibili per certificazioni
-- **Upload automatico IPFS** per metadata e file allegati
+- **Upload automatico MINIO** per file certificazioni (presigned URLs)
+- **Upload automatico IPFS** per metadata JSON solamente
 - **Integrazione CID decoder** per conversione address ↔ CID
 - **Gestione versioning** per aggiornamenti certificazioni
 - **Validazione completa** di dati e transazioni
+- **Supporto legacy** per organizzazioni (file su IPFS)
 
 ## 🏗️ Architettura
 
-### Flusso Completo di Minting
+### Flusso Completo di Minting (Certificazioni - MINIO + IPFS)
 
 ```mermaid
 sequenceDiagram
     participant U as User Form
+    participant M as MinIOService
+    participant B as Backend API
     participant N as NFTMintingService
     participant I as IPFSService
     participant C as CidDecoder
     participant A as AlgorandService
 
     U->>N: createCertification(formData, files)
-    N->>I: uploadCertificationAssets(files, metadata)
-    I->>I: Upload singoli file
-    I-->>N: return fileHashes + metadataHash
+    
+    Note over M,B: Step 1: Upload File su MINIO
+    N->>M: uploadCertificationToMinio(files)
+    M->>B: GET /api/v1/presigned/upload?filename=...
+    B-->>M: Presigned URL
+    M->>MINIO: PUT file (presigned URL)
+    MINIO-->>M: Upload success
+    
+    Note over N,I: Step 2: Upload Metadata JSON su IPFS
+    N->>I: uploadCertificationAssets(files, metadata, userAddress)
+    I->>I: Costruisci URL MINIO per file
+    I->>I: Upload solo metadata JSON su IPFS
+    I-->>N: return metadataHash (solo JSON)
+    
+    Note over N,C: Step 3: CID Conversion
     N->>C: fromCidToAddress(metadataHash)
     C-->>N: return reserveAddress
+    
+    Note over N,A: Step 4: Asset Creation
     N->>A: createAsset(name, unitName, reserveAddress)
     A-->>N: return assetId + txId
     N->>A: updateAssetReserve(assetId, reserveAddress)
@@ -55,7 +73,8 @@ class NFTMintingService {
 
 // Integrazione servizi
 interface ServiceDependencies {
-  ipfsService: IPFSService;
+  ipfsService: IPFSService;      // Solo per metadata JSON
+  minioService: MinIOService;     // Per file certificazioni
   algorandService: AlgorandService;
   cidDecoder: CidDecoder;
 }
@@ -71,8 +90,14 @@ VITE_ALGORAND_NETWORK=testnet
 VITE_ALGOD_SERVER=https://testnet-api.algonode.cloud
 VITE_INDEXER_SERVER=https://testnet-idx.algonode.cloud
 
-# IPFS Configuration
+# Backend API (richiesto per MINIO presigned URLs)
+VITE_API_BASE_URL=http://localhost:8088
+
+# IPFS Configuration (solo per metadata JSON)
 VITE_PINATA_GATEWAY=coffee-quiet-limpet-747.mypinata.cloud
+VITE_PINATA_API_KEY=your_api_key
+VITE_PINATA_API_SECRET=your_api_secret
+VITE_PINATA_JWT=your_jwt_token
 
 # Minting Configuration
 VITE_PRIVATE_KEY_MNEMONIC=your_25_word_mnemonic_phrase
@@ -131,25 +156,30 @@ interface DocumentCertificationData {
 }
 
 const createDocumentCertification = async (
-  data: DocumentCertificationData
+  data: DocumentCertificationData,
+  userAddress: string  // Richiesto per costruire URL MINIO
 ): Promise<MintingResult> => {
   // 1. Validazione dati
   validateCertificationData(data);
   
-  // 2. Preparazione metadata
+  // 2. Upload file su MINIO (già fatto nella pagina "Nuova Certificazione")
+  // I file vengono caricati PRIMA tramite MinIOService.uploadCertificationToMinio()
+  
+  // 3. Preparazione metadata
   const certificationData = prepareCertificationData(data);
   
-  // 3. Upload file e metadata su IPFS
+  // 4. Upload solo metadata JSON su IPFS (con URL MINIO nel JSON)
   const ipfsResult = await this.ipfsService.uploadCertificationAssets(
-    data.files,
+    data.files,  // Usato solo per costruire URL MINIO, non caricati su IPFS
     certificationData,
-    data
+    data,
+    userAddress  // Per costruire URL MINIO
   );
   
-  // 4. Conversione CID metadata → reserve address
+  // 5. Conversione CID metadata → reserve address
   const reserveAddress = this.cidDecoder.fromCidToAddress(ipfsResult.metadataHash);
   
-  // 5. Creazione asset NFT
+  // 6. Creazione asset NFT
   const createResult = await this.algorandService.createAsset({
     assetName: data.assetName,
     unitName: data.unitName,
@@ -165,7 +195,7 @@ const createDocumentCertification = async (
     note: `ArtCertify certification: ${data.documentName}`
   });
   
-  // 6. Aggiornamento reserve address con CID
+  // 7. Aggiornamento reserve address con CID
   const updateResult = await this.algorandService.updateAssetReserve({
     assetId: createResult.assetId,
     newReserveAddress: reserveAddress,
@@ -179,8 +209,8 @@ const createDocumentCertification = async (
     confirmedRound: updateResult.confirmedRound,
     metadataUrl: ipfsResult.metadataUrl,
     ipfsHashes: {
-      metadata: ipfsResult.metadataHash,
-      files: ipfsResult.fileHashes
+      metadata: ipfsResult.metadataHash,  // Solo hash del JSON
+      files: ipfsResult.fileHashes  // Hash vuoto per file MINIO
     },
     finalReserveAddress: reserveAddress
   };
@@ -233,15 +263,14 @@ const createArtifactCertification = async (
 
 ## 📄 Struttura Metadata IPFS
 
-### Metadata Standard ARC-3
+### Metadata Standard ARC-3 (Certificazioni - MINIO + IPFS)
 
 ```json
 {
   "name": "Certificazione Documento - Contratto Affitto",
   "description": "Certificazione digitale per documento legale verificato",
-  "image": "ipfs://QmYourImageHash",
+  "image": "https://s3.caputmundi.artcertify.com/vs6jshyleixfflv57zj2idaysrg2fir3zi4jdyrv4vzwdnzosgv5jdamui/contratto_affitto.pdf",
   "external_url": "https://artcertify.com/cert/12345",
-  "animation_url": "ipfs://QmDocumentFileHash",
   "attributes": [
     {
       "trait_type": "Tipo Certificazione",
@@ -277,25 +306,26 @@ const createArtifactCertification = async (
       "timestamp": "2024-01-15T10:30:00Z"
     },
     
-    // Metadata file IPFS individuali
+    // Metadata file MINIO (per certificazioni)
     "files_metadata": [
       {
         "name": "contratto_affitto.pdf",
-        "ipfsUrl": "ipfs://QmFileHash1",
-        "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmFileHash1"
+        "s3StorageUrl": "https://s3.caputmundi.artcertify.com/vs6jshyleixfflv57zj2idaysrg2fir3zi4jdyrv4vzwdnzosgv5jdamui/contratto_affitto.pdf",
+        "gatewayUrl": "https://s3.caputmundi.artcertify.com/vs6jshyleixfflv57zj2idaysrg2fir3zi4jdyrv4vzwdnzosgv5jdamui/contratto_affitto.pdf"
       },
       {
         "name": "allegato_planimetria.png", 
-        "ipfsUrl": "ipfs://QmFileHash2",
-        "gatewayUrl": "https://gateway.pinata.cloud/ipfs/QmFileHash2"
+        "s3StorageUrl": "https://s3.caputmundi.artcertify.com/vs6jshyleixfflv57zj2idaysrg2fir3zi4jdyrv4vzwdnzosgv5jdamui/allegato_planimetria.png",
+        "gatewayUrl": "https://s3.caputmundi.artcertify.com/vs6jshyleixfflv57zj2idaysrg2fir3zi4jdyrv4vzwdnzosgv5jdamui/allegato_planimetria.png"
       }
     ],
     
-    // Info upload IPFS
-    "ipfs_info": {
+    // Info storage (MINIO per certificazioni)
+    "storage_info": {
       "uploaded_at": "2024-01-15T10:30:00Z",
       "total_files": 2,
-      "gateway": "coffee-quiet-limpet-747.mypinata.cloud"
+      "storage_type": "minio",
+      "base_url": "https://s3.caputmundi.artcertify.com"
     },
     
     // Dati certificazione
@@ -457,7 +487,7 @@ const updateAssetWithCID = async (assetId: number, metadataCID: string) => {
   
   // 3. Verifica conversione inversa
   const convertedCID = CidDecoder.fromAddressToCid(reserveAddress);
-  console.log(`✓ CID conversion verified: ${convertedCID === metadataCID}`);
+  // CID conversion verified: convertedCID === metadataCID
   
   return result;
 };
@@ -547,13 +577,21 @@ interface VersioningInfo {
 const updateCertification = async (
   assetId: number,
   newData: any,
-  newFiles: File[]
+  newFiles: File[],
+  userAddress: string,  // Richiesto per costruire URL MINIO
+  existingJson: any  // JSON esistente con file MINIO
 ): Promise<UpdateResult> => {
   // 1. Recupera info versioning esistente
   const asset = await algorandService.getAssetInfo(assetId);
   const currentCID = CidDecoder.fromAddressToCid(asset.params.reserve);
   
-  // 2. Prepara nuova versione
+  // 2. Upload nuovi file su MINIO (se presenti)
+  if (newFiles.length > 0) {
+    const minioService = new MinIOService();
+    await minioService.uploadCertificationToMinio(newFiles);
+  }
+  
+  // 3. Prepara nuova versione
   const versionInfo: VersioningInfo = {
     currentVersion: getCurrentVersion(asset),
     previousVersion: {
@@ -565,23 +603,32 @@ const updateCertification = async (
     nextVersion: getCurrentVersion(asset) + 1
   };
   
-  // 3. Upload nuovi metadata con versioning
-  const newMetadata = {
+  // 4. Costruisci JSON aggiornato con URL MINIO per nuovi file
+  // I file esistenti vengono letti da existingJson (già su MINIO)
+  // I nuovi file vengono aggiunti con URL MINIO
+  const updatedJson = {
+    ...existingJson,
     ...newData,
     version_info: versionInfo,
     modification_timestamp: new Date().toISOString(),
     previous_cid: currentCID
   };
   
-  const ipfsResult = await ipfsService.uploadJSON(newMetadata);
-  const newReserveAddress = CidDecoder.fromCidToAddress(ipfsResult.IpfsHash);
+  // 5. Upload solo metadata JSON su IPFS (con URL MINIO nel JSON)
+  const ipfsResult = await ipfsService.uploadCertificationVersion(
+    newFiles,  // Usato solo per costruire URL MINIO
+    updatedJson,
+    newData,
+    userAddress  // Per costruire URL MINIO
+  );
+  const newReserveAddress = CidDecoder.fromCidToAddress(ipfsResult.metadataHash);
   
-  // 4. Aggiorna asset
+  // 6. Aggiorna asset
   return await algorandService.updateAssetReserve({
     assetId,
     newReserveAddress,
     managerMnemonic: mnemonic,
-    metadataUrl: `ipfs://${ipfsResult.IpfsHash}`
+    metadataUrl: `ipfs://${ipfsResult.metadataHash}`
   });
 };
 ```
@@ -798,13 +845,8 @@ const getCachedMetadata = async (cid: string): Promise<any | null> => {
 
 ```typescript
 const logMintingOperation = (operation: string, data: any, duration?: number) => {
-  console.log(`[NFT Minting] ${operation}:`, {
-    timestamp: new Date().toISOString(),
-    duration: duration ? `${duration}ms` : undefined,
-    network: import.meta.env.VITE_ALGORAND_NETWORK,
-    gateway: import.meta.env.VITE_PINATA_GATEWAY,
-    ...data
-  });
+  // Logging disabled - use monitoring service in production
+  // Data available: timestamp, duration, network, gateway, ...data
 };
 ```
 

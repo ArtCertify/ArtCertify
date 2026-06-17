@@ -23,20 +23,27 @@ Blockchain Integration:
 ├── Pera Wallet Connect 1.4.2        # Autenticazione sicura
 └── Auto Network Configuration       # TestNet/MainNet automatico
 
-Storage Decentralizzato:
-├── IPFS + Pinata Gateway            # Storage immutabile
+Storage Ibrido:
+├── MINIO/S3 Storage                 # File certificazioni (centralizzato)
+│   ├── Presigned URLs              # Upload sicuro tramite backend API
+│   ├── URL Format                  # s3.caputmundi.artcertify.com/{userAddress}/{filename}
+│   └── MinIOService (v2.0)         # Gestione upload file
+├── IPFS + Pinata Gateway            # Metadata JSON (decentralizzato)
 ├── Multiformats 13.3.7             # CID manipulation
 ├── Uint8arrays 5.1.0               # Binary data handling
 └── LocalStorage + Session Cache    # Performance client
 
-Services Architettura:
-├── PeraWalletService               # Pera Wallet Connect integration
-├── AlgorandService                 # Enhanced blockchain integration
-├── IPFSService                     # Pinata + ARC-19 integration
-├── CidDecoder                      # ARC-19 standard compliance
-├── WalletService                   # Multi-wallet support
-├── NFTService                      # Asset portfolio management
-└── SPIDService                     # Future identity management
+Services Architettura (v2.0):
+├── PeraWalletService (v1.0)        # Pera Wallet Connect integration
+├── AuthService (v2.0)              # JWT authentication with backend API
+├── AlgorandService (v1.0)          # Blockchain integration
+├── IPFSService (v1.0)              # Pinata + ARC-19 integration (solo metadata JSON)
+├── MinIOService (v2.0)             # MINIO/S3 file storage per certificazioni
+├── IPFSUrlService (v1.0)          # IPFS URL and gateway management
+├── CidDecoder (v1.0)               # ARC-19 standard compliance
+├── WalletService (v1.0)            # Multi-wallet support
+├── NFTService (v1.0)               # Asset portfolio management
+└── SPIDService (v1.0)              # SPID identity management (placeholder)
 ```
 
 ## 🏛️ Architettura Generale
@@ -56,24 +63,32 @@ Services Architettura:
 ├─────────────────────────────────────────────────────────────┤
 │  🧠 Business Logic Layer                                   │
 │  ├── Contexts (AuthContext con Pera Wallet)               │
-│  ├── Custom Hooks (usePeraCertificationFlow)              │
-│  │   ├── usePeraWallet (Wallet connection)                │
-│  │   ├── useTransactionSigning (Transaction signing)      │
-│  │   ├── useAsyncState (Async operations)                 │
-│  │   └── useDebounce (Input optimization)                 │
+│  ├── Custom Hooks (v2.0)                                 │
+│  │   ├── usePeraCertificationFlow (v1.0)                 │
+│  │   ├── usePeraWallet (v1.0)                            │
+│  │   ├── useTransactionSigning (v2.0)                    │
+│  │   ├── useWalletSignature (v2.0)                       │
+│  │   ├── useAsyncState (v1.0)                             │
+│  │   ├── useDebounce (v1.0)                               │
+│  │   ├── useIPFSMetadata (v1.0)                          │
+│  │   ├── useLocalStorage (v1.0)                           │
+│  │   ├── useProjectsCache (v1.0)                          │
+│  │   └── useWalletValidation (v1.0)                      │
 │  ├── Smart Retry System (Step-specific recovery)          │
 │  └── Utils (Validation, Formatting, CID conversion)       │
 ├─────────────────────────────────────────────────────────────┤
-│  🔧 Data Layer                                             │
-│  ├── Services (7 core services)                           │
-│  │   ├── PeraWalletService (Wallet Connect integration)   │
-│  │   ├── AlgorandService (Enhanced blockchain)            │
-│  │   ├── IPFSService (Pinata + versioning cache)          │
-│  │   ├── CidDecoder (ARC-19 compliance)                   │
-│  │   ├── NFTService (Portfolio management)                │
-│  │   ├── WalletService (Multi-wallet support)             │
-│  │   └── SPIDService (Future authentication)              │
-│  ├── API Clients (Auto-configured per network)            │
+│  🔧 Data Layer (v2.0)                                     │
+│  ├── Services (9 core services)                           │
+│  │   ├── PeraWalletService (v1.0)                         │
+│  │   ├── AuthService (v2.0)                               │
+│  │   ├── AlgorandService (v1.0)                           │
+│  │   ├── IPFSService (v1.0)                               │
+│  │   ├── IPFSUrlService (v1.0)                           │
+│  │   ├── CidDecoder (v1.0)                                │
+│  │   ├── NFTService (v1.0)                                │
+│  │   ├── WalletService (v1.0)                             │
+│  │   └── SPIDService (v1.0)                               │
+│  ├── API Clients (Auto-configured per network + backend)  │
 │  └── Storage (LocalStorage + Session + Cache)             │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -87,19 +102,27 @@ Services Architettura:
 │  ├── Indexer API (testnet/mainnet-idx.algonode.cloud)     │
 │  └── Explorer (testnet.explorer/explorer.perawallet.app)  │
 ├─────────────────────────────────────────────────────────────┤
-│  📁 Storage Layer (Decentralized)                         │
-│  ├── IPFS Network (Content-addressed storage)             │
+│  📁 Storage Layer (Hybrid: MINIO + IPFS)                   │
+│  ├── MINIO/S3 Storage (File certificazioni)              │
+│  │   ├── Backend API (Presigned URLs)                     │
+│  │   ├── Base URL: s3.caputmundi.artcertify.com          │
+│  │   └── Structure: /{userAddress}/{filename}             │
+│  ├── IPFS Network (Metadata JSON only)                    │
 │  ├── Pinata Gateway (Custom gateway support)              │
-│  ├── Pinata API (File pinning + metadata)                 │
-│  └── CID Resolution (ARC-19 reserve address mapping)      │
+│  ├── Pinata API (JSON pinning + metadata)                 │
+│  └── CID Resolution (ARC-19 reserve address mapping)       │
 ├─────────────────────────────────────────────────────────────┤
 │  🔐 Authentication Layer (Zero Private Keys)              │
 │  ├── Pera Wallet Connect (Primary authentication)         │
 │  │   ├── Mobile (QR Code scanning)                        │
 │  │   ├── Desktop (Direct connection)                      │
 │  │   └── Session Persistence (Auto-reconnect)             │
-│  ├── Transaction Signing (User-controlled)                │
-│  └── SPID Integration (Future government ID)              │
+│  ├── Transaction Signing (v1.0)                           │
+│  ├── JWT Backend Authentication (v2.0)                   │
+│  │   ├── Wallet Signature (Terms & Conditions)           │
+│  │   ├── Auth Transaction (0 Algo self-transfer)           │
+│  │   └── JWT Token Management                             │
+│  └── SPID Integration (v1.0 - placeholder)                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,14 +147,21 @@ sequenceDiagram
     S->>P: Verifica connessione
     P-->>S: Wallet connesso
     
-    Note over F,S: Step 2: IPFS Upload
-    S->>I: uploadCertificationAssets(files, metadata)
-    I-->>S: return ipfsResult (hash, urls)
+    Note over F,S: Step 2: File Upload (MINIO)
+    S->>S: uploadCertificationToMinio(files)
+    S->>Backend: GET /api/v1/presigned/upload?filename=...
+    Backend-->>S: Presigned URL
+    S->>MINIO: PUT file (presigned URL)
+    MINIO-->>S: Upload success
     
-    Note over F,S: Step 3: CID Conversion
+    Note over F,S: Step 3: IPFS Upload (Metadata JSON)
+    S->>I: uploadJSON(metadata with MINIO URLs)
+    I-->>S: return ipfsResult (metadataHash)
+    
+    Note over F,S: Step 4: CID Conversion
     S->>S: convertCidToReserveAddress(ipfsHash)
     
-    Note over F,S: Step 4: Asset Creation
+    Note over F,S: Step 5: Asset Creation
     S->>P: signTransaction(createAssetTxn)
     P->>U: Richiesta firma transazione
     U->>P: Approva firma
@@ -291,9 +321,12 @@ src/components/
 │   ├── DocumentForm.tsx         # Form certificazione documenti
 │   └── BaseCertificationForm.tsx # Form base condiviso
 │
-├── modals/                      # Dialog e modal
-│   ├── CertificationModal.tsx   # Modal stepper certificazione
-│   └── ModifyAttachmentsModal.tsx # Modal modifica allegati
+├── modals/                      # Dialog e modal (v2.0)
+│   ├── CertificationModal.tsx   # v1.0 - Modal stepper certificazione
+│   ├── WalletSignatureModal.tsx # v2.0 - Modal firma Terms & Conditions
+│   ├── TermsAndConditions.tsx   # v2.0 - Componente Termini e Condizioni
+│   ├── ModifyAttachmentsModal.tsx # v1.0 - Modal modifica allegati
+│   └── ModifyOrganizationModal.tsx # v1.0 - Modal modifica organizzazione
 │
 ├── asset/                       # Componenti gestione asset
 │   ├── AssetHeader.tsx          # Header dettagli asset
@@ -543,7 +576,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log errore a servizio monitoring
-    console.error('Error boundary caught an error:', error, errorInfo);
+    // Error boundary caught an error
   }
 
   render() {

@@ -1,6 +1,7 @@
 import { PeraWalletConnect } from '@perawallet/connect';
 import algosdk from 'algosdk';
 import { getAddressExplorerUrl, config } from '../config/environment';
+import { authService } from './authService';
 
 // Types from the documentation
 export interface SignerTransaction {
@@ -44,9 +45,41 @@ class PeraWalletService {
    */
   async connect(): Promise<string[]> {
     try {
+      // Check if already connected - if so, return existing connection
+      if (this.peraWallet.isConnected && this.connectedAccount) {
+        return [this.connectedAccount];
+      }
+
+      // Try to reconnect to existing session first (if any)
+      if (this.hasStoredConnection()) {
+        try {
+          const accounts = await this.peraWallet.reconnectSession();
+          if (accounts.length > 0) {
+            this.connectedAccount = accounts[0];
+            this.setupEventListeners();
+            this.emitEvent('reconnect', accounts[0]);
+            return accounts;
+          }
+        } catch (reconnectError) {
+          // Clear stored connection if reconnect failed
+          this.clearStoredConnection();
+        }
+      }
+
+      // Get previous account before connecting (if any)
+      const previousAccount = this.connectedAccount || localStorage.getItem('pera_wallet_account');
+      
       const accounts = await this.peraWallet.connect();
       
       if (accounts.length > 0) {
+        // If connecting a different wallet, clear all previous authentication data
+        if (previousAccount && previousAccount !== accounts[0]) {
+          authService.clearAllAuthData(previousAccount);
+        } else if (!previousAccount) {
+          // First connection - clear any existing data
+          authService.clearAllAuthData();
+        }
+        
         this.connectedAccount = accounts[0];
         this.setupEventListeners();
         this.emitEvent('connect', accounts[0]);
@@ -58,12 +91,28 @@ class PeraWalletService {
       
       return accounts;
     } catch (error: any) {
+      // Handle "Session currently connected" error by trying to reconnect
+      if (error?.message?.includes('Session currently connected') || error?.message?.includes('session')) {
+        try {
+          const accounts = await this.peraWallet.reconnectSession();
+          if (accounts.length > 0) {
+            this.connectedAccount = accounts[0];
+            this.setupEventListeners();
+            this.emitEvent('reconnect', accounts[0]);
+            localStorage.setItem('pera_wallet_connected', 'true');
+            localStorage.setItem('pera_wallet_account', accounts[0]);
+            return accounts;
+          }
+        } catch (reconnectError) {
+          // Ignore reconnect error
+        }
+      }
+      
       // Don't throw error if user closed modal (normal behavior)
       if (error?.data?.type === 'CONNECT_MODAL_CLOSED') {
         return [];
       }
-      
-      throw new Error('Failed to connect to Pera Wallet');
+      throw new Error(`Failed to connect to Pera Wallet: ${error?.message || 'Unknown error'}`);
     }
   }
 
@@ -73,9 +122,17 @@ class PeraWalletService {
    */
   async reconnectSession(): Promise<string[]> {
     try {
+      // Get previous account before reconnecting (if any)
+      const previousAccount = this.connectedAccount || localStorage.getItem('pera_wallet_account');
+      
       const accounts = await this.peraWallet.reconnectSession();
       
       if (accounts.length > 0) {
+        // If reconnecting a different wallet, clear all previous authentication data
+        if (previousAccount && previousAccount !== accounts[0]) {
+          authService.clearAllAuthData(previousAccount);
+        }
+        
         this.connectedAccount = accounts[0];
         this.setupEventListeners();
         this.emitEvent('reconnect', accounts[0]);
@@ -231,7 +288,7 @@ class PeraWalletService {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in event listener for ${event}:`, error);
+          // Error in event listener - ignore
         }
       });
     }
