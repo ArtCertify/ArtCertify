@@ -237,7 +237,7 @@ class IPFSService {
       for (const file of files) {
         // Build MINIO URL: https://s3.caputmundi.artcertify.com/{lowercase addressUser}/{filename.extension}
         const fileName = encodeURIComponent(file.name);
-        const minioUrl = `https://s3.caputmundi.artcertify.com/${lowercaseAddress}/${fileName}`;
+        const minioUrl = `${config.minioPublicUrl}/${lowercaseAddress}/${fileName}`;
         
         const fileInfo = {
           name: file.name,
@@ -291,7 +291,7 @@ class IPFSService {
               (customJson.properties?.files_metadata?.slice(1)?.length || 0) + individualFileUrls.length :
               (customJson.properties?.files_metadata?.slice(0, 1)?.length || 0) + individualFileUrls.length,
             storage_type: 'minio',
-            base_url: 'https://s3.caputmundi.artcertify.com'
+            base_url: config.minioPublicUrl
           }
         }
       };
@@ -447,7 +447,7 @@ class IPFSService {
         // Build MINIO URL: https://s3.caputmundi.artcertify.com/{lowercase addressUser}/{filename.extension}
         // Encode filename to handle special characters in URL
         const fileName = encodeURIComponent(file.name);
-        const minioUrl = `https://s3.caputmundi.artcertify.com/${lowercaseAddress}/${fileName}`;
+        const minioUrl = `${config.minioPublicUrl}/${lowercaseAddress}/${fileName}`;
         
         const fileInfo = {
           name: file.name,
@@ -487,7 +487,7 @@ class IPFSService {
             uploaded_at: new Date().toISOString(),
             total_files: fileHashes.length,
             storage_type: 'minio',
-            base_url: 'https://s3.caputmundi.artcertify.com'
+            base_url: config.minioPublicUrl
           }
         }
       };

@@ -70,7 +70,10 @@ export const config = {
   
   // Pinata IPFS Gateway (optional for basic functionality)
   pinataGateway: getEnvVar('VITE_PINATA_GATEWAY', true),
-  
+
+  // MinIO/S3 public base URL for certification files (no trailing slash). Set via VITE_MINIO_PUBLIC_URL.
+  minioPublicUrl: getEnvVar('VITE_MINIO_PUBLIC_URL', true).replace(/\/+$/, ''),
+
   // Backend API Base URL (optional - required for authentication)
   api: {
     baseUrl: getEnvVar('VITE_API_BASE_URL', true)
